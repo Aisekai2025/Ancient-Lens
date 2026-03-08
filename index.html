@@ -2,24 +2,33 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ANCIENT LENS 3D: VOLUMETRIC</title>
+    <title>ANCIENT LENS 3D: FIGURE EDITION</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #00040a; font-family: monospace; color: #0f0; }
-        #ui { position: absolute; top: 20px; left: 20px; z-index: 100; pointer-events: none; }
-        canvas { display: block; width: 100vw; height: 100vh; cursor: move; }
+        body { margin: 0; overflow: hidden; background: #000815; font-family: 'Helvetica Neue', Arial, sans-serif; color: #0f0; }
+        #ui { position: absolute; top: 25px; left: 25px; z-index: 100; pointer-events: none; }
+        #overlay { position: absolute; bottom: 25px; left: 25px; font-size: 10px; opacity: 0.4; letter-spacing: 2px; }
+        canvas { display: block; width: 100vw; height: 100vh; cursor: grab; }
+        canvas:active { cursor: grabbing; }
     </style>
 </head>
 <body>
-<div id="ui"><h1>ANCIENT LENS 3D</h1><p>VOLUMETRIC ENGINE v5.0</p></div>
+<div id="ui">
+    <h1 style="margin:0; font-size: 1.2em; letter-spacing: 3px; color: #fff;">ANOMALOCARIS</h1>
+    <p style="font-size: 9px; color: #0f0;">MUSEUM QUALITY / PROCEDURAL FIGURE</p>
+</div>
+<div id="overlay">PRECISION MODELING ENGINE v6.0</div>
 <canvas id="view"></canvas>
 
 <script>
     const canvas = document.getElementById('view');
     const ctx = canvas.getContext('2d');
-    let width, height, angleX = 0.4, angleY = 0.8, zoom = 1.0, time = 0;
+    let width, height, angleX = 0.5, angleY = 0.8, zoom = 1.2, time = 0;
     let isDragging = false, lastX, lastY;
 
-    function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+    function resize() { 
+        width = canvas.width = window.innerWidth; 
+        height = canvas.height = window.innerHeight; 
+    }
     window.addEventListener('resize', resize);
     resize();
 
@@ -29,74 +38,91 @@
         let ny = y * Math.cos(angleX) - nz * Math.sin(angleX);
         let fz = y * Math.sin(angleX) + nz * Math.cos(angleX);
         const p = Math.max(0.1, (fz + 15) / 15) * zoom;
-        return { x: width/2 + nx * 200 * p, y: height/2 + ny * 200 * p, z: fz, scale: p };
+        return { x: width/2 + nx * 220 * p, y: height/2 + ny * 220 * p, z: fz, scale: p };
     }
 
     function draw() {
-        time += 0.03;
-        ctx.fillStyle = '#000815'; ctx.fillRect(0, 0, width, height);
+        time += 0.025;
+        // 背景（展示ケースのような深いライティング）
+        const bg = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width*0.8);
+        bg.addColorStop(0, '#001a33'); bg.addColorStop(1, '#00050a');
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
         
         let drawList = [];
 
-        // 1. 胴体セグメントをリストへ
-        for(let i=0; i<14; i++) {
-            const z = (i * 0.35) - 2.5;
-            const r = Math.max(0.1, (Math.sin(i * 0.25 + 0.4) * 0.45 + 0.1) * (i > 11 ? 0.3 : 1));
-            const p = project(0, Math.sin(time*0.5 + i*0.1)*0.05, z);
+        // 1. 胴体（フィギュアらしい多段パーツ）
+        for(let i=0; i<15; i++) {
+            const z = (i * 0.32) - 2.4;
+            const r = Math.max(0.1, (Math.sin(i * 0.22 + 0.45) * 0.48 + 0.1) * (i > 12 ? 0.4 : 1));
+            const p = project(0, Math.sin(time*0.4 + i*0.12)*0.06, z);
             drawList.push({ type:'body', p:p, r:r, z:p.z, i:i });
         }
 
-        // 2. 13対の鰭（厚みを持たせる）
+        // 2. 鰭（海洋堂風の彩色をイメージ）
         for(let i=0; i<13; i++) {
-            const z = (i * 0.32) - 2.0;
-            const phase = time * 3 - i * 0.5;
-            const wave = Math.sin(phase) * 0.4;
+            const z = (i * 0.3) - 1.9;
+            const phase = time * 2.5 - i * 0.45;
+            const wave = Math.sin(phase) * 0.35;
             [1, -1].forEach(side => {
                 const p1 = project(0.2 * side, 0, z);
-                const p2 = project(1.2 * side, wave, z + Math.cos(phase)*0.1);
+                const p2 = project(1.2 * side, wave, z + Math.cos(phase)*0.08);
                 drawList.push({ type:'flap', p1:p1, p2:p2, z:(p1.z+p2.z)/2, side:side, i:i });
             });
         }
 
-        // 3. 付属肢（腕：3つの節）
+        // 3. 付属肢（腕：関節を意識した造形）
         [1, -1].forEach(side => {
-            const root = project(0.2 * side, 0.2, 2.2);
-            const mid = project(0.4 * side, 0.6 + Math.sin(time*2)*0.3, 2.8);
-            const tip = project(0.3 * side, 1.2 + Math.sin(time*2.2)*0.4, 3.2);
-            drawList.push({ type:'arm', p1:root, p2:mid, p3:tip, z:root.z });
+            const r = project(0.2 * side, 0.1, 2.2);
+            const m = project(0.45 * side, 0.6 + Math.sin(time*1.8)*0.2, 2.7);
+            const t = project(0.35 * side, 1.1 + Math.sin(time*2.0)*0.3, 3.1);
+            drawList.push({ type:'arm', p1:r, p2:m, p3:t, z:r.z });
         });
 
-        // 4. 複眼
+        // 4. 複眼（クリアパーツのような光沢）
         [1, -1].forEach(side => {
-            const p = project(0.6 * side, -0.4, 2.0);
+            const p = project(0.65 * side, -0.45, 2.0);
             drawList.push({ type:'eye', p:p, z:p.z });
         });
 
-        // --- Zソート（奥から描画） ---
         drawList.sort((a, b) => a.z - b.z);
 
         drawList.forEach(obj => {
             if(obj.type === 'body') {
-                const radius = Math.max(0.1, obj.r * 120 * obj.p.scale);
-                const b = Math.floor(Math.max(40, 120 + obj.z * 15));
-                const g = ctx.createRadialGradient(obj.p.x-radius*0.3, obj.p.y-radius*0.3, 1, obj.p.x, obj.p.y, radius);
-                g.addColorStop(0, `rgb(${b+50},50,60)`); g.addColorStop(1, `rgb(${b/2},20,30)`);
+                const radius = Math.max(0.1, obj.r * 115 * obj.p.scale);
+                const b = Math.floor(Math.max(40, 140 + obj.z * 18));
+                // フィギュアらしいハイライト付きグラデーション
+                const g = ctx.createRadialGradient(obj.p.x-radius*0.4, obj.p.y-radius*0.4, 2, obj.p.x, obj.p.y, radius);
+                g.addColorStop(0, `rgb(${Math.min(255, b+80)}, ${Math.min(255, b/2+40)}, ${Math.min(255, b/2+40)})`); // ハイライト
+                g.addColorStop(0.5, `rgb(${b}, 40, 45)`); // ベース
+                g.addColorStop(1, `rgb(${Math.max(0, b/3)}, 15, 20)`); // 影
                 ctx.fillStyle = g; ctx.beginPath(); ctx.arc(obj.p.x, obj.p.y, radius, 0, Math.PI*2); ctx.fill();
+                // 節のライン
+                ctx.strokeStyle = `rgba(0,0,0,0.2)`; ctx.lineWidth = 1; ctx.stroke();
             } else if(obj.type === 'flap') {
-                ctx.fillStyle = `rgba(${160+obj.z*10}, 40, 40, 0.6)`;
-                ctx.strokeStyle = `rgba(255,100,100,0.5)`; ctx.lineWidth = 2 * obj.p1.scale;
+                const b = 150 + obj.z * 15;
+                const g = ctx.createLinearGradient(obj.p1.x, obj.p1.y, obj.p2.x, obj.p2.y);
+                g.addColorStop(0, `rgba(${b}, 40, 45, 0.8)`);
+                g.addColorStop(1, `rgba(${b/2}, 20, 25, 0.5)`);
+                ctx.fillStyle = g;
                 ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); ctx.lineTo(obj.p2.x, obj.p2.y);
-                ctx.lineTo(obj.p2.x, obj.p2.y + 20*obj.p2.scale); ctx.lineTo(obj.p1.x, obj.p1.y + 5*obj.p1.scale);
-                ctx.closePath(); ctx.fill(); ctx.stroke();
+                ctx.lineTo(obj.p2.x, obj.p2.y + 25*obj.p2.scale); ctx.lineTo(obj.p1.x, obj.p1.y + 8*obj.p1.scale);
+                ctx.closePath(); ctx.fill();
+                ctx.strokeStyle = `rgba(255,255,255,0.15)`; ctx.lineWidth = 1; ctx.stroke();
             } else if(obj.type === 'arm') {
-                ctx.strokeStyle = '#822'; ctx.lineWidth = 12 * obj.p1.scale; ctx.lineCap = 'round';
+                ctx.strokeStyle = '#611'; ctx.lineWidth = 14 * obj.p1.scale; ctx.lineCap = 'round';
                 ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); ctx.quadraticCurveTo(obj.p2.x, obj.p2.y, obj.p3.x, obj.p3.y); ctx.stroke();
+                // 腕のハイライト
+                ctx.strokeStyle = '#a44'; ctx.lineWidth = 4 * obj.p1.scale;
+                ctx.beginPath(); ctx.moveTo(obj.p1.x-2, obj.p1.y-2); ctx.quadraticCurveTo(obj.p2.x-2, obj.p2.y-2, obj.p3.x-2, obj.p3.y-2); ctx.stroke();
             } else if(obj.type === 'eye') {
-                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(obj.p.x, obj.p.y, 14*obj.p.scale, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(obj.p.x-4, obj.p.y-4, 4*obj.p.scale, 0, Math.PI*2); ctx.fill();
+                // 球体ガラスのような光沢
+                const r = 15 * obj.p.scale;
+                const eg = ctx.createRadialGradient(obj.p.x-r*0.3, obj.p.y-r*0.3, 1, obj.p.x, obj.p.y, r);
+                eg.addColorStop(0, '#555'); eg.addColorStop(1, '#000');
+                ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(obj.p.x, obj.p.y, r, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(obj.p.x-r*0.4, obj.p.y-r*0.4, r*0.25, 0, Math.PI*2); ctx.fill();
             }
         });
-
         requestAnimationFrame(draw);
     }
 
@@ -104,10 +130,10 @@
     window.addEventListener('mouseup', () => isDragging = false);
     window.addEventListener('mousemove', e => {
         if(!isDragging) return;
-        angleY += (e.clientX - lastX) * 0.01; angleX += (e.clientY - lastY) * 0.01;
+        angleY += (e.clientX - lastX) * 0.008; angleX += (e.clientY - lastY) * 0.008;
         lastX = e.clientX; lastY = e.clientY;
     });
-    window.addEventListener('wheel', e => { zoom = Math.max(0.2, Math.min(3, zoom - e.deltaY * 0.001)); }, {passive: true});
+    window.addEventListener('wheel', e => { zoom = Math.max(0.3, Math.min(3, zoom - e.deltaY * 0.001)); }, {passive: true});
 
     draw();
 </script>
