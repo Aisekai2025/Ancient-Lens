@@ -48,14 +48,16 @@
 
 <div id="observation-gallery"></div>
 
-<!-- インポートマップを廃止し、直接CDNから読み込む方式に切り替えます -->
-<script type="module">
-    // 直接URLを指定してThree.jsをインポート（CORS問題を回避しやすい記述）
-    import * as THREE from 'https://cdn.skypack.dev';
+<!-- ライブラリを従来型のスクリプトタグで読み込む（CORSに強い方式） -->
+<script src="https://cdnjs.cloudflare.com"></script>
+
+<script>
+    // type="module" を外し、直接 THREE を参照する
+    const THREE = window.THREE;
 
     // --- Core Setup ---
-    // ここから下のコード（scene = new THREE.Scene()...など）はそのまま継続
-
+    const scene = new THREE.Scene();
+    // ...以下、以前のロジックをそのまま継続...
 
     // --- Core Setup ---
     const scene = new THREE.Scene();
