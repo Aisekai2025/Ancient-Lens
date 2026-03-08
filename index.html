@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ancient Lens: Burgess Dive</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000b1a; font-family: monospace; color: #0f0; }
@@ -10,24 +11,24 @@
         #info-panel { position: absolute; right: -320px; top: 50%; transform: translateY(-50%); width: 250px; background: rgba(0,20,40,1); border: 1px solid #0f0; padding: 20px; transition: 0.5s; z-index: 100; }
         #info-panel.active { right: 20px; }
         button { background: #0f0; border: none; color: #000; padding: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        #observation-gallery { position: absolute; bottom: 120px; left: 20px; display: flex; gap: 10px; z-index: 100; }
-        .photo-card { width: 60px; height: 60px; border: 1px solid #0f0; background: #111; }
-        body.cinematic::before, body.cinematic::after { content: ''; position: absolute; left: 0; width: 100%; height: 12%; background: #000; z-index: 50; }
-        body.cinematic::before { top: 0; } body.cinematic::after { bottom: 0; }
+        #canvas { width: 100vw; height: 100vh; display: block; }
     </style>
 </head>
 <body>
 
+<canvas id="canvas"></canvas>
+
 <div id="ui">
-    <h1 style="margin:0; font-size: 1.5em;">ANCIENT LENS v2.0</h1>
+    <h1 style="margin:0; font-size: 1.5em;">ANCIENT LENS v3.0</h1>
     <div id="era-label">ERA: CAMBRIAN</div>
+    <p style="font-size: 10px; color: #8f8;">(Native Engine: No Library Mode)</p>
 </div>
 
 <div id="controls">
     <label>CHRONO-SLIDER</label><br>
     <input type="range" id="time-slider" min="0" max="100" value="0" style="width:100%;">
     <button id="hallucigenia-btn">FLIP HALLUCIGENIA</button>
-    <p style="font-size: 10px; margin-top:10px; opacity: 0.7;">[S] PHOTO | [C] CINEMATIC</p>
+    <p style="font-size: 10px; margin-top:10px; opacity: 0.7;">[CLICK CREATURE TO SCAN]</p>
 </div>
 
 <div id="info-panel">
@@ -37,120 +38,147 @@
     <p id="research-note" style="font-size: 0.8em; color: #8f8;"></p>
 </div>
 
-<div id="observation-gallery"></div>
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let time = 0;
+    let eraVal = 0;
+    let isModernView = true;
 
-<!-- 外部読み込みに失敗しても動作するように、モジュールとして読み込み -->
-<script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net';
+    const creatures = [
+        { id: 'anomalocaris', x: 0, y: 0, size: 100, color: '#cc4444' },
+        { id: 'hallucigenia', x: 250, y: 150, size: 60, color: '#bb88ff' }
+    ];
 
-    let scene, camera, renderer, anomalocaris, hallucigenia, leftArm, rightArm;
-    let isCinematic = false;
-    const creatures = [];
+    const creatureData = {
+        'anomalocaris': { name: "アノマロカリス", desc: "最強の捕食者。", research: "このエンジンは外部ライブラリなしで動作しています。" },
+        'hallucigenia': { name: "ハルキゲニア", desc: "トゲを持つ奇妙な生物。", research: "ボタンで上下を反転して観察してください。" }
+    };
 
-    function init() {
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000b1a);
-        
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 2, 8);
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+    window.addEventListener('resize', resize);
+    resize();
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
-        scene.add(ambient);
-        const directional = new THREE.DirectionalLight(0xffffff, 1);
-        directional.position.set(5, 10, 7.5);
-        scene.add(directional);
+    function drawAnomalocaris(x, y, scale, t) {
+        ctx.save();
+        ctx.translate(x, y + Math.sin(t) * 20);
+        ctx.rotate(Math.sin(t * 0.5) * 0.1);
 
-        // Anomalocaris
-        anomalocaris = new THREE.Group();
-        anomalocaris.userData.type = 'anomalocaris';
-        const bodyMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 2, 8, 16), new THREE.MeshStandardMaterial({color: 0xcc4444}));
-        bodyMesh.rotation.x = Math.PI/2;
-        anomalocaris.add(bodyMesh);
-        leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1, 0.2), new THREE.MeshStandardMaterial({color: 0xaa3333}));
-        leftArm.position.set(-0.4, 0, 1.2);
-        anomalocaris.add(leftArm);
-        rightArm = leftArm.clone();
-        rightArm.position.set(0.4, 0, 1.2);
-        anomalocaris.add(rightArm);
-        scene.add(anomalocaris);
-        creatures.push(anomalocaris);
+        // Body
+        ctx.fillStyle = creatures[0].color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 80 * scale, 30 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-        // Hallucigenia
-        hallucigenia = new THREE.Group();
-        hallucigenia.userData.type = 'hallucigenia';
-        hallucigenia.userData.isModernView = true;
-        const hBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 1.2, 4, 16), new THREE.MeshStandardMaterial({color: 0xbb88ff}));
-        hBody.rotation.z = Math.PI/2;
-        hallucigenia.add(hBody);
-        const spines = new THREE.Group();
-        const tentacles = new THREE.Group();
-        for(let i=0; i<7; i++){
-            const s = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.6, 8), new THREE.MeshStandardMaterial({color: 0xdddddd}));
-            s.position.x = (i * 0.2) - 0.6;
-            spines.add(s);
-            const t = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5), new THREE.MeshStandardMaterial({color: 0x8844aa}));
-            t.position.x = (i * 0.2) - 0.6;
-            tentacles.add(t);
+        // Arms
+        ctx.strokeStyle = '#aa3333';
+        ctx.lineWidth = 10 * scale;
+        const armWave = Math.sin(t * 3) * 0.5;
+        // Left Arm
+        ctx.beginPath();
+        ctx.moveTo(60 * scale, -10 * scale);
+        ctx.quadraticCurveTo(120 * scale, (20 + armWave * 40) * scale, 100 * scale, (60 + armWave * 20) * scale);
+        ctx.stroke();
+        // Right Arm
+        ctx.beginPath();
+        ctx.moveTo(60 * scale, 10 * scale);
+        ctx.quadraticCurveTo(120 * scale, (-20 - armWave * 40) * scale, 100 * scale, (-60 - armWave * 20) * scale);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function drawHallucigenia(x, y, scale, t) {
+        ctx.save();
+        ctx.translate(x + Math.sin(t * 0.5) * 50, y);
+        if (!isModernView) ctx.scale(1, -1);
+
+        // Body
+        ctx.fillStyle = creatures[1].color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 60 * scale, 10 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Spines & Tentacles
+        for (let i = 0; i < 7; i++) {
+            const px = (i * 15 - 45) * scale;
+            // Spines
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(px, -5 * scale);
+            ctx.lineTo(px, -40 * scale);
+            ctx.stroke();
+            // Tentacles
+            ctx.strokeStyle = '#84a';
+            ctx.beginPath();
+            ctx.moveTo(px, 5 * scale);
+            ctx.lineTo(px + Math.sin(t * 3 + i) * 10, 30 * scale);
+            ctx.stroke();
         }
-        spines.position.y = 0.3; tentacles.position.y = -0.3; tentacles.rotation.x = Math.PI;
-        hallucigenia.add(spines); hallucigenia.add(tentacles);
-        hallucigenia.position.set(4, -1, 0);
-        scene.add(hallucigenia);
-        creatures.push(hallucigenia);
-
-        scene.add(new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({color: 0x111111})));
-        
-        animate();
+        ctx.restore();
     }
 
     function animate() {
-        requestAnimationFrame(animate);
-        const time = Date.now() * 0.001;
-        anomalocaris.position.y = Math.sin(time) * 0.4;
-        leftArm.rotation.x = Math.sin(time * 2.5) * 0.6;
-        rightArm.rotation.x = Math.sin(time * 2.7) * 0.6;
-        if(isCinematic) {
-            camera.position.x = Math.cos(time*0.5)*8;
-            camera.position.z = Math.sin(time*0.5)*8;
-            camera.lookAt(0,0,0);
+        time += 0.05;
+        // Background
+        const bgB = Math.floor(26 + eraVal * 50);
+        ctx.fillStyle = `rgb(0, 11, ${bgB})`;
+        ctx.fillRect(0, 0, width, height);
+
+        // Marine Snow
+        ctx.fillStyle = 'rgba(136, 255, 136, 0.3)';
+        for(let i=0; i<30; i++) {
+            const px = (Math.sin(time * 0.1 + i) * 0.5 + 0.5) * width;
+            const py = ((time * (1 + i % 3) * 20 + i * 100) % height);
+            ctx.beginPath();
+            ctx.arc(px, py, 2, 0, Math.PI * 2);
+            ctx.fill();
         }
-        renderer.render(scene, camera);
+
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        drawAnomalocaris(centerX - 100, centerY, 1 + eraVal * 0.5, time);
+        drawHallucigenia(centerX + 200, centerY + 100, 1, time);
+
+        requestAnimationFrame(animate);
     }
 
-    // UI Controls
+    // Interactions
     document.getElementById('hallucigenia-btn').onclick = () => {
-        hallucigenia.userData.isModernView = !hallucigenia.userData.isModernView;
-        hallucigenia.rotation.x = hallucigenia.userData.isModernView ? 0 : Math.PI;
+        isModernView = !isModernView;
     };
 
     document.getElementById('time-slider').oninput = (e) => {
-        const v = e.target.value / 100;
-        scene.background.setHSL(0.6, 0.5, 0.05 + v * 0.1);
-        document.getElementById('era-label').innerText = v > 0.5 ? "ERA: ORDOVICIAN" : "ERA: CAMBRIAN";
+        eraVal = e.target.value / 100;
+        document.getElementById('era-label').innerText = eraVal > 0.5 ? "ERA: ORDOVICIAN" : "ERA: CAMBRIAN";
+        creatures[0].color = eraVal > 0.5 ? '#446688' : '#cc4444';
     };
 
-    window.addEventListener('keydown', (e) => {
-        if(e.key.toLowerCase()==='c') { isCinematic = !isCinematic; document.body.classList.toggle('cinematic'); }
-        if(e.key.toLowerCase()==='s') {
-            const url = renderer.domElement.toDataURL();
-            const card = document.createElement('div');
-            card.className = 'photo-card';
-            card.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
-            document.getElementById('observation-gallery').prepend(card);
-        }
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        
+        // 簡易的なクリック判定
+        const dist = Math.hypot(mx - (width/2 - 100), my - height/2);
+        const type = dist < 150 ? 'anomalocaris' : 'hallucigenia';
+        
+        const data = creatureData[type];
+        document.getElementById('creature-name').innerText = data.name;
+        document.getElementById('creature-desc').innerText = data.desc;
+        document.getElementById('research-note').innerText = data.research;
+        document.getElementById('info-panel').classList.add('active');
+        setTimeout(() => document.getElementById('info-panel').classList.remove('active'), 4000);
     });
 
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    init();
+    animate();
 </script>
 </body>
 </html>
