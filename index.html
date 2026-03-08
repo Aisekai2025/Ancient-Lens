@@ -2,9 +2,9 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ANCIENT LENS 3D: ARMORED MONOLITH</title>
+    <title>ANCIENT LENS 3D: TRUE ANOMALOCARIS</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #00020a; font-family: 'Courier New', monospace; color: #fff; }
+        body { margin: 0; overflow: hidden; background: #00040a; font-family: 'Courier New', monospace; color: #fff; }
         #ui { position: absolute; top: 25px; left: 25px; z-index: 100; pointer-events: none; text-shadow: 0 0 15px #0f0; }
         #overlay { position: absolute; bottom: 25px; left: 25px; font-size: 10px; opacity: 0.5; letter-spacing: 2px; }
         canvas { display: block; width: 100vw; height: 100vh; cursor: grab; }
@@ -13,14 +13,14 @@
 <body>
 <div id="ui">
     <h1 style="margin:0; font-size: 1.4em; letter-spacing: 6px;">ANOMALOCARIS</h1>
-    <p style="font-size: 10px; color: #0f0;">INTEGRATED ARMORED SHELL / VER 13.0</p>
+    <p style="font-size: 10px; color: #0f0;">SCIENTIFIC ACCURACY / VER 14.0</p>
 </div>
 <canvas id="view"></canvas>
 
 <script>
     const canvas = document.getElementById('view');
     const ctx = canvas.getContext('2d');
-    let width, height, angleX = 0.5, angleY = 0.8, zoom = 1.5, time = 0;
+    let width, height, angleX = 0.2, angleY = 1.2, zoom = 1.5, time = 0;
     let isDragging = false, lastX, lastY;
 
     function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
@@ -37,48 +37,49 @@
     }
 
     function draw() {
-        time += 0.022;
+        time += 0.025;
         const bg = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
         bg.addColorStop(0, '#001a44'); bg.addColorStop(1, '#000208');
         ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
 
         let drawList = [];
 
-        // 1. 胴体：隙間を埋めるための高密度セグメント（20個に増やし、重なりを強化）
-        for(let i=0; i<20; i++) {
-            const z = (i * 0.25) - 2.5;
-            // 頭部は大きく（シールド）、尾に向かって細く
-            const rBase = (Math.sin(i * 0.15 + 0.8) * 0.6 + 0.2);
-            const r = Math.max(0.2, rBase * (i > 17 ? 0.3 : (i < 3 ? 1.2 : 1)));
-            const p = project(0, Math.sin(time*0.4 + i * 0.08) * 0.06, z);
+        // 1. 胴体：エビのような曲線ライン（22セグメントで滑らかに）
+        for(let i=0; i<22; i++) {
+            const z = (i * 0.22) - 2.5;
+            // 画像のような、背中の盛り上がりを計算（二次関数）
+            const hump = Math.pow(i - 8, 2) * 0.005;
+            const yOffset = -hump + Math.sin(time*0.5 + i*0.1)*0.08;
+            const r = Math.max(0.15, (Math.sin(i * 0.14 + 0.6) * 0.55 + 0.15) * (i > 18 ? 0.3 : 1));
+            const p = project(0, yOffset, z);
             drawList.push({ type:'body', p:p, r:r, z:p.z, i:i });
         }
 
-        // 2. 鰭（ひれ）：肉厚な接続
+        // 2. 鰭：画像のような鋭い重なり（13対）
         for(let i=0; i<13; i++) {
-            const z = (i * 0.32) - 2.0;
-            const phase = time * 2.8 - i * 0.5;
-            const wave = Math.sin(phase) * 0.38;
+            const z = (i * 0.3) - 1.8;
+            const phase = time * 2.8 - i * 0.45;
+            const wave = Math.sin(phase) * 0.3;
             [1, -1].forEach(side => {
-                const p1 = project(0.2 * side, 0, z); 
-                const p2 = project(1.4 * side, wave, z + Math.cos(phase)*0.15);
+                const p1 = project(0.2 * side, -0.1, z); 
+                const p2 = project(1.5 * side, wave, z - 0.2); // 前方に傾ける
                 drawList.push({ type:'flap', p1:p1, p2:p2, z:(p1.z+p2.z)/2, side:side, i:i });
             });
         }
 
-        // 3. 多関節の前肢：胴体内部からの力強い接続
+        // 3. 特徴的な下向き付属肢（アーム）：多関節＋内側のトゲ
         [1, -1].forEach(side => {
-            const root = project(0.18 * side, 0.2, 2.4); // 胴体接続部
-            const m1 = project(0.5 * side, 0.7 + Math.sin(time*2.2)*0.25, 2.8);
-            const m2 = project(0.4 * side, 1.3 + Math.sin(time*2.4)*0.35, 3.2);
-            const t = project(0.3 * side, 1.7 + Math.sin(time*2.6)*0.45, 3.6);
-            drawList.push({ type:'arm', p1:root, p2:m1, p3:m2, p4:t, z:root.z });
+            const r = project(0.15 * side, 0.2, 2.4); 
+            const m1 = project(0.3 * side, 0.6 + Math.sin(time*1.5)*0.1, 2.9);
+            const m2 = project(0.2 * side, 1.2 + Math.sin(time*1.6)*0.2, 3.2); // 強く湾曲
+            const t = project(0.1 * side, 1.8 + Math.sin(time*1.7)*0.3, 3.0); // 内側に巻く
+            drawList.push({ type:'arm', p1:r, p2:m1, p3:m2, p4:t, z:r.z });
         });
 
-        // 4. 眼柄（がんぺい）の太い接続
+        // 4. 眼：頭部シールドからの眼柄
         [1, -1].forEach(side => {
-            const root = project(0.4 * side, -0.15, 2.2); // 頭部シールドから直接生やす
-            const eye = project(0.9 * side, -0.6, 2.4);
+            const root = project(0.45 * side, -0.2, 2.1);
+            const eye = project(0.9 * side, -0.65, 2.4);
             drawList.push({ type:'eyestalk', p1:root, p2:eye, z:eye.z });
         });
 
@@ -86,41 +87,40 @@
 
         drawList.forEach(obj => {
             if(obj.type === 'body') {
-                const radius = Math.max(0.1, obj.r * 130 * obj.p.scale);
-                const b = Math.floor(Math.max(20, 130 + obj.z * 12));
-                // 表面のハイライトを上部に固定（ソフビ塗装＋外骨格）
+                const radius = Math.max(0.1, obj.r * 135 * obj.p.scale);
+                const b = Math.floor(Math.max(20, 140 + obj.z * 12));
                 const g = ctx.createRadialGradient(obj.p.x-radius*0.3, obj.p.y-radius*0.5, 2, obj.p.x, obj.p.y, radius);
                 g.addColorStop(0, `rgb(${Math.min(255, b+110)}, ${Math.min(255, b/1.4+60)}, 80)`);
                 g.addColorStop(0.5, `rgb(${b}, 45, 55)`);
                 g.addColorStop(1, '#000');
-                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(obj.p.x, obj.p.y, radius + 1, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(obj.p.x, obj.p.y, radius, 0, Math.PI*2); ctx.fill();
             } else if(obj.type === 'flap') {
-                const b = 150 + obj.z * 15;
+                const b = 160 + obj.z * 15;
                 const fg = ctx.createLinearGradient(obj.p1.x, obj.p1.y, obj.p2.x, obj.p2.y);
-                fg.addColorStop(0, `rgba(${b}, 55, 70, 1)`);
-                fg.addColorStop(1, `rgba(160, 180, 140, 0.4)`);
+                fg.addColorStop(0, `rgba(${b}, 60, 75, 1)`); // 鰭の付け根を濃く
+                fg.addColorStop(1, `rgba(180, 200, 160, 0.4)`); // 先端を半透明に
                 ctx.fillStyle = fg;
                 ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); ctx.lineTo(obj.p2.x, obj.p2.y);
-                ctx.lineTo(obj.p2.x, obj.p2.y + 30*obj.p2.scale); ctx.lineTo(obj.p1.x, obj.p1.y + 12*obj.p1.scale);
+                ctx.lineTo(obj.p2.x, obj.p2.y + 35*obj.p2.scale); ctx.lineTo(obj.p1.x, obj.p1.y + 15*obj.p1.scale);
                 ctx.closePath(); ctx.fill();
             } else if(obj.type === 'arm') {
                 ctx.strokeStyle = '#522'; ctx.lineWidth = 26 * obj.p1.scale; ctx.lineCap = 'round';
                 ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); 
                 ctx.lineTo(obj.p2.x, obj.p2.y); ctx.lineTo(obj.p3.x, obj.p3.y); ctx.lineTo(obj.p4.x, obj.p4.y);
                 ctx.stroke();
-                // 節足らしい硬質なハイライト
-                ctx.strokeStyle = '#b66'; ctx.lineWidth = 7 * obj.p1.scale;
-                ctx.beginPath(); ctx.moveTo(obj.p1.x-4, obj.p1.y-6); 
-                ctx.lineTo(obj.p2.x-4, obj.p2.y-6); ctx.lineTo(obj.p3.x-4, obj.p3.y-6); ctx.lineTo(obj.p4.x-4, obj.p4.y-6);
+                // 腕の内側のトゲ（擬似ハイライト）
+                ctx.strokeStyle = '#b66'; ctx.lineWidth = 6 * obj.p1.scale;
+                ctx.beginPath(); ctx.moveTo(obj.p1.x-5, obj.p1.y); 
+                ctx.lineTo(obj.p2.x-8, obj.p2.y+5); ctx.lineTo(obj.p3.x-10, obj.p3.y+8);
                 ctx.stroke();
             } else if(obj.type === 'eyestalk') {
-                ctx.strokeStyle = '#955'; ctx.lineWidth = 18 * obj.p1.scale; ctx.lineCap = 'round';
+                ctx.strokeStyle = '#955'; ctx.lineWidth = 20 * obj.p1.scale; ctx.lineCap = 'round';
                 ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); ctx.lineTo(obj.p2.x, obj.p2.y); ctx.stroke();
-                const r = 28 * obj.p2.scale;
+                const r = 30 * obj.p2.scale;
                 const eg = ctx.createRadialGradient(obj.p2.x-r*0.4, obj.p2.y-r*0.4, 2, obj.p2.x, obj.p2.y, r);
-                eg.addColorStop(0, '#888'); eg.addColorStop(0.8, '#000');
+                eg.addColorStop(0, '#888'); eg.addColorStop(1, '#000');
                 ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(obj.p2.x, obj.p2.y, r, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(obj.p2.x-r*0.45, obj.p2.y-r*0.45, r*0.22, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(obj.p2.x-r*0.4, obj.p2.y-r*0.4, r*0.25, 0, Math.PI*2); ctx.fill();
             }
         });
         requestAnimationFrame(draw);
