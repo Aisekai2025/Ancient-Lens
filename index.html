@@ -3,63 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Burgess: Cosmic Microscope</title>
+    <title>Ancient Lens: Burgess Dive</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; }
-        #ui { position: absolute; top: 20px; left: 20px; color: #0f0; pointer-events: none; text-shadow: 1px 1px 5px #000; transition: opacity 0.5; }
-        #controls { position: absolute; bottom: 20px; right: 20px; color: #0f0; background: rgba(0,20,40,0.7); padding: 15px; border: 1px solid #0f0; border-radius: 5px; pointer-events: auto; }
-        #info-panel { position: absolute; right: -300px; top: 50%; transform: translateY(-50%); width: 250px; background: rgba(0, 20, 40, 0.8); border-left: 3px solid #0f0; color: #0f0; padding: 20px; transition: 0.5s; pointer-events: none; }
+        #ui { position: absolute; top: 20px; left: 20px; color: #0f0; pointer-events: none; text-shadow: 1px 1px 5px #000; z-index: 5; }
+        #controls { position: absolute; bottom: 20px; right: 20px; color: #0f0; background: rgba(0,20,40,0.7); padding: 15px; border: 1px solid #0f0; border-radius: 5px; z-index: 20; }
+        #info-panel { position: absolute; right: -300px; top: 50%; transform: translateY(-50%); width: 250px; background: rgba(0, 20, 40, 0.8); border-left: 3px solid #0f0; color: #0f0; padding: 20px; transition: 0.5s; z-index: 15; pointer-events: none; }
         #info-panel.active { right: 20px; }
-        .scan-line { width: 100%; height: 2px; background: #0f0; position: absolute; top: 0; animation: scan 2s linear infinite; opacity: 0.3; }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-        #observation-gallery { position: absolute; bottom: 120px; left: 20px; display: flex; gap: 10px; }
-        .photo-card { width: 60px; height: 60px; border: 1px solid #0f0; cursor: pointer; transition: 0.3s; }
-        .photo-card:hover { transform: scale(1.5); z-index: 10; }
-        body::before, body::after { content: ''; position: absolute; left: 0; width: 100%; height: 0; background: #000; transition: 0.8s; z-index: 10; pointer-events: none; }
-        body.cinematic::before { top: 0; height: 12%; }
-        body.cinematic::after { bottom: 0; height: 12%; }
-        input[type=range] { width: 200px; accent-color: #0f0; }
-        button { background: #0f0; border: none; color: #000; padding: 5px 10px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; }
+        #observation-gallery { position: absolute; bottom: 120px; left: 20px; display: flex; gap: 10px; z-index: 10; }
+        .photo-card { width: 60px; height: 60px; border: 1px solid #0f0; cursor: pointer; }
+        input[type=range] { width: 100%; accent-color: #0f0; cursor: pointer; }
+        button { background: #0f0; border: none; color: #000; padding: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; }
+        body.cinematic::before, body.cinematic::after { content: ''; position: absolute; left: 0; width: 100%; height: 12%; background: #000; z-index: 100; }
+        body.cinematic::before { top: 0; } body.cinematic::after { bottom: 0; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <h1 style="margin:0;">BURGESS DIVE v1.0</h1>
-    <p>Cosmic Microscope / Ancient Aquarium</p>
-    <div id="era-label">ERA: CAMBRIAN (5.05億年前)</div>
+    <h1 style="margin:0; font-size: 1.5em;">ANCIENT LENS</h1>
+    <div id="era-label">ERA: CAMBRIAN</div>
 </div>
 
 <div id="controls">
     <label>CHRONO-SLIDER</label><br>
-    <input type="range" id="time-slider" min="0" max="100" value="0"><br>
-    <button id="hallucigenia-btn">RE-INTERPRET HALLUCIGENIA</button>
-    <p style="font-size: 10px; margin-top:10px;">[S] Photo | [C] Cinematic</p>
+    <input type="range" id="time-slider" min="0" max="100" value="0">
+    <button id="hallucigenia-btn">FLIP HALLUCIGENIA</button>
+    <p style="font-size: 10px; margin-top:5px; opacity: 0.7;">[S] PHOTO | [C] CINEMATIC</p>
 </div>
 
 <div id="info-panel">
-    <div class="scan-line"></div>
     <h2 id="creature-name">---</h2>
-    <p id="creature-desc" style="font-size: 0.85em;"></p>
+    <p id="creature-desc"></p>
     <hr style="border:0; border-top:1px solid #0f0;">
-    <small>LATEST RESEARCH:</small>
-    <p id="research-note" style="font-size: 0.75em; color: #8f8;"></p>
+    <p id="research-note" style="font-size: 0.8em; color: #8f8;"></p>
 </div>
 
 <div id="observation-gallery"></div>
 
-<!-- ライブラリを従来型のスクリプトタグで読み込む（CORSに強い方式） -->
+<!-- ライブラリ読み込み -->
 <script src="https://cdnjs.cloudflare.com"></script>
 
 <script>
-    // type="module" を外し、直接 THREE を参照する
+(function() {
     const THREE = window.THREE;
-
-    // --- Core Setup ---
-    const scene = new THREE.Scene();
-    // ...以下、以前のロジックをそのまま継続...
-
-    // --- Core Setup ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000510);
     scene.fog = new THREE.FogExp2(0x000510, 0.1);
@@ -76,17 +63,13 @@
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x202040));
 
-    // --- Creatures Data ---
+    // Creatures Data
     const creatureData = {
-        'anomalocaris': { name: "アノマロカリス", desc: "カンブリア紀の頂点捕食者。円形の口と鋭い付属肢を持つ。", research: "かつて付属肢はエビの腹部、口はクラゲだと思われていた統合生物。" },
-        'pikaia': { name: "ピカイア", desc: "脊索を持つ、ヒトの最も古い親戚の一つ。", research: "単純な柳の葉のような姿が、後の脊椎動物の遊泳システムの基礎に。" },
-        'hallucigenia': { name: "ハルキゲニア", desc: "「白昼夢」の名を持つ奇妙な生物。トゲと触手を持つ。", research: "1970年代はトゲで歩き、背中の触手で食事をすると考えられていたが、現在は逆さまであることが判明。" },
-        'sacabambaspis': { name: "サカバンバスピス", desc: "オルドビス紀の無顎類。虚無感のある正面顔が特徴。", research: "尾びれの形状が近年再定義され、意外と機敏だった可能性も指摘されている。" }
+        'anomalocaris': { name: "アノマロカリス", desc: "カンブリア紀の頂点捕食者。", research: "最新研究では視力が非常に高く、活発なハンターだった。" },
+        'hallucigenia': { name: "ハルキゲニア", desc: "棘を持つ奇妙な生物。", research: "かつては上下・前後が逆だと思われていた歴史を持つ。" }
     };
 
-    // --- Models & Groups ---
     const creatures = [];
-    const particles = [];
 
     // Anomalocaris
     const anomalocaris = new THREE.Group();
@@ -103,15 +86,13 @@
     scene.add(anomalocaris);
     creatures.push(anomalocaris);
 
-    // Hallucigenia (The Gimmick Star)
+    // Hallucigenia
     const hallucigenia = new THREE.Group();
     hallucigenia.userData.type = 'hallucigenia';
     hallucigenia.userData.isModernView = true;
     const hBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 1, 4, 16), new THREE.MeshPhongMaterial({color: 0xbb88ff}));
     hBody.rotation.z = Math.PI/2;
     hallucigenia.add(hBody);
-    
-    // Spines and Tentacles
     const spines = new THREE.Group();
     const tentacles = new THREE.Group();
     for(let i=0; i<7; i++){
@@ -122,30 +103,21 @@
         tentacle.position.x = (i * 0.15) - 0.45;
         tentacles.add(tentacle);
     }
-    // Modern view: Spines UP, Tentacles DOWN
-    spines.position.y = 0.2; 
-    tentacles.position.y = -0.2; tentacles.rotation.x = Math.PI;
+    spines.position.y = 0.2; tentacles.position.y = -0.2; tentacles.rotation.x = Math.PI;
     hallucigenia.add(spines); hallucigenia.add(tentacles);
     hallucigenia.position.set(2, -1, 1);
     scene.add(hallucigenia);
     creatures.push(hallucigenia);
 
-    // --- Seabed & Particles ---
+    // Seabed
     const seabed = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({color: 0x221a10}));
     seabed.rotation.x = -Math.PI/2; seabed.position.y = -2;
     scene.add(seabed);
 
-    for(let i=0; i<500; i++){
-        const p = new THREE.Mesh(new THREE.SphereGeometry(0.01), new THREE.MeshBasicMaterial({color: 0x88ff88, transparent: true, opacity: 0.4}));
-        p.position.set((Math.random()-0.5)*20, (Math.random()-0.5)*10, (Math.random()-0.5)*20);
-        scene.add(p);
-        particles.push(p);
-    }
-
-    // --- Interactions ---
+    // Interaction
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
-    window.addEventListener('click', (e) => {
+    window.addEventListener('mousedown', (e) => {
         mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);
@@ -154,77 +126,60 @@
             let obj = intersects[0].object;
             while(obj.parent && !obj.userData.type) obj = obj.parent;
             const data = creatureData[obj.userData.type];
-            document.getElementById('creature-name').innerText = data.name;
-            document.getElementById('creature-desc').innerText = data.desc;
-            document.getElementById('research-note').innerText = data.research;
-            document.getElementById('info-panel').classList.add('active');
-            setTimeout(() => document.getElementById('info-panel').classList.remove('active'), 5000);
+            if(data) {
+                document.getElementById('creature-name').innerText = data.name;
+                document.getElementById('creature-desc').innerText = data.desc;
+                document.getElementById('research-note').innerText = data.research;
+                document.getElementById('info-panel').classList.add('active');
+                setTimeout(() => document.getElementById('info-panel').classList.remove('active'), 5000);
+            }
         }
     });
 
-    // Gimmick: Flip Hallucigenia
-    document.getElementById('hallucigenia-btn').addEventListener('click', () => {
+    document.getElementById('hallucigenia-btn').onclick = () => {
         hallucigenia.userData.isModernView = !hallucigenia.userData.isModernView;
-        const targetRot = hallucigenia.userData.isModernView ? 0 : Math.PI;
-        hallucigenia.rotation.x = targetRot;
-        const btn = document.getElementById('hallucigenia-btn');
-        btn.innerText = hallucigenia.userData.isModernView ? "RE-INTERPRET HALLUCIGENIA (1970s)" : "RE-INTERPRET HALLUCIGENIA (MODERN)";
-    });
+        hallucigenia.rotation.x = hallucigenia.userData.isModernView ? 0 : Math.PI;
+    };
 
-    // --- Main Loop ---
     let isCinematic = false;
     function animate() {
         requestAnimationFrame(animate);
         const time = Date.now() * 0.001;
-
-        // Animations
         anomalocaris.position.y = Math.sin(time) * 0.2;
         leftArm.rotation.x = Math.sin(time * 2) * 0.4;
         rightArm.rotation.x = Math.sin(time * 2.1) * 0.4;
-        
-        hallucigenia.position.x = 2 + Math.sin(time * 0.5) * 0.5;
-        tentacles.children.forEach((t, i) => t.rotation.z = Math.sin(time * 3 + i) * 0.2);
-
-        particles.forEach(p => {
-            p.position.y -= 0.002;
-            if(p.position.y < -5) p.position.y = 5;
-        });
-
         if(isCinematic) {
-            const target = anomalocaris;
-            camera.position.lerp(new THREE.Vector3(target.position.x + Math.cos(time*0.5)*3, 1, target.position.z + Math.sin(time*0.5)*3), 0.02);
-            camera.lookAt(target.position);
+            camera.position.x = Math.cos(time*0.3)*4;
+            camera.position.z = Math.sin(time*0.3)*4;
+            camera.lookAt(anomalocaris.position);
         }
-
         renderer.render(scene, camera);
     }
     animate();
 
-    // Hotkeys
     window.addEventListener('keydown', (e) => {
-        if(e.key.toLowerCase() === 'c') {
-            isCinematic = !isCinematic;
-            document.body.classList.toggle('cinematic');
-            document.getElementById('ui').style.opacity = isCinematic ? '0' : '1';
-        }
-        if(e.key.toLowerCase() === 's') {
-            const dataURL = renderer.domElement.toDataURL("image/png");
+        if(e.key.toLowerCase()==='c') { isCinematic = !isCinematic; document.body.classList.toggle('cinematic'); }
+        if(e.key.toLowerCase()==='s') {
+            const url = renderer.domElement.toDataURL();
             const card = document.createElement('div');
             card.className = 'photo-card';
-            card.innerHTML = `<img src="${dataURL}" style="width:100%;height:100%;object-fit:cover;">`;
-            card.onclick = () => window.open(dataURL);
+            card.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
             document.getElementById('observation-gallery').prepend(card);
         }
     });
 
-    // Time Slider Logic
-    document.getElementById('time-slider').addEventListener('input', (e) => {
-        const val = e.target.value / 100;
-        scene.background.lerpColors(new THREE.Color(0x000510), new THREE.Color(0x001525), val);
-        document.getElementById('era-label').innerText = val > 0.5 ? "ERA: ORDOVICIAN (4.4億年前)" : "ERA: CAMBRIAN (5.05億年前)";
-        anomalocaris.scale.set(1+val, 1+val*0.2, 1+val);
-    });
+    document.getElementById('time-slider').oninput = (e) => {
+        const v = e.target.value / 100;
+        scene.background.setHSL(0.6, 0.5, 0.05 + v * 0.1);
+        document.getElementById('era-label').innerText = v > 0.5 ? "ERA: ORDOVICIAN" : "ERA: CAMBRIAN";
+    };
 
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+})();
 </script>
 </body>
 </html>
