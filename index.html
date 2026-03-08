@@ -64,65 +64,59 @@
     window.addEventListener('resize', resize);
     resize();
 
-    function drawAnomalocaris(x, y, scale, t) {
-        ctx.save();
-        ctx.translate(x, y + Math.sin(t) * 20);
-        ctx.rotate(Math.sin(t * 0.5) * 0.1);
-
-        // Body
-        ctx.fillStyle = creatures[0].color;
+    // --- 1. 海底の住人たち（生えてる生き物）の描画 ---
+function drawSessileOrganisms(t) {
+    const startX = width / 2 - 400;
+    for(let i=0; i<5; i++) {
+        const x = startX + i * 150;
+        const y = height / 2 + 150;
+        const wave = Math.sin(t + i);
+        
+        // ディノミスクス（花のような動物）
+        ctx.strokeStyle = '#556b2f';
+        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.ellipse(0, 0, 80 * scale, 30 * scale, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Arms
-        ctx.strokeStyle = '#aa3333';
-        ctx.lineWidth = 10 * scale;
-        const armWave = Math.sin(t * 3) * 0.5;
-        // Left Arm
-        ctx.beginPath();
-        ctx.moveTo(60 * scale, -10 * scale);
-        ctx.quadraticCurveTo(120 * scale, (20 + armWave * 40) * scale, 100 * scale, (60 + armWave * 20) * scale);
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(x + wave * 20, y - 50, x + wave * 10, y - 100);
         ctx.stroke();
-        // Right Arm
+        ctx.fillStyle = '#8b4513';
         ctx.beginPath();
-        ctx.moveTo(60 * scale, 10 * scale);
-        ctx.quadraticCurveTo(120 * scale, (-20 - armWave * 40) * scale, 100 * scale, (-60 - armWave * 20) * scale);
-        ctx.stroke();
-
-        ctx.restore();
-    }
-
-    function drawHallucigenia(x, y, scale, t) {
-        ctx.save();
-        ctx.translate(x + Math.sin(t * 0.5) * 50, y);
-        if (!isModernView) ctx.scale(1, -1);
-
-        // Body
-        ctx.fillStyle = creatures[1].color;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 60 * scale, 10 * scale, 0, 0, Math.PI * 2);
+        ctx.arc(x + wave * 10, y - 100, 15, 0, Math.PI, true);
         ctx.fill();
-
-        // Spines & Tentacles
-        for (let i = 0; i < 7; i++) {
-            const px = (i * 15 - 45) * scale;
-            // Spines
-            ctx.strokeStyle = '#eee';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(px, -5 * scale);
-            ctx.lineTo(px, -40 * scale);
-            ctx.stroke();
-            // Tentacles
-            ctx.strokeStyle = '#84a';
-            ctx.beginPath();
-            ctx.moveTo(px, 5 * scale);
-            ctx.lineTo(px + Math.sin(t * 3 + i) * 10, 30 * scale);
-            ctx.stroke();
-        }
-        ctx.restore();
     }
+}
+
+// --- 2. アノマロカリスのリアル化（ひれの追加） ---
+function drawRealAnomalocaris(x, y, scale, t) {
+    ctx.save();
+    ctx.translate(x, y + Math.sin(t) * 20);
+    
+    // 側面のひれ（13対をループで描画）
+    for(let i=0; i<13; i++) {
+        const offset = i * 10 - 60;
+        const flapWave = Math.sin(t * 2 - i * 0.5) * 15;
+        ctx.fillStyle = 'rgba(204, 68, 68, 0.7)';
+        ctx.beginPath();
+        ctx.ellipse(offset * scale, flapWave * scale, 15 * scale, 40 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // 胴体本体
+    ctx.fillStyle = '#cc4444';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 80 * scale, 25 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 巨大な複眼
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(60 * scale, -25 * scale, 8 * scale, 0, Math.PI * 2);
+    ctx.arc(60 * scale, 25 * scale, 8 * scale, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
+
 
     function animate() {
         time += 0.05;
