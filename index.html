@@ -48,12 +48,14 @@
 
 <div id="observation-gallery"></div>
 
-<script type="importmap">
-    { "imports": { "three": "https://unpkg.com" } }
-</script>
-
+<!-- インポートマップを廃止し、直接CDNから読み込む方式に切り替えます -->
 <script type="module">
-    import * as THREE from 'three';
+    // 直接URLを指定してThree.jsをインポート（CORS問題を回避しやすい記述）
+    import * as THREE from 'https://cdn.skypack.dev';
+
+    // --- Core Setup ---
+    // ここから下のコード（scene = new THREE.Scene()...など）はそのまま継続
+
 
     // --- Core Setup ---
     const scene = new THREE.Scene();
