@@ -2,22 +2,21 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ancient Lens 3D: Native Engine</title>
+    <title>ANCIENT LENS 3D: MASTERPIECE</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000810; font-family: monospace; color: #0f0; }
-        #ui { position: absolute; top: 20px; left: 20px; z-index: 100; pointer-events: none; text-shadow: 0 0 10px #0f0; }
-        #overlay { position: absolute; bottom: 20px; left: 20px; font-size: 10px; opacity: 0.6; pointer-events: none; }
-        canvas { display: block; width: 100vw; height: 100vh; cursor: move; }
+        body { margin: 0; overflow: hidden; background: #00040a; font-family: 'Courier New', monospace; color: #0f0; }
+        #ui { position: absolute; top: 25px; left: 25px; z-index: 100; pointer-events: none; text-shadow: 0 0 15px #0f0; }
+        #overlay { position: absolute; bottom: 25px; left: 25px; font-size: 10px; opacity: 0.5; pointer-events: none; letter-spacing: 1px; }
+        canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <h1 style="margin:0; font-size: 1.2em; letter-spacing: 2px;">ANCIENT LENS 3D</h1>
-    <div id="status">NATIVE ENGINE: ONLINE</div>
+    <h1 style="margin:0; font-size: 1.5em; letter-spacing: 5px;">ANCIENT LENS 3D</h1>
+    <div id="status">BIOLOGICAL ENGINE: MASTERPIECE v4.0</div>
 </div>
-<div id="overlay">DRAG: ROTATE | WHEEL: ZOOM</div>
+<div id="overlay">DRAG: ROTATE | WHEEL: ZOOM | ANALYZING ANOMALOCARIS CANADENSIS...</div>
 
 <canvas id="view"></canvas>
 
@@ -25,105 +24,117 @@
     const canvas = document.getElementById('view');
     const ctx = canvas.getContext('2d');
     let width, height;
-    let angleX = 0.3, angleY = 0.5, zoom = 1.0, time = 0;
+    let angleX = 0.4, angleY = 0.8, zoom = 1.0, time = 0;
     let isDragging = false, lastX, lastY;
-
-    // 最新学説に基づくアノマロカリスの3Dパーツ定義
-    const segments = 12;
-    const bodyPoints = [];
-    const flapPoints = [];
-
-    function initModel() {
-        // ボディの骨格
-        for(let i=0; i<segments; i++) {
-            const z = (i * 0.4) - 2.2;
-            const r = 0.5 - (i * 0.03);
-            bodyPoints.push({x: 0, y: 0, z: z, r: r});
-        }
-        // 13対の鰭（ひれ）の付け根
-        for(let i=0; i<13; i++) {
-            const z = (i * 0.35) - 2.0;
-            flapPoints.push({z: z, id: i});
-        }
-    }
-
-    function project(x, y, z) {
-        // 3Dから2Dへの投影（簡易変換）
-        const s = Math.cos(angleX), c = Math.sin(angleX);
-        const sy = Math.cos(angleY), cy = Math.sin(angleY);
-
-        // Y軸回転
-        let nx = x * cy + z * sy;
-        let nz = -x * sy + z * cy;
-        // X軸回転
-        let ny = y * s - nz * c;
-        let fz = y * c + nz * s;
-
-        const p = (fz + 10) / 10 * zoom;
-        return {
-            x: width/2 + nx * 150 * p,
-            y: height/2 + ny * 150 * p,
-            scale: p
-        };
-    }
 
     function resize() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
     }
 
-    function draw() {
-        time += 0.03;
-        ctx.fillStyle = '#000810';
-        ctx.fillRect(0, 0, width, height);
+    // 3D座標の回転・投影関数（マスター版：Zソート対応の準備）
+    function project(x, y, z) {
+        let nx = x * Math.cos(angleY) + z * Math.sin(angleY);
+        let nz = -x * Math.sin(angleY) + z * Math.cos(angleY);
+        let ny = y * Math.cos(angleX) - nz * Math.sin(angleX);
+        let fz = y * Math.sin(angleX) + nz * Math.cos(angleX);
 
-        // 海底のグリッド（奥行き演出）
-        ctx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
-        for(let i=-5; i<=5; i++) {
-            const p1 = project(i, 1.5, -5), p2 = project(i, 1.5, 5);
-            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-            const p3 = project(-5, 1.5, i), p4 = project(5, 1.5, i);
-            ctx.beginPath(); ctx.moveTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.stroke();
+        const perspective = (fz + 12) / 12 * zoom;
+        return {
+            x: width/2 + nx * 180 * perspective,
+            y: height/2 + ny * 180 * perspective,
+            z: fz,
+            scale: perspective
+        };
+    }
+
+    function draw() {
+        time += 0.035;
+        // 背景グラデーション（深海の奥行き）
+        const bg = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
+        bg.addColorStop(0, '#000b1a'); bg.addColorStop(1, '#000408');
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
+
+        // ゴッドレイ（光の筋をNative描画）
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.03)'; ctx.lineWidth = 2;
+        for(let i=0; i<5; i++){
+            const gx = (width/5)*i + Math.sin(time*0.2+i)*100;
+            ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx-200, height); ctx.stroke();
         }
 
-        // 鰭（ひれ）の描画：最新学説の重なり
-        flapPoints.forEach(f => {
-            const flapWave = Math.sin(time * 2 - f.id * 0.5) * 0.5;
+        // --- 生物描画シーケンス ---
+
+        // 1. 鰭（ひれ）の波状推進アニメーション
+        for(let i=0; i<13; i++) {
+            const z = (i * 0.35) - 2.2;
+            const size = (1 - Math.abs(i-6)/10) * 1.2; // 中央が大きく末端が小さい
+            const phase = time * 3 - i * 0.6;
+            const flapWave = Math.sin(phase) * 0.4;
+            const twist = Math.cos(phase) * 0.2;
+
             [1, -1].forEach(side => {
-                const p1 = project(0.2 * side, 0, f.z);
-                const p2 = project(0.8 * side, flapWave, f.z);
-                const p3 = project(0.8 * side, flapWave, f.z + 0.3);
-                
-                ctx.fillStyle = `rgba(200, 50, 50, ${0.4 + f.id/30})`;
+                const pBase = project(0.2 * side, 0, z);
+                const pMid = project(0.7 * side, flapWave, z + twist);
+                const pEnd = project(1.1 * side, flapWave * 1.5, z + twist * 2);
+
+                const depthColor = Math.floor(150 + pBase.z * 10);
+                ctx.fillStyle = `rgba(${depthColor}, 40, 40, ${0.5 + pBase.z/20})`;
                 ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+                ctx.moveTo(pBase.x, pBase.y);
+                ctx.quadraticCurveTo(pMid.x, pMid.y, pEnd.x, pEnd.y);
+                ctx.lineTo(pEnd.x, pEnd.y + 10 * pEnd.scale);
+                ctx.lineTo(pBase.x, pBase.y + 5 * pBase.scale);
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(255, 100, 100, 0.5)';
-                ctx.stroke();
             });
-        });
+        }
 
-        // ボディの描画
-        bodyPoints.forEach((p, i) => {
-            const pt = project(p.x, p.y + Math.sin(time*0.5)*0.1, p.z);
-            ctx.fillStyle = `rgb(${150-i*5}, 50, 50)`;
+        // 2. 胴体（セグメント構造）
+        for(let i=0; i<14; i++) {
+            const z = (i * 0.38) - 2.5;
+            const r = (Math.sin(i * 0.25 + 0.5) * 0.5 + 0.1) * (i > 10 ? 0.5 : 1);
+            const p = project(0, Math.sin(time*0.5 + i*0.1)*0.05, z);
+            
+            const brightness = Math.floor(100 + p.z * 10);
+            const grad = ctx.createRadialGradient(p.x-5, p.y-5, 0, p.x, p.y, r * 100 * p.scale);
+            grad.addColorStop(0, `rgb(${brightness+50}, 50, 60)`);
+            grad.addColorStop(1, `rgb(${brightness/2}, 20, 30)`);
+            
+            ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.arc(pt.x, pt.y, p.r * 80 * pt.scale * zoom, 0, Math.PI*2);
+            ctx.arc(p.x, p.y, Math.max(0, r * 110 * p.scale * zoom), 0, Math.PI*2);
             ctx.fill();
-        });
+        }
 
-        // 複眼
+        // 3. 最新学説：眼柄（がんぺい）と複眼
         [1, -1].forEach(side => {
-            const eye = project(0.4 * side, -0.3, 1.3);
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(eye.x, eye.y, 8 * eye.scale * zoom, 0, Math.PI*2);
-            ctx.fill();
-            ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(eye.x, eye.y, 5 * eye.scale * zoom, 0, Math.PI*2);
-            ctx.fill();
+            const tHead = time * 0.5;
+            const eyeX = (0.5 * side) + Math.sin(time)*0.05;
+            const eyeY = -0.4 + Math.cos(time*0.7)*0.05;
+            const eyeZ = 2.0;
+
+            const pRoot = project(0.2 * side, 0, 1.8);
+            const pEye = project(eyeX, eyeY, eyeZ);
+
+            ctx.strokeStyle = '#222'; ctx.lineWidth = 6 * pEye.scale * zoom;
+            ctx.beginPath(); ctx.moveTo(pRoot.x, pRoot.y); ctx.lineTo(pEye.x, pEye.y); ctx.stroke();
+
+            // 複眼のハイライト
+            const eg = ctx.createRadialGradient(pEye.x-3, pEye.y-3, 2, pEye.x, pEye.y, 10 * pEye.scale);
+            eg.addColorStop(0, '#888'); eg.addColorStop(1, '#000');
+            ctx.fillStyle = eg;
+            ctx.beginPath(); ctx.arc(pEye.x, pEye.y, 12 * pEye.scale * zoom, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(pEye.x-4, pEye.y-4, 3 * pEye.scale, 0, Math.PI*2); ctx.fill();
         });
+
+        // 4. 付属肢（腕）のうねり
+        for(let side of [1, -1]) {
+            const armStart = project(0.15 * side, 0.1, 2.2);
+            const armMid = project(0.3 * side, 0.4 + Math.sin(time*2)*0.2, 2.8);
+            const armEnd = project(0.2 * side, 0.8 + Math.sin(time*2.1)*0.3, 3.2);
+            ctx.strokeStyle = '#822'; ctx.lineWidth = 10 * armStart.scale * zoom;
+            ctx.beginPath(); ctx.moveTo(armStart.x, armStart.y); 
+            ctx.quadraticCurveTo(armMid.x, armMid.y, armEnd.x, armEnd.y); ctx.stroke();
+        }
 
         requestAnimationFrame(draw);
     }
@@ -133,17 +144,16 @@
     window.addEventListener('mouseup', () => isDragging = false);
     window.addEventListener('mousemove', e => {
         if(!isDragging) return;
-        angleY += (e.clientX - lastX) * 0.01;
-        angleX += (e.clientY - lastY) * 0.01;
+        angleY += (e.clientX - lastX) * 0.007;
+        angleX += (e.clientY - lastY) * 0.007;
         lastX = e.clientX; lastY = e.clientY;
     });
     window.addEventListener('wheel', e => {
-        zoom = Math.max(0.2, Math.min(3, zoom - e.deltaY * 0.001));
-    });
+        zoom = Math.max(0.3, Math.min(2.5, zoom - e.deltaY * 0.0008));
+    }, {passive: true});
 
     window.addEventListener('resize', resize);
     resize();
-    initModel();
     draw();
 </script>
 </body>
