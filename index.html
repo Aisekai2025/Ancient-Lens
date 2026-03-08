@@ -2,20 +2,20 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ANCIENT LENS 3D: ENCYCLOPEDIA EDITION</title>
+    <title>ANCIENT LENS 3D: PURE BIOLOGICAL</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #00040a; font-family: 'Times New Roman', serif; color: #fff; }
+        body { margin: 0; overflow: hidden; background: #000208; font-family: 'Georgia', serif; color: #fff; }
         #ui { position: absolute; top: 25px; left: 25px; z-index: 100; pointer-events: none; }
-        #overlay { position: absolute; bottom: 25px; left: 25px; font-size: 10px; opacity: 0.5; letter-spacing: 2px; color: #88ccff; }
+        #overlay { position: absolute; bottom: 25px; left: 25px; font-size: 10px; opacity: 0.4; letter-spacing: 2px; color: #aab; }
         canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
     </style>
 </head>
 <body>
 <div id="ui">
-    <h1 style="margin:0; font-size: 1.2em; letter-spacing: 4px; color: #eee; font-style: italic;">Scientific Reconstruction</h1>
-    <p style="font-size: 10px; color: #88ccff;">ANOMALOCARIS CANADENSIS / BURGESS SHALE</p>
+    <h1 style="margin:0; font-size: 1.2em; letter-spacing: 4px; color: #eee; font-style: italic;">Biological Reconstruction</h1>
+    <p style="font-size: 10px; color: #aab;">Anomalocaris / Burgess Shale Archive</p>
 </div>
-<div id="overlay">ENCYCLOPEDIA ENGINE v9.0 / VOLUMETRIC RENDERING</div>
+<div id="overlay">ORIGINAL RENDER ENGINE v10.0 / BIOLOGICAL TEXTURING</div>
 <canvas id="view"></canvas>
 
 <script>
@@ -29,102 +29,94 @@
     resize();
 
     function project(x, y, z) {
-        // 回転行列の計算
         let nx = x * Math.cos(angleY) + z * Math.sin(angleY);
         let nz = -x * Math.sin(angleY) + z * Math.cos(angleY);
         let ny = y * Math.cos(angleX) - nz * Math.sin(angleX);
         let fz = y * Math.sin(angleX) + nz * Math.cos(angleX);
-        // パースペクティブ（18はカメラ距離の定数）
         const p = Math.max(0.1, (fz + 18) / 18) * zoom;
-        return { x: width/2 + nx * 260 * p, y: height/2 + ny * 260 * p, z: fz, scale: p };
+        return { x: width/2 + nx * 270 * p, y: height/2 + ny * 270 * p, z: fz, scale: p };
     }
 
     function draw() {
-        time += 0.02;
-        // 背景：深海アクアリウム（深い青）
+        time += 0.018;
+        // 背景：深海（非常に深い紺色）
         const bg = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
-        bg.addColorStop(0, '#000b1a'); bg.addColorStop(1, '#000205');
+        bg.addColorStop(0, '#000b1a'); bg.addColorStop(1, '#000103');
         ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
 
-        // マリンスノー（微細な浮遊物）
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-        for(let i=0; i<40; i++) {
-            const px = (i*width/40 + Math.sin(time*0.2+i)*20)%width;
-            const py = (i*height/20 + time*15)%height;
-            ctx.beginPath(); ctx.arc(px, py, 0.8, 0, Math.PI*2); ctx.fill();
-        }
-        
         let drawList = [];
 
-        // 1. 胴体：カウンターシェーディング（上が赤、下が青白）
+        // 1. 胴体：有機的なセグメント（各節を球体グラデーションで表現）
         for(let i=0; i<16; i++) {
-            const z = (i * 0.35) - 2.8;
-            const r = Math.max(0.1, (Math.sin(i * 0.2 + 0.5) * 0.5 + 0.1) * (i > 13 ? 0.4 : 1));
-            const p = project(0, Math.sin(time*0.4 + i*0.1)*0.06, z);
+            const z = (i * 0.36) - 2.8;
+            const r = Math.max(0.1, (Math.sin(i * 0.22 + 0.5) * 0.52 + 0.08) * (i > 13 ? 0.4 : 1));
+            const p = project(0, Math.sin(time*0.4 + i*0.12)*0.08, z);
             drawList.push({ type:'body', p:p, r:r, z:p.z, i:i });
         }
 
-        // 2. 鰭：最新学説の13対（先端透過）
+        // 2. 鰭（ひれ）：画像のような複雑な重なりと構造色
         for(let i=0; i<13; i++) {
-            const z = (i * 0.35) - 2.4;
-            const phase = time * 2.5 - i * 0.5;
-            const wave = Math.sin(phase) * 0.4;
+            const z = (i * 0.34) - 2.4;
+            const phase = time * 2.2 - i * 0.55;
+            const wave = Math.sin(phase) * 0.35;
             [1, -1].forEach(side => {
-                const p1 = project(0.2 * side, 0, z);
-                const p2 = project(1.3 * side, wave, z + Math.cos(phase)*0.1);
+                const p1 = project(0.25 * side, 0, z);
+                const p2 = project(1.4 * side, wave, z + Math.cos(phase)*0.15);
                 drawList.push({ type:'flap', p1:p1, p2:p2, z:(p1.z+p2.z)/2, side:side, i:i });
             });
         }
 
-        // 3. 付属肢：リアルな節足構造
+        // 3. 付属肢（腕）：トゲのシルエットを含む
         [1, -1].forEach(side => {
-            const r = project(0.2 * side, 0.1, 2.2);
-            const m = project(0.5 * side, 0.6 + Math.sin(time*2.5)*0.2, 2.7);
-            const t = project(0.4 * side, 1.2 + Math.sin(time*2.8)*0.4, 3.1);
+            const r = project(0.2 * side, 0.1, 2.3);
+            const m = project(0.55 * side, 0.7 + Math.sin(time*2.2)*0.25, 2.8);
+            const t = project(0.45 * side, 1.4 + Math.sin(time*2.4)*0.35, 3.3);
             drawList.push({ type:'arm', p1:r, p2:m, p3:t, z:r.z });
         });
 
-        // 4. 複眼：個眼構造とレンズ光沢
+        // 4. 複眼：濡れた質感の巨大な球体
         [1, -1].forEach(side => {
-            const p = project(0.85 * side, -0.55, 2.0);
+            const p = project(0.8 * side, -0.5, 2.1);
             drawList.push({ type:'eye', p:p, z:p.z });
         });
 
-        // Zソート（描画順序を管理）
+        // Zソート
         drawList.sort((a, b) => a.z - b.z);
 
         drawList.forEach(obj => {
             if(obj.type === 'body') {
-                const radius = Math.max(0.1, obj.r * 125 * obj.p.scale);
-                const b = Math.floor(Math.max(30, 130 + obj.z * 15));
-                const g = ctx.createLinearGradient(obj.p.x, obj.p.y - radius, obj.p.x, obj.p.y + radius);
-                g.addColorStop(0, `rgb(${b+60}, 40, 50)`); // 背中の深紅
-                g.addColorStop(1, `rgb(${b+50}, 180, 180)`); // 腹側のシアン
+                const radius = Math.max(0.1, obj.r * 130 * obj.p.scale);
+                const b = Math.floor(Math.max(20, 110 + obj.z * 15));
+                const g = ctx.createRadialGradient(obj.p.x-radius*0.3, obj.p.y-radius*0.3, 1, obj.p.x, obj.p.y, radius);
+                // 画像に近い、渋みのあるオレンジブラウン
+                g.addColorStop(0, `rgb(${b+70}, ${b/1.5+30}, ${b/2+20})`);
+                g.addColorStop(0.6, `rgb(${b}, ${b/2}, ${b/3})`);
+                g.addColorStop(1, '#000');
                 ctx.fillStyle = g; ctx.beginPath(); ctx.arc(obj.p.x, obj.p.y, radius, 0, Math.PI*2); ctx.fill();
-                ctx.strokeStyle = `rgba(0,0,0,0.25)`; ctx.lineWidth = 1; ctx.stroke();
             } else if(obj.type === 'flap') {
-                const b = 160 + obj.z * 15;
+                const b = 140 + obj.z * 15;
                 const fg = ctx.createLinearGradient(obj.p1.x, obj.p1.y, obj.p2.x, obj.p2.y);
-                fg.addColorStop(0, `rgba(${b}, 50, 60, 0.95)`);
-                fg.addColorStop(1, `rgba(120, 200, 220, 0.1)`);
+                // 構造色（紫〜黄のニュアンス）
+                fg.addColorStop(0, `rgba(${b}, ${b/1.5}, ${b/2}, 0.9)`);
+                fg.addColorStop(0.8, `rgba(${b/2}, ${b/1.8}, 50, 0.5)`);
+                fg.addColorStop(1, `rgba(100, 100, 150, 0.1)`);
                 ctx.fillStyle = fg;
                 ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); ctx.lineTo(obj.p2.x, obj.p2.y);
-                ctx.lineTo(obj.p2.x, obj.p2.y + 30*obj.p2.scale); ctx.lineTo(obj.p1.x, obj.p1.y + 12*obj.p1.scale);
+                ctx.lineTo(obj.p2.x, obj.p2.y + 40*obj.p2.scale); ctx.lineTo(obj.p1.x, obj.p1.y + 12*obj.p1.scale);
                 ctx.closePath(); ctx.fill();
-                ctx.strokeStyle = `rgba(255,255,255,0.08)`; ctx.lineWidth = 1; ctx.stroke();
+                ctx.strokeStyle = `rgba(255,255,255,0.1)`; ctx.lineWidth = 1; ctx.stroke();
             } else if(obj.type === 'arm') {
-                ctx.strokeStyle = '#522'; ctx.lineWidth = 15 * obj.p1.scale; ctx.lineCap = 'round';
+                ctx.strokeStyle = '#521'; ctx.lineWidth = 18 * obj.p1.scale; ctx.lineCap = 'round';
                 ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); ctx.quadraticCurveTo(obj.p2.x, obj.p2.y, obj.p3.x, obj.p3.y); ctx.stroke();
-                // 塗装的なハイライト
-                ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 3 * obj.p1.scale;
-                ctx.beginPath(); ctx.moveTo(obj.p1.x-3, obj.p1.y-3); ctx.quadraticCurveTo(obj.p2.x-3, obj.p2.y-3, obj.p3.x-3, obj.p3.y-3); ctx.stroke();
+                // 腕のトゲ（ギザギザ）を擬似表現
+                ctx.setLineDash([5, 10]); ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+                ctx.stroke(); ctx.setLineDash([]);
             } else if(obj.type === 'eye') {
-                const r = 20 * obj.p.scale;
-                const eg = ctx.createRadialGradient(obj.p.x-r*0.3, obj.p.y-r*0.3, 2, obj.p.x, obj.p.y, r);
-                eg.addColorStop(0, '#555'); eg.addColorStop(0.7, '#000'); eg.addColorStop(1, '#000');
+                const r = 22 * obj.p.scale;
+                const eg = ctx.createRadialGradient(obj.p.x-r*0.3, obj.p.y-r*0.3, 1, obj.p.x, obj.p.y, r);
+                eg.addColorStop(0, '#666'); eg.addColorStop(0.8, '#000');
                 ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(obj.p.x, obj.p.y, r, 0, Math.PI*2); ctx.fill();
-                // 潤んだような鋭い反射
-                ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.arc(obj.p.x-r*0.45, obj.p.y-r*0.45, r*0.2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.beginPath(); ctx.arc(obj.p.x-r*0.45, obj.p.y-r*0.45, r*0.25, 0, Math.PI*2); ctx.fill();
             }
         });
         requestAnimationFrame(draw);
