@@ -5,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ancient Lens: Burgess Dive</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; color: #0f0; }
+        body { margin: 0; overflow: hidden; background: #000510; font-family: monospace; color: #0f0; }
         #ui { position: absolute; top: 20px; left: 20px; pointer-events: none; z-index: 100; }
         #controls { position: absolute; bottom: 20px; right: 20px; background: rgba(0,20,40,0.8); padding: 15px; border: 1px solid #0f0; border-radius: 5px; z-index: 100; }
         #info-panel { position: absolute; right: -320px; top: 50%; transform: translateY(-50%); width: 250px; background: rgba(0, 20, 40, 0.9); border-left: 3px solid #0f0; padding: 20px; transition: 0.5s; z-index: 100; }
         #info-panel.active { right: 20px; }
         #observation-gallery { position: absolute; bottom: 120px; left: 20px; display: flex; gap: 10px; z-index: 100; }
-        .photo-card { width: 60px; height: 60px; border: 1px solid #0f0; cursor: pointer; background: #111; }
-        input[type=range] { width: 100%; accent-color: #0f0; }
+        .photo-card { width: 60px; height: 60px; border: 1px solid #0f0; background: #111; }
         button { background: #0f0; border: none; color: #000; padding: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; }
         body.cinematic::before, body.cinematic::after { content: ''; position: absolute; left: 0; width: 100%; height: 12%; background: #000; z-index: 50; }
         body.cinematic::before { top: 0; } body.cinematic::after { bottom: 0; }
@@ -21,49 +20,50 @@
 <body>
 
 <div id="ui">
-    <h1 style="margin:0; font-size: 1.5em;">ANCIENT LENS</h1>
+    <h1 style="margin:0; font-size: 1.2em;">ANCIENT LENS v1.1</h1>
     <div id="era-label">ERA: CAMBRIAN</div>
 </div>
 
 <div id="controls">
     <label>CHRONO-SLIDER</label><br>
-    <input type="range" id="time-slider" min="0" max="100" value="0">
+    <input type="range" id="time-slider" min="0" max="100" value="0" style="width:100%;">
     <button id="hallucigenia-btn">FLIP HALLUCIGENIA</button>
     <p style="font-size: 10px; margin-top:10px; opacity: 0.7;">[S] PHOTO | [C] CINEMATIC</p>
 </div>
 
 <div id="info-panel">
-    <h2 id="creature-name" style="margin-top:0;">---</h2>
-    <p id="creature-desc"></p>
+    <h2 id="creature-name" style="margin-top:0; font-size: 1.2em;">---</h2>
+    <p id="creature-desc" style="font-size: 0.9em;"></p>
     <hr style="border:0; border-top:1px solid #0f0;">
-    <p id="research-note" style="font-size: 0.8em; color: #8f8;"></p>
+    <p id="research-note" style="font-size: 0.7em; color: #8f8;"></p>
 </div>
 
 <div id="observation-gallery"></div>
 
-<!-- 読み込み完了を検知するために onload を追加 -->
-<script src="https://cdnjs.cloudflare.com" onload="initApp()"></script>
+<script src="https://cdnjs.cloudflare.com"></script>
 
 <script>
 function initApp() {
-    const THREE = window.THREE;
-    if (!THREE) return;
+    if (typeof THREE === 'undefined') return;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000510);
-    scene.fog = new THREE.FogExp2(0x000510, 0.1);
-
+    
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 1.5, 5);
+    camera.position.set(0, 2, 7); // 少し引いた位置から開始
+    camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
-    const light = new THREE.PointLight(0xeeeeff, 2, 50);
-    light.position.set(5, 5, 5);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0x202040));
+    // ライトを強化（どこからでも見えるように）
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    mainLight.position.set(5, 10, 7.5);
+    scene.add(mainLight);
 
     const creatures = [];
     const creatureData = {
@@ -74,14 +74,14 @@ function initApp() {
     // Anomalocaris
     const anomalocaris = new THREE.Group();
     anomalocaris.userData.type = 'anomalocaris';
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 2, 4, 16), new THREE.MeshPhongMaterial({color: 0xcc4444}));
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 2, 8, 16), new THREE.MeshStandardMaterial({color: 0xcc4444}));
     body.rotation.x = Math.PI/2;
     anomalocaris.add(body);
-    const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), new THREE.MeshPhongMaterial({color: 0xaa3333}));
-    leftArm.position.set(-0.3, 0, 1.1);
+    const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1, 0.15), new THREE.MeshStandardMaterial({color: 0xaa3333}));
+    leftArm.position.set(-0.4, 0, 1.2);
     anomalocaris.add(leftArm);
     const rightArm = leftArm.clone();
-    rightArm.position.set(0.3, 0, 1.1);
+    rightArm.position.set(0.4, 0, 1.2);
     anomalocaris.add(rightArm);
     scene.add(anomalocaris);
     creatures.push(anomalocaris);
@@ -90,29 +90,30 @@ function initApp() {
     const hallucigenia = new THREE.Group();
     hallucigenia.userData.type = 'hallucigenia';
     hallucigenia.userData.isModernView = true;
-    const hBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 1, 4, 16), new THREE.MeshPhongMaterial({color: 0xbb88ff}));
+    const hBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 1.2, 4, 16), new THREE.MeshStandardMaterial({color: 0xbb88ff}));
     hBody.rotation.z = Math.PI/2;
     hallucigenia.add(hBody);
     const spines = new THREE.Group();
     const tentacles = new THREE.Group();
     for(let i=0; i<7; i++){
-        const spine = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.4, 8), new THREE.MeshPhongMaterial({color: 0xeeeeee}));
-        spine.position.x = (i * 0.15) - 0.45;
+        const spine = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.5, 8), new THREE.MeshStandardMaterial({color: 0xdddddd}));
+        spine.position.x = (i * 0.18) - 0.5;
         spines.add(spine);
-        const tentacle = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.3, 0.01), new THREE.MeshPhongMaterial({color: 0x8844aa}));
-        tentacle.position.x = (i * 0.15) - 0.45;
-        tentacles.add(tentacle);
+        const tent = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.4), new THREE.MeshStandardMaterial({color: 0x8844aa}));
+        tent.position.x = (i * 0.18) - 0.5;
+        tentacles.add(tent);
     }
-    spines.position.y = 0.2; tentacles.position.y = -0.2; tentacles.rotation.x = Math.PI;
+    spines.position.y = 0.25; tentacles.position.y = -0.25; tentacles.rotation.x = Math.PI;
     hallucigenia.add(spines); hallucigenia.add(tentacles);
-    hallucigenia.position.set(2, -1, 1);
+    hallucigenia.position.set(3, -1, 0);
     scene.add(hallucigenia);
     creatures.push(hallucigenia);
 
-    const seabed = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({color: 0x221a10}));
+    const seabed = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({color: 0x221a10}));
     seabed.rotation.x = -Math.PI/2; seabed.position.y = -2;
     scene.add(seabed);
 
+    // Interaction
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     window.addEventListener('mousedown', (e) => {
@@ -129,7 +130,7 @@ function initApp() {
                 document.getElementById('creature-desc').innerText = data.desc;
                 document.getElementById('research-note').innerText = data.research;
                 document.getElementById('info-panel').classList.add('active');
-                setTimeout(() => document.getElementById('info-panel').classList.remove('active'), 5000);
+                setTimeout(() => document.getElementById('info-panel').classList.remove('active'), 4000);
             }
         }
     });
@@ -143,13 +144,15 @@ function initApp() {
     function animate() {
         requestAnimationFrame(animate);
         const time = Date.now() * 0.001;
-        anomalocaris.position.y = Math.sin(time) * 0.2;
-        leftArm.rotation.x = Math.sin(time * 2) * 0.4;
-        rightArm.rotation.x = Math.sin(time * 2.1) * 0.4;
+        
+        anomalocaris.position.y = Math.sin(time) * 0.3;
+        leftArm.rotation.x = Math.sin(time * 2) * 0.5;
+        rightArm.rotation.x = Math.sin(time * 2.2) * 0.5;
+        
         if(isCinematic) {
-            camera.position.x = Math.cos(time*0.3)*5;
-            camera.position.z = Math.sin(time*0.3)*5;
-            camera.lookAt(anomalocaris.position);
+            camera.position.x = Math.cos(time*0.4)*7;
+            camera.position.z = Math.sin(time*0.4)*7;
+            camera.lookAt(0,0,0);
         }
         renderer.render(scene, camera);
     }
@@ -179,6 +182,8 @@ function initApp() {
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 }
+// ページ読み込み完了後に確実に起動
+window.onload = initApp;
 </script>
 </body>
 </html>
