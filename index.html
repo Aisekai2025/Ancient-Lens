@@ -3,160 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANCIENT LENS: MASTER EDITION</title>
+    <title>ANCIENT LENS: ULTIMATE EDITION</title>
     <style>
         body { margin: 0; overflow: hidden; background: #00060d; font-family: 'Courier New', Courier, monospace; color: #0f0; }
         #ui { position: absolute; top: 25px; left: 25px; z-index: 100; pointer-events: none; text-shadow: 0 0 10px #0f0; }
-        #controls { position: absolute; bottom: 25px; right: 25px; background: rgba(0,15,30,0.9); padding: 20px; border: 1px solid #0f0; z-index: 100; box-shadow: 0 0 20px rgba(0,255,0,0.3); border-radius: 4px; }
-        #info-panel { position: absolute; right: -350px; top: 50%; transform: translateY(-50%); width: 280px; background: rgba(0,5,10,0.95); border-left: 5px solid #0f0; padding: 25px; transition: 0.7s cubic-bezier(0.19, 1, 0.22, 1); z-index: 100; box-shadow: -10px 0 30px rgba(0,0,0,0.8); }
+        #controls { position: absolute; bottom: 25px; right: 25px; background: rgba(0,15,30,0.9); padding: 15px; border: 1px solid #0f0; z-index: 100; box-shadow: 0 0 20px rgba(0,255,0,0.3); }
+        #info-panel { position: absolute; right: -350px; top: 50%; transform: translateY(-50%); width: 280px; background: rgba(0,5,10,0.95); border-left: 5px solid #0f0; padding: 25px; transition: 0.6s; z-index: 100; }
         #info-panel.active { right: 25px; }
-        button { background: #0f0; border: none; color: #000; padding: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0% 100%); transition: 0.2s; }
-        button:hover { background: #fff; }
+        button { background: #0f0; border: none; color: #000; padding: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; transition: 0.2s; }
         input[type=range] { width: 100%; accent-color: #0f0; cursor: pointer; }
-        .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
     </style>
 </head>
 <body>
 <canvas id="canvas"></canvas>
 <div id="ui">
     <h1 style="margin:0; font-size: 1.8em; letter-spacing: 4px;">ANCIENT LENS</h1>
-    <div id="era-label" style="font-weight: bold; font-size: 1.2em;">SYSTEM: ACTIVE</div>
-    <p style="font-size: 10px;">ULTIMATE BIOLOGICAL SIMULATOR v7.0</p>
+    <div id="era-label" style="font-weight: bold; font-size: 1.2em;">STATUS: ULTIMATE MODE</div>
+    <p style="font-size: 10px; color: #8f8;">WHEEL: ZOOM | CLICK: SCAN | C: CINEMATIC</p>
 </div>
 <div id="controls">
-    <span class="label">Evolutionary Axis</span><br>
+    <span style="font-size:10px;">EVOLUTION SLIDER</span><br>
     <input type="range" id="time-slider" min="0" max="100" value="0">
-    <button id="hallucigenia-btn">RE-INTERPRET SPECIMEN</button>
+    <button id="hallucigenia-btn">RE-INTERPRET HALLUCIGENIA</button>
 </div>
-<div id="info-panel"><h2 id="creature-name" style="margin-top:0; color:#fff; border-bottom: 1px solid #0f0;">---</h2><p id="creature-desc" style="font-size: 0.95em; line-height: 1.6;"></p><p id="research-note" style="font-size: 0.8em; color: #8f8; border-left: 2px solid #8f8; padding-left: 10px;"></p></div>
+<div id="info-panel"><h2 id="creature-name" style="margin-top:0; color:#fff; border-bottom: 1px solid #0f0;">---</h2><p id="creature-desc" style="font-size: 0.9em; line-height: 1.6;"></p><p id="research-note" style="font-size: 0.75em; color: #8f8; font-style: italic;"></p></div>
 
 <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    let width, height, time = 0, eraVal = 0, isModernView = true;
-
-    const creatureData = {
-        'anomalocaris': { name: "ANOMALOCARIS", desc: "カンブリア紀最大の捕食者。13対の鰭（ひれ）を個別に制御し、流体力学的に最適化された遊泳を行う。", research: "マスター版では、キチン質の殻の光沢と、32枚のプレートからなる口器の構造影を再現。" },
-        'hallucigenia': { name: "HALLUCIGENIA", desc: "棘皮動物に近い特徴を持つ奇妙な生物。背面の棘は防御用、腹面の触手は歩行用とされる。", research: "最新の3D陰影により、トゲの硬質感と肉体の弾力性のコントラストを強調。" },
-        'trilobite': { name: "TRILOBITE", desc: "繁栄を極めた節足動物。外敵を察知すると体を丸める（防御姿勢）行動をとる。", research: "体節ごとの重なりに微細な影を入れ、現生のダンゴムシに近い生物的リアリティを付与。" }
-    };
+    let width, height, time = 0, eraVal = 0, isModernView = true, zoom = 1.0;
+    let isCinematic = false;
 
     function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize);
+    window.addEventListener('wheel', (e) => { zoom = Math.max(0.3, Math.min(3.0, zoom - e.deltaY * 0.001)); });
     resize();
 
-    // 1. ゴッドレイ（光の筋）の描画
-    function drawGodRays(t) {
-        ctx.save();
-        const rays = 8;
-        for(let i=0; i<rays; i++) {
-            const x = (width/rays) * i + Math.sin(t*0.2 + i) * 100;
-            const grad = ctx.createLinearGradient(x, 0, x - 200, height);
-            grad.addColorStop(0, 'rgba(0, 255, 255, 0.08)');
-            grad.addColorStop(1, 'rgba(0, 255, 255, 0)');
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.moveTo(x, 0); ctx.lineTo(x + 100, 0); ctx.lineTo(x - 200, height); ctx.lineTo(x - 400, height);
-            ctx.fill();
+    const creatureData = {
+        'anomalocaris': { name: "ANOMALOCARIS", desc: "13対の鰭（ひれ）を持つカンブリア紀の王者。複眼は数万の個眼からなり、非常に優れた視力を持っていた。", research: "最新モデルでは鰭の重なりによる流体推進と、眼柄の基部まで描写。" },
+        'hallucigenia': { name: "HALLUCIGENIA", desc: "7対の棘と触手を持つ葉足動物。最新研究でこれまで尾だと思われていた側に目と口がある頭部が確認された。", research: "ボタンで上下を反転させ、かつての誤った復元案と比較できます。" },
+        'trilobite': { name: "TRILOBITE", desc: "節足動物の代表格。海底を這い、デトリタスを食べる。", research: "這う瞬間にチラリと見える多数の腹脚（わさわさした脚）を再現。" },
+        'dinomischus': { name: "DINOMISCHUS", desc: "茎の先にカップ状の体を持つ固着性動物。現生のどのグループにも属さない謎の生物。", research: "マスター版で復活。海底の豊かな生態系を象徴する存在。" }
+    };
+
+    function drawDinomischus(t) {
+        for(let i=0; i<4; i++) {
+            const bx = (width/2 - 400) + i * 250;
+            const by = height/2 + 250;
+            const w = Math.sin(t*0.5 + i) * 30;
+            ctx.strokeStyle = '#2d3a14'; ctx.lineWidth = 6 * zoom;
+            ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx + w, by - 80*zoom, bx + w/2, by - 160*zoom); ctx.stroke();
+            const g = ctx.createRadialGradient(bx+w/2-5, by-165*zoom, 2, bx+w/2, by-160*zoom, 30*zoom);
+            g.addColorStop(0, '#8b4513'); g.addColorStop(1, '#3e2723');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(bx+w/2, by-160*zoom, 25*zoom, 18*zoom, w*0.001, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    function drawTrilobite(t) {
+        const x = (width/2) + Math.cos(t * 0.1) * 500;
+        const y = height/2 + 300;
+        ctx.save(); ctx.translate(x, y); if(Math.sin(t*0.1) < 0) ctx.scale(-1, 1);
+        // 腹脚（わさわさ）
+        ctx.strokeStyle = '#4a2c1d'; ctx.lineWidth = 2 * zoom;
+        for(let j=0; j<12; j++){
+            const lx = (j*8 - 45)*zoom;
+            ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx + Math.sin(t*10+j)*10, 15*zoom); ctx.stroke();
+        }
+        // 体節
+        for(let i=0; i<12; i++) {
+            const ox = (i * 8 - 45)*zoom;
+            const g = ctx.createLinearGradient(ox, -30*zoom, ox, 30*zoom);
+            g.addColorStop(0, '#5d4037'); g.addColorStop(0.5, '#8d6e63'); g.addColorStop(1, '#2d1b15');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(ox, Math.sin(t*5-i)*3, 15*zoom, 35*zoom, 0, 0, Math.PI*2); ctx.fill();
         }
         ctx.restore();
     }
 
-    // 2. 究極リアル：アノマロカリス
     function drawAnomalocaris(x, y, scale, t) {
-        ctx.save(); ctx.translate(x, y + Math.sin(t*0.8) * 30);
-        const r = eraVal > 0.5 ? 40 : 180, g = eraVal > 0.5 ? 80 : 50, b = eraVal > 0.5 ? 120 : 50;
-
-        // ひれの多層描画
+        ctx.save(); ctx.translate(x, y + Math.sin(t) * 30);
+        const r = eraVal > 0.5 ? 40 : 200, g = eraVal > 0.5 ? 80 : 60, b = eraVal > 0.5 ? 130 : 60;
+        // 13対の鰭
         for(let i=0; i<13; i++) {
-            const ox = (i * 14 - 80) * scale;
-            const fWave = Math.sin(t * 3 - i * 0.5) * (20 * scale);
-            const fg = ctx.createLinearGradient(ox, fWave-40, ox, fWave+40);
-            fg.addColorStop(0, `rgba(${r},${g},${b},0.4)`); fg.addColorStop(0.5, `rgba(${r+40},${g+40},${b+40},0.7)`); fg.addColorStop(1, `rgba(${r/2},${g/2},${b/2},0.9)`);
-            ctx.fillStyle = fg; ctx.beginPath(); ctx.ellipse(ox, fWave, 14*scale, 45*scale, 0.1, 0, Math.PI*2); ctx.fill();
+            const ox = (i * 15 - 90) * scale * zoom;
+            const wave = Math.sin(t * 3 - i * 0.4) * (25 * scale * zoom);
+            const fg = ctx.createLinearGradient(0, wave-40, 0, wave+40);
+            fg.addColorStop(0, `rgba(${r},${g},${b},0.5)`); fg.addColorStop(1, `rgba(${r/3},${g/3},${b/3},0.9)`);
+            ctx.fillStyle = fg; ctx.beginPath(); ctx.ellipse(ox, wave, 15*scale*zoom, 50*scale*zoom, 0, 0, Math.PI*2); ctx.fill();
         }
-
-        // ボディ（多段グラデーション）
-        const bg = ctx.createLinearGradient(0, -40*scale, 0, 40*scale);
-        bg.addColorStop(0, `rgb(${r+70},${g+70},${b+70})`); bg.addColorStop(0.2, `rgb(${r},${g},${b})`); bg.addColorStop(1, '#000');
-        ctx.fillStyle = bg; ctx.beginPath(); ctx.ellipse(0, 0, 100*scale, 35*scale, 0, 0, Math.PI*2); ctx.fill();
-        
-        // 背中のハイライト（殻の質感）
-        ctx.strokeStyle = `rgba(255,255,255,0.2)`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, -5*scale, 80*scale, 10*scale, 0, 0, Math.PI, true); ctx.stroke();
-
-        // 複眼（リアル球体）
+        // ボディ
+        const bg = ctx.createLinearGradient(0, -40*scale*zoom, 0, 40*scale*zoom);
+        bg.addColorStop(0, `rgb(${r+50},${g+50},${b+50})`); bg.addColorStop(0.5, `rgb(${r},${g},${b})`); bg.addColorStop(1, '#000');
+        ctx.fillStyle = bg; ctx.beginPath(); ctx.ellipse(0, 0, 110*scale*zoom, 38*scale*zoom, 0, 0, Math.PI*2); ctx.fill();
+        // 複眼
         [1,-1].forEach(s => {
-            const eg = ctx.createRadialGradient(75*scale, (32*scale*s)-4, 2, 75*scale, 32*scale*s, 12);
-            eg.addColorStop(0, '#666'); eg.addColorStop(0.8, '#000'); eg.addColorStop(1, '#000');
-            ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(75*scale, 32*scale*s, 12*scale, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(72*scale, (32*scale*s)-4, 3*scale, 0, Math.PI*2); ctx.fill();
+            const ex = 85*scale*zoom, ey = 40*scale*zoom*s;
+            const eg = ctx.createRadialGradient(ex-4, ey-4, 2, ex, ey, 14*zoom);
+            eg.addColorStop(0, '#888'); eg.addColorStop(1, '#000');
+            ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(ex, ey, 14*scale*zoom, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex-4, ey-4, 4*scale*zoom, 0, Math.PI*2); ctx.fill();
         });
         ctx.restore();
     }
 
-    // 3. 究極リアル：ハルキゲニア
     function drawHallucigenia(x, y, scale, t) {
-        ctx.save(); ctx.translate(x + Math.sin(t*0.5)*40, y + 120); if(!isModernView) ctx.scale(1, -1);
-        const hg = ctx.createRadialGradient(-10, -5, 5, 0, 0, 80);
+        ctx.save(); ctx.translate(x + Math.sin(t*0.4)*50, y + 150*zoom); if(!isModernView) ctx.scale(1, -1);
+        const hg = ctx.createRadialGradient(-10, -5, 5, 0, 0, 80*zoom);
         hg.addColorStop(0, '#d1b3ff'); hg.addColorStop(1, '#4a148c');
-        ctx.fillStyle = hg; ctx.beginPath(); ctx.ellipse(0, 0, 75*scale, 18*scale, 0, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(80*scale, 0, 12*scale, 0, Math.PI*2); ctx.fill(); // 頭部
-
+        ctx.fillStyle = hg; ctx.beginPath(); ctx.ellipse(0, 0, 80*scale*zoom, 18*scale*zoom, 0, 0, Math.PI*2); ctx.fill();
+        // 最新学説：頭部
+        ctx.beginPath(); ctx.arc(90*scale*zoom, 5*scale*zoom, 12*scale*zoom, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(95*scale*zoom, 2*scale*zoom, 2*zoom, 0, Math.PI*2); ctx.fill(); // 目
         for (let i = 0; i < 7; i++) {
-            const px = (i * 20 - 60) * scale;
-            // 棘（金属光沢）
-            const sg = ctx.createLinearGradient(px-3, -50, px+3, -50);
-            sg.addColorStop(0, '#888'); sg.addColorStop(0.5, '#fff'); sg.addColorStop(1, '#888');
-            ctx.strokeStyle = sg; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, -55*scale); ctx.stroke();
-            // 触手（わさわさ動く）
-            ctx.strokeStyle = 'rgba(171, 71, 188, 0.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px, 0);
-            ctx.lineTo(px + Math.sin(t*4+i)*15, 45*scale); ctx.stroke();
-        }
-        ctx.restore();
-    }
-
-    // 4. 究極リアル：三葉虫（丸まるアクション）
-    function drawTrilobite(t) {
-        const x = (width/2) + Math.cos(t * 0.2) * 450;
-        const y = height/2 + 250;
-        const isDefending = Math.sin(t * 0.5) > 0.8; // 時々丸まる
-        ctx.save(); ctx.translate(x, y);
-        if(Math.sin(t * 0.2) < 0) ctx.scale(-1, 1);
-
-        for(let i=0; i<10; i++) {
-            const ox = (i * 8 - 35);
-            const roll = isDefending ? Math.sin(i*0.3)*20 : 0;
-            const tg = ctx.createLinearGradient(ox, -25+roll, ox, 25-roll);
-            tg.addColorStop(0, '#5d4037'); tg.addColorStop(0.5, '#8d6e63'); tg.addColorStop(1, '#2d1b15');
-            ctx.fillStyle = tg; ctx.beginPath(); ctx.ellipse(ox, isDefending?roll:Math.sin(t*5-i)*2, 14, 28-Math.abs(roll), 0, 0, Math.PI*2); ctx.fill();
+            const px = (i * 22 - 70) * scale * zoom;
+            ctx.strokeStyle = '#eee'; ctx.lineWidth = 4*zoom; ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, -60*scale*zoom); ctx.stroke();
+            ctx.strokeStyle = 'rgba(171, 71, 188, 0.8)'; ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px + Math.sin(t*4+i)*20, 50*scale*zoom); ctx.stroke();
         }
         ctx.restore();
     }
 
     function animate() {
-        time += 0.035;
-        const bgVal = Math.floor(10 + eraVal * 30);
-        ctx.fillStyle = `rgb(0, ${bgVal/2}, ${bgVal})`; ctx.fillRect(0, 0, width, height);
-
-        drawGodRays(time);
-        
-        // 浮遊パーティクル
-        for(let i=0; i<50; i++) {
-            ctx.fillStyle = `rgba(255,255,255,${0.05 + Math.sin(time+i)*0.05})`;
-            ctx.beginPath(); ctx.arc((i*width/50 + time*20)%width, (i*height/50 + time*10)%height, 1.5, 0, Math.PI*2); ctx.fill();
+        time += 0.04;
+        ctx.fillStyle = `rgb(0, ${8+eraVal*20}, ${16+eraVal*30})`; ctx.fillRect(0, 0, width, height);
+        // ゴッドレイ
+        for(let i=0; i<5; i++){
+            const gx = (width/5)*i + Math.sin(time*0.2+i)*100;
+            const grad = ctx.createLinearGradient(gx, 0, gx-200, height);
+            grad.addColorStop(0, 'rgba(0,255,255,0.1)'); grad.addColorStop(1, 'rgba(0,255,255,0)');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx+150,0); ctx.lineTo(gx-100,height); ctx.lineTo(gx-250,height); ctx.fill();
         }
-
+        drawDinomischus(time);
         drawTrilobite(time);
-        drawAnomalocaris(width/2 - 150 + Math.sin(time*0.2)*50, height/2 - 80, 1 + eraVal * 0.6, time);
-        drawHallucigenia(width/2 + 280, height/2, 1, time);
-
+        drawAnomalocaris(width/2 - 150*zoom, height/2 - 100*zoom, 1 + eraVal*0.5, time);
+        drawHallucigenia(width/2 + 300*zoom, height/2, 1, time);
         requestAnimationFrame(animate);
     }
 
-    // UI & Interactions
     document.getElementById('hallucigenia-btn').onclick = () => isModernView = !isModernView;
     document.getElementById('time-slider').oninput = (e) => eraVal = e.target.value / 100;
-    
     canvas.addEventListener('mousedown', (e) => {
         const mx = e.clientX;
         const type = mx < width/3 ? 'anomalocaris' : (mx < width*2/3 ? 'trilobite' : 'hallucigenia');
