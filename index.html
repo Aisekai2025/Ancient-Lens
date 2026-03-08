@@ -2,17 +2,16 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ancient Lens: Burgess Dive</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000510; font-family: monospace; color: #0f0; }
-        #ui { position: absolute; top: 20px; left: 20px; pointer-events: none; z-index: 100; }
-        #controls { position: absolute; bottom: 20px; right: 20px; background: rgba(0,20,40,0.8); padding: 15px; border: 1px solid #0f0; border-radius: 5px; z-index: 100; }
-        #info-panel { position: absolute; right: -320px; top: 50%; transform: translateY(-50%); width: 250px; background: rgba(0, 20, 40, 0.9); border-left: 3px solid #0f0; padding: 20px; transition: 0.5s; z-index: 100; }
+        body { margin: 0; overflow: hidden; background: #000b1a; font-family: monospace; color: #0f0; }
+        #ui { position: absolute; top: 20px; left: 20px; z-index: 100; pointer-events: none; }
+        #controls { position: absolute; bottom: 20px; right: 20px; background: rgba(0,20,40,0.9); padding: 15px; border: 1px solid #0f0; z-index: 100; }
+        #info-panel { position: absolute; right: -320px; top: 50%; transform: translateY(-50%); width: 250px; background: rgba(0,20,40,1); border: 1px solid #0f0; padding: 20px; transition: 0.5s; z-index: 100; }
         #info-panel.active { right: 20px; }
+        button { background: #0f0; border: none; color: #000; padding: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
         #observation-gallery { position: absolute; bottom: 120px; left: 20px; display: flex; gap: 10px; z-index: 100; }
         .photo-card { width: 60px; height: 60px; border: 1px solid #0f0; background: #111; }
-        button { background: #0f0; border: none; color: #000; padding: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; }
         body.cinematic::before, body.cinematic::after { content: ''; position: absolute; left: 0; width: 100%; height: 12%; background: #000; z-index: 50; }
         body.cinematic::before { top: 0; } body.cinematic::after { bottom: 0; }
     </style>
@@ -20,7 +19,7 @@
 <body>
 
 <div id="ui">
-    <h1 style="margin:0; font-size: 1.2em;">ANCIENT LENS v1.1</h1>
+    <h1 style="margin:0; font-size: 1.5em;">ANCIENT LENS v2.0</h1>
     <div id="era-label">ERA: CAMBRIAN</div>
 </div>
 
@@ -32,136 +31,111 @@
 </div>
 
 <div id="info-panel">
-    <h2 id="creature-name" style="margin-top:0; font-size: 1.2em;">---</h2>
-    <p id="creature-desc" style="font-size: 0.9em;"></p>
+    <h2 id="creature-name" style="margin-top:0;">---</h2>
+    <p id="creature-desc"></p>
     <hr style="border:0; border-top:1px solid #0f0;">
-    <p id="research-note" style="font-size: 0.7em; color: #8f8;"></p>
+    <p id="research-note" style="font-size: 0.8em; color: #8f8;"></p>
 </div>
 
 <div id="observation-gallery"></div>
 
-<script src="https://cdnjs.cloudflare.com"></script>
+<!-- 外部読み込みに失敗しても動作するように、モジュールとして読み込み -->
+<script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net';
 
-<script>
-function initApp() {
-    if (typeof THREE === 'undefined') return;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000510);
-    
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 2, 7); // 少し引いた位置から開始
-    camera.lookAt(0, 0, 0);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    document.body.appendChild(renderer.domElement);
-
-    // ライトを強化（どこからでも見えるように）
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-    const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    mainLight.position.set(5, 10, 7.5);
-    scene.add(mainLight);
-
+    let scene, camera, renderer, anomalocaris, hallucigenia, leftArm, rightArm;
+    let isCinematic = false;
     const creatures = [];
-    const creatureData = {
-        'anomalocaris': { name: "アノマロカリス", desc: "最強の捕食者。", research: "優れた視力を持つハンター。" },
-        'hallucigenia': { name: "ハルキゲニア", desc: "棘を持つ奇妙な生物。", research: "ボタンで上下を反転できます。" }
-    };
 
-    // Anomalocaris
-    const anomalocaris = new THREE.Group();
-    anomalocaris.userData.type = 'anomalocaris';
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 2, 8, 16), new THREE.MeshStandardMaterial({color: 0xcc4444}));
-    body.rotation.x = Math.PI/2;
-    anomalocaris.add(body);
-    const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1, 0.15), new THREE.MeshStandardMaterial({color: 0xaa3333}));
-    leftArm.position.set(-0.4, 0, 1.2);
-    anomalocaris.add(leftArm);
-    const rightArm = leftArm.clone();
-    rightArm.position.set(0.4, 0, 1.2);
-    anomalocaris.add(rightArm);
-    scene.add(anomalocaris);
-    creatures.push(anomalocaris);
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000b1a);
+        
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 8);
 
-    // Hallucigenia
-    const hallucigenia = new THREE.Group();
-    hallucigenia.userData.type = 'hallucigenia';
-    hallucigenia.userData.isModernView = true;
-    const hBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 1.2, 4, 16), new THREE.MeshStandardMaterial({color: 0xbb88ff}));
-    hBody.rotation.z = Math.PI/2;
-    hallucigenia.add(hBody);
-    const spines = new THREE.Group();
-    const tentacles = new THREE.Group();
-    for(let i=0; i<7; i++){
-        const spine = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.5, 8), new THREE.MeshStandardMaterial({color: 0xdddddd}));
-        spine.position.x = (i * 0.18) - 0.5;
-        spines.add(spine);
-        const tent = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.4), new THREE.MeshStandardMaterial({color: 0x8844aa}));
-        tent.position.x = (i * 0.18) - 0.5;
-        tentacles.add(tent);
-    }
-    spines.position.y = 0.25; tentacles.position.y = -0.25; tentacles.rotation.x = Math.PI;
-    hallucigenia.add(spines); hallucigenia.add(tentacles);
-    hallucigenia.position.set(3, -1, 0);
-    scene.add(hallucigenia);
-    creatures.push(hallucigenia);
+        renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    const seabed = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({color: 0x221a10}));
-    seabed.rotation.x = -Math.PI/2; seabed.position.y = -2;
-    scene.add(seabed);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambient);
+        const directional = new THREE.DirectionalLight(0xffffff, 1);
+        directional.position.set(5, 10, 7.5);
+        scene.add(directional);
 
-    // Interaction
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    window.addEventListener('mousedown', (e) => {
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(creatures, true);
-        if(intersects.length > 0){
-            let obj = intersects.object;
-            while(obj.parent && !obj.userData.type) obj = obj.parent;
-            const data = creatureData[obj.userData.type];
-            if(data) {
-                document.getElementById('creature-name').innerText = data.name;
-                document.getElementById('creature-desc').innerText = data.desc;
-                document.getElementById('research-note').innerText = data.research;
-                document.getElementById('info-panel').classList.add('active');
-                setTimeout(() => document.getElementById('info-panel').classList.remove('active'), 4000);
-            }
+        // Anomalocaris
+        anomalocaris = new THREE.Group();
+        anomalocaris.userData.type = 'anomalocaris';
+        const bodyMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 2, 8, 16), new THREE.MeshStandardMaterial({color: 0xcc4444}));
+        bodyMesh.rotation.x = Math.PI/2;
+        anomalocaris.add(bodyMesh);
+        leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1, 0.2), new THREE.MeshStandardMaterial({color: 0xaa3333}));
+        leftArm.position.set(-0.4, 0, 1.2);
+        anomalocaris.add(leftArm);
+        rightArm = leftArm.clone();
+        rightArm.position.set(0.4, 0, 1.2);
+        anomalocaris.add(rightArm);
+        scene.add(anomalocaris);
+        creatures.push(anomalocaris);
+
+        // Hallucigenia
+        hallucigenia = new THREE.Group();
+        hallucigenia.userData.type = 'hallucigenia';
+        hallucigenia.userData.isModernView = true;
+        const hBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 1.2, 4, 16), new THREE.MeshStandardMaterial({color: 0xbb88ff}));
+        hBody.rotation.z = Math.PI/2;
+        hallucigenia.add(hBody);
+        const spines = new THREE.Group();
+        const tentacles = new THREE.Group();
+        for(let i=0; i<7; i++){
+            const s = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.6, 8), new THREE.MeshStandardMaterial({color: 0xdddddd}));
+            s.position.x = (i * 0.2) - 0.6;
+            spines.add(s);
+            const t = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5), new THREE.MeshStandardMaterial({color: 0x8844aa}));
+            t.position.x = (i * 0.2) - 0.6;
+            tentacles.add(t);
         }
-    });
+        spines.position.y = 0.3; tentacles.position.y = -0.3; tentacles.rotation.x = Math.PI;
+        hallucigenia.add(spines); hallucigenia.add(tentacles);
+        hallucigenia.position.set(4, -1, 0);
+        scene.add(hallucigenia);
+        creatures.push(hallucigenia);
 
+        scene.add(new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({color: 0x111111})));
+        
+        animate();
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const time = Date.now() * 0.001;
+        anomalocaris.position.y = Math.sin(time) * 0.4;
+        leftArm.rotation.x = Math.sin(time * 2.5) * 0.6;
+        rightArm.rotation.x = Math.sin(time * 2.7) * 0.6;
+        if(isCinematic) {
+            camera.position.x = Math.cos(time*0.5)*8;
+            camera.position.z = Math.sin(time*0.5)*8;
+            camera.lookAt(0,0,0);
+        }
+        renderer.render(scene, camera);
+    }
+
+    // UI Controls
     document.getElementById('hallucigenia-btn').onclick = () => {
         hallucigenia.userData.isModernView = !hallucigenia.userData.isModernView;
         hallucigenia.rotation.x = hallucigenia.userData.isModernView ? 0 : Math.PI;
     };
 
-    let isCinematic = false;
-    function animate() {
-        requestAnimationFrame(animate);
-        const time = Date.now() * 0.001;
-        
-        anomalocaris.position.y = Math.sin(time) * 0.3;
-        leftArm.rotation.x = Math.sin(time * 2) * 0.5;
-        rightArm.rotation.x = Math.sin(time * 2.2) * 0.5;
-        
-        if(isCinematic) {
-            camera.position.x = Math.cos(time*0.4)*7;
-            camera.position.z = Math.sin(time*0.4)*7;
-            camera.lookAt(0,0,0);
-        }
-        renderer.render(scene, camera);
-    }
-    animate();
+    document.getElementById('time-slider').oninput = (e) => {
+        const v = e.target.value / 100;
+        scene.background.setHSL(0.6, 0.5, 0.05 + v * 0.1);
+        document.getElementById('era-label').innerText = v > 0.5 ? "ERA: ORDOVICIAN" : "ERA: CAMBRIAN";
+    };
 
     window.addEventListener('keydown', (e) => {
-        const key = e.key.toLowerCase();
-        if(key === 'c') { isCinematic = !isCinematic; document.body.classList.toggle('cinematic'); }
-        if(key === 's') {
+        if(e.key.toLowerCase()==='c') { isCinematic = !isCinematic; document.body.classList.toggle('cinematic'); }
+        if(e.key.toLowerCase()==='s') {
             const url = renderer.domElement.toDataURL();
             const card = document.createElement('div');
             card.className = 'photo-card';
@@ -170,20 +144,13 @@ function initApp() {
         }
     });
 
-    document.getElementById('time-slider').oninput = (e) => {
-        const v = e.target.value / 100;
-        scene.background.setHSL(0.6, 0.5, 0.05 + v * 0.1);
-        document.getElementById('era-label').innerText = v > 0.5 ? "ERA: ORDOVICIAN" : "ERA: CAMBRIAN";
-    };
-
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
-}
-// ページ読み込み完了後に確実に起動
-window.onload = initApp;
+
+    init();
 </script>
 </body>
 </html>
