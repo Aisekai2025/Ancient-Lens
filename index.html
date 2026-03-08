@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ANCIENT KAIJU 3D: SOFUBI EDITION</title>
+    <title>ANCIENT LENS 3D: BIOLOGICAL SOFUBI</title>
     <style>
         body { margin: 0; overflow: hidden; background: #00040a; font-family: 'Courier New', monospace; color: #fff; }
         #ui { position: absolute; top: 25px; left: 25px; z-index: 100; pointer-events: none; text-shadow: 0 0 10px #0f0; }
@@ -13,9 +13,8 @@
 <body>
 <div id="ui">
     <h1 style="margin:0; font-size: 1.3em; letter-spacing: 5px;">ANOMALOCARIS</h1>
-    <p style="font-size: 10px; color: #ff3300;">SOFUBI SCULPTURE SERIES v11.0</p>
+    <p style="font-size: 10px; color: #0f0;">PREDATOR ARCHIVE / VER 12.0</p>
 </div>
-<div id="overlay">HEAVY VOLUMETRIC ENGINE / SOFUBI TEXTURING</div>
 <canvas id="view"></canvas>
 
 <script>
@@ -39,86 +38,90 @@
 
     function draw() {
         time += 0.02;
-        // 背景：展示ケースのライトを意識した暗い紺色
+        // 背景：深い海の底
         const bg = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
         bg.addColorStop(0, '#001a33'); bg.addColorStop(1, '#000408');
         ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
 
         let drawList = [];
 
-        // 1. 胴体：ソフビ的な肉厚セグメント（パーツを大きく重ねる）
+        // 1. 胴体：肉厚なセグメント
         for(let i=0; i<16; i++) {
-            const z = (i * 0.3) - 2.2;
-            const r = Math.max(0.2, (Math.sin(i * 0.25 + 0.6) * 0.55 + 0.15) * (i > 13 ? 0.5 : 1));
+            const z = (i * 0.32) - 2.2;
+            const r = Math.max(0.2, (Math.sin(i * 0.25 + 0.6) * 0.58 + 0.15) * (i > 13 ? 0.4 : 1));
             const p = project(0, Math.sin(time*0.5 + i*0.1)*0.08, z);
             drawList.push({ type:'body', p:p, r:r, z:p.z, i:i });
         }
 
-        // 2. 鰭（ひれ）：肉厚な造形。付け根を太く。
+        // 2. 鰭（ひれ）：肉厚な造形
         for(let i=0; i<13; i++) {
             const z = (i * 0.3) - 1.8;
             const phase = time * 2.5 - i * 0.5;
-            const wave = Math.sin(phase) * 0.35;
+            const wave = Math.sin(phase) * 0.4;
             [1, -1].forEach(side => {
-                const p1 = project(0.25 * side, 0, z); // 付け根
-                const p2 = project(1.4 * side, wave, z + Math.cos(phase)*0.1); // 先端
+                const p1 = project(0.25 * side, 0, z); 
+                const p2 = project(1.45 * side, wave, z + Math.cos(phase)*0.1);
                 drawList.push({ type:'flap', p1:p1, p2:p2, z:(p1.z+p2.z)/2, side:side, i:i });
             });
         }
 
-        // 3. 付属肢（腕）：節の継ぎ目を強調したソフビ可動部風
+        // 3. 多関節の前肢（付属肢）：節足動物らしい構造
         [1, -1].forEach(side => {
-            const r = project(0.25 * side, 0.2, 2.4);
-            const m = project(0.6 * side, 0.8 + Math.sin(time*2.2)*0.2, 2.9);
-            const t = project(0.45 * side, 1.4 + Math.sin(time*2.5)*0.3, 3.4);
-            drawList.push({ type:'arm', p1:r, p2:m, p3:t, z:r.z });
+            const r = project(0.22 * side, 0.2, 2.3); // 付け根
+            const m1 = project(0.55 * side, 0.7 + Math.sin(time*2)*0.2, 2.7); // 関節1
+            const m2 = project(0.45 * side, 1.2 + Math.sin(time*2.2)*0.3, 3.1); // 関節2
+            const t = project(0.35 * side, 1.6 + Math.sin(time*2.4)*0.4, 3.5); // 先端
+            drawList.push({ type:'arm', p1:r, p2:m1, p3:m2, p4:t, z:r.z });
         });
 
-        // 4. 複眼：クリアパーツ塗装風
+        // 4. 眼柄（がんぺい）と眼：頭部からの連続性
         [1, -1].forEach(side => {
-            const p = project(0.85 * side, -0.6, 2.2);
-            drawList.push({ type:'eye', p:p, z:p.z });
+            const root = project(0.35 * side, -0.2, 2.0); // 頭部との接続部
+            const eye = project(0.85 * side, -0.65, 2.3); // 眼の位置
+            drawList.push({ type:'eyestalk', p1:root, p2:eye, z:eye.z });
         });
 
-        // Zソート
         drawList.sort((a, b) => a.z - b.z);
 
         drawList.forEach(obj => {
             if(obj.type === 'body') {
                 const radius = Math.max(0.1, obj.r * 135 * obj.p.scale);
                 const b = Math.floor(Math.max(20, 120 + obj.z * 15));
-                // ソフビのスプレー塗装のような柔らかいグラデーション
                 const g = ctx.createRadialGradient(obj.p.x-radius*0.4, obj.p.y-radius*0.4, 2, obj.p.x, obj.p.y, radius);
-                g.addColorStop(0, `rgb(${Math.min(255, b+100)}, ${Math.min(255, b/1.5+50)}, 60)`);
-                g.addColorStop(0.6, `rgb(${b}, 40, 50)`);
+                g.addColorStop(0, `rgb(${Math.min(255, b+100)}, ${Math.min(255, b/1.5+50)}, 70)`);
+                g.addColorStop(0.6, `rgb(${b}, 45, 55)`);
                 g.addColorStop(1, '#000');
                 ctx.fillStyle = g; ctx.beginPath(); ctx.arc(obj.p.x, obj.p.y, radius, 0, Math.PI*2); ctx.fill();
             } else if(obj.type === 'flap') {
                 const b = 150 + obj.z * 15;
                 const fg = ctx.createLinearGradient(obj.p1.x, obj.p1.y, obj.p2.x, obj.p2.y);
-                // 肉厚な鰭：付け根は濃く、先端はスプレーのボカシをイメージ
-                fg.addColorStop(0, `rgba(${b}, 50, 60, 0.95)`);
-                fg.addColorStop(0.7, `rgba(${b/1.5}, 40, 45, 0.8)`);
-                fg.addColorStop(1, `rgba(180, 160, 100, 0.4)`);
+                fg.addColorStop(0, `rgba(${b}, 50, 65, 0.98)`);
+                fg.addColorStop(1, `rgba(180, 160, 120, 0.3)`);
                 ctx.fillStyle = fg;
                 ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); ctx.lineTo(obj.p2.x, obj.p2.y);
                 ctx.lineTo(obj.p2.x, obj.p2.y + 35*obj.p2.scale); ctx.lineTo(obj.p1.x, obj.p1.y + 15*obj.p1.scale);
                 ctx.closePath(); ctx.fill();
-                ctx.strokeStyle = `rgba(255,255,255,0.1)`; ctx.lineWidth = 2; ctx.stroke();
             } else if(obj.type === 'arm') {
-                // 腕の肉感：太く力強く
-                ctx.strokeStyle = '#622'; ctx.lineWidth = 22 * obj.p1.scale; ctx.lineCap = 'round';
-                ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); ctx.quadraticCurveTo(obj.p2.x, obj.p2.y, obj.p3.x, obj.p3.y); ctx.stroke();
-                // 腕のハイライト：ソフビの光沢
-                ctx.strokeStyle = '#a44'; ctx.lineWidth = 6 * obj.p1.scale;
-                ctx.beginPath(); ctx.moveTo(obj.p1.x-4, obj.p1.y-4); ctx.quadraticCurveTo(obj.p2.x-4, obj.p2.y-4, obj.p3.x-4, obj.p3.y-4); ctx.stroke();
-            } else if(obj.type === 'eye') {
-                const r = 24 * obj.p.scale;
-                // クリアパーツを裏から塗ったような奥行き
-                const eg = ctx.createRadialGradient(obj.p.x-r*0.4, obj.p.y-r*0.4, 2, obj.p.x, obj.p.y, r);
-                eg.addColorStop(0, '#666'); eg.addColorStop(0.8, '#000');
-                ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(obj.p.x, obj.p.y, r, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(obj.p.x-r*0.4, obj.p.y-r*0.4, r*0.25, 0, Math.PI*2); ctx.fill();
+                // 前肢：節足構造
+                ctx.strokeStyle = '#522'; ctx.lineWidth = 24 * obj.p1.scale; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); 
+                ctx.lineTo(obj.p2.x, obj.p2.y); ctx.lineTo(obj.p3.x, obj.p3.y); ctx.lineTo(obj.p4.x, obj.p4.y);
+                ctx.stroke();
+                // トゲのハイライト
+                ctx.strokeStyle = '#a55'; ctx.lineWidth = 6 * obj.p1.scale;
+                ctx.beginPath(); ctx.moveTo(obj.p1.x-5, obj.p1.y-5); 
+                ctx.lineTo(obj.p2.x-5, obj.p2.y-5); ctx.lineTo(obj.p3.x-5, obj.p3.y-5); ctx.lineTo(obj.p4.x-5, obj.p4.y-5);
+                ctx.stroke();
+            } else if(obj.type === 'eyestalk') {
+                // 眼柄（繋ぎ目）
+                ctx.strokeStyle = '#844'; ctx.lineWidth = 14 * obj.p1.scale; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(obj.p1.x, obj.p1.y); ctx.lineTo(obj.p2.x, obj.p2.y); ctx.stroke();
+                // 複眼
+                const r = 26 * obj.p2.scale;
+                const eg = ctx.createRadialGradient(obj.p2.x-r*0.4, obj.p2.y-r*0.4, 2, obj.p2.x, obj.p2.y, r);
+                eg.addColorStop(0, '#777'); eg.addColorStop(0.8, '#000');
+                ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(obj.p2.x, obj.p2.y, r, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(obj.p2.x-r*0.4, obj.p2.y-r*0.4, r*0.25, 0, Math.PI*2); ctx.fill();
             }
         });
         requestAnimationFrame(draw);
