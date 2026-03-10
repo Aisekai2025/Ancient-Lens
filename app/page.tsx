@@ -3,7 +3,7 @@ import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment as SkyEnv } from '@react-three/drei';
 import Anomalocaris from '../components/Anomalocaris';
-import Environment from '../components/Environment'; // 追加
+import Environment from '@/components/Environment'; 
 
 export default function Aquarium() {
   return (
