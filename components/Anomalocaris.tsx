@@ -3,52 +3,53 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 export default function Anomalocaris() {
-  const group = useRef<THREE.Group>(null!)
-  const flaps = useRef<THREE.Mesh[]>([])
+  const groupRef = useRef<THREE.Group>(null!)
+  const sideFlaps = useRef<(THREE.Mesh | null)[]>([])
 
-  // 毎フレームの更新（アニメーション）
   useFrame((state) => {
     const t = state.clock.getElapsedTime()
     
-    // 全体の上下の揺らぎ
-    group.current.position.y = Math.sin(t * 0.5) * 0.2
+    // 全体のゆらぎ
+    groupRef.current.position.y = Math.sin(t * 0.5) * 0.2
     
-    // 側葉（フラップ）の波打ち：前から後ろへ位相をずらす
-    flaps.current.forEach((mesh, i) => {
+    // 側葉（ヒレ）の波打つ動き
+    sideFlaps.current.forEach((mesh, i) => {
       if (mesh) {
-        // サイン波で側葉を回転させる
-        mesh.rotation.z = Math.sin(t * 3 + i * 0.5) * 0.4
+        // 前から後ろへ波が伝わるように位相をずらす
+        mesh.rotation.z = Math.sin(t * 3 + i * 0.5) * 0.3
       }
     })
   })
 
   return (
-    <group ref={group}>
+    <group ref={groupRef}>
       {/* 胴体 */}
       <mesh>
-        <capsuleGeometry args={[0.3, 2, 4, 16]} />
+        <capsuleGeometry args={[0.5, 2, 4, 16]} />
         <meshStandardMaterial color="#8b4513" />
       </mesh>
 
-      {/* 側葉の生成（左右13対） */}
+      {/* 側葉 (左右13対) */}
       {[...Array(13)].map((_, i) => (
-        <group key={i} position={[0, (i - 6) * 0.3, 0]}>
-          {/* 左側の葉 */}
-          <mesh ref={(el) => (flaps.current[i * 2] = el!)} position={[-0.4, 0, 0]}>
-            <planeGeometry args={[0.6, 0.2]} />
-            <meshStandardMaterial color="#a0522d" side={THREE.DoubleSide} />
+        <group key={i} position={[0, 0, (i - 6) * 0.3]}>
+          {/* 右のヒレ */}
+          <mesh 
+            ref={(el) => { sideFlaps.current[i] = el }} 
+            position={[0.6, 0, 0]}
+          >
+            <planeGeometry args={[0.8, 0.3]} />
+            <meshStandardMaterial color="#a0522d" side={THREE.DoubleSide} transparent opacity={0.8} />
           </mesh>
-          {/* 右側の葉 */}
-          <mesh ref={(el) => (flaps.current[i * 2 + 1] = el!)} position={[0.4, 0, 0]}>
-            <planeGeometry args={[0.6, 0.2]} />
-            <meshStandardMaterial color="#a0522d" side={THREE.DoubleSide} />
+          {/* 左のヒレ */}
+          <mesh 
+            ref={(el) => { sideFlaps.current[i + 13] = el }} 
+            position={[-0.6, 0, 0]}
+          >
+            <planeGeometry args={[0.8, 0.3]} />
+            <meshStandardMaterial color="#a0522d" side={THREE.DoubleSide} transparent opacity={0.8} />
           </mesh>
         </group>
       ))}
-
-      {/* 複眼 */}
-      <mesh position={[-0.4, 1.2, 0.2]}><sphereGeometry args={[0.15]} /><meshStandardMaterial color="black" /></mesh>
-      <mesh position={[0.4, 1.2, 0.2]}><sphereGeometry args={[0.15]} /><meshStandardMaterial color="black" /></mesh>
     </group>
   )
 }
