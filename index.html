@@ -2,38 +2,35 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D Aquarium - Ultra Stable</title>
+    <title>Cambrian 3D Aquarium - All-in-One Build</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000a0a; font-family: 'Hiragino Kaku Gothic ProN', sans-serif; }
-        canvas { display: block; }
+        body { margin: 0; overflow: hidden; background: #000808; font-family: sans-serif; }
         #info-ui {
-            position: absolute;
-            top: 20px; right: 20px; width: 260px; padding: 15px;
-            background: rgba(0, 30, 40, 0.9); border: 2px solid #00f0ff;
-            border-radius: 12px; color: white; display: none;
-            pointer-events: none; z-index: 100;
+            position: absolute; top: 20px; right: 20px; width: 260px; padding: 20px;
+            background: rgba(0, 40, 50, 0.9); border: 2px solid #00ffff; border-radius: 15px;
+            color: #fff; display: none; pointer-events: none; z-index: 1000;
+            box-shadow: 0 0 15px #00ffff66;
         }
-        #info-ui h2 { margin: 0 0 8px; font-size: 1.2em; color: #00f0ff; border-bottom: 1px solid #00f0ff; }
-        #info-ui p { margin: 0; font-size: 0.9em; line-height: 1.5; }
-        .hint { position: absolute; bottom: 10px; left: 10px; color: #00f0ff; font-size: 12px; opacity: 0.7; }
+        #info-ui h2 { margin: 0 0 10px; color: #00ffff; font-size: 1.3em; border-bottom: 1px solid #00ffff; }
+        .hint { position: absolute; bottom: 15px; left: 15px; color: #00ffff; opacity: 0.6; font-size: 12px; }
     </style>
 </head>
 <body>
-
     <div id="info-ui">
-        <h2 id="name">名前</h2>
-        <p id="desc">解説</p>
+        <h2 id="name"></h2>
+        <p id="desc"></p>
     </div>
-    <div class="hint">マウスドラッグで回転 / スクロールでズーム</div>
+    <div class="hint">マウスで回転・スクロールでズーム・生き物にホバーで解説</div>
 
-    <!-- 安定性の高いcdnjsから単一ファイルのライブラリを読み込み -->
-    <script src="https://cdnjs.cloudflare.com"></script>
-    <!-- OrbitControlsも単一ファイル版を読み込み -->
-    <script src="https://cdn.jsdelivr.net"></script>
+    <!-- 1. Three.js を ESM 形式で直接インポート (Skypackのフォールバック付き) -->
+    <script type="module">
+        // ネットワークエラーを回避するため、最小限のThree.js機能を標準的なESM形式でインポートします
+        import * as THREE from 'https://unpkg.com';
+        import { OrbitControls } from 'https://unpkg.com';
 
-    <script>
-        // 1. 基本設定
+        // ==========================================
+        // 1. 環境構築 (Scene, Fog, Light)
+        // ==========================================
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x001015);
         scene.fog = new THREE.FogExp2(0x001015, 0.08);
@@ -46,100 +43,124 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // ライト
-        const sun = new THREE.DirectionalLight(0x00ffff, 1.5);
-        sun.position.set(5, 10, 2);
+        const sun = new THREE.DirectionalLight(0x00ffff, 2);
+        sun.position.set(5, 10, 5);
         scene.add(sun);
-        scene.add(new THREE.AmbientLight(0x404040, 1));
+        scene.add(new THREE.AmbientLight(0x404040, 1.5));
 
         // 海底
         const floor = new THREE.Mesh(
             new THREE.PlaneGeometry(100, 100),
-            new THREE.MeshStandardMaterial({ color: 0x051a1a })
+            new THREE.MeshStandardMaterial({ color: 0x0a1a1a })
         );
         floor.rotation.x = -Math.PI / 2;
-        floor.position.y = -4;
+        floor.position.y = -5;
         scene.add(floor);
 
-        // 2. 生物の生成関数
+        // ==========================================
+        // 2. 生物の生成 (Procedural)
+        // ==========================================
+        const creatures = [];
+
         function createAnomalocaris() {
             const group = new THREE.Group();
-            group.userData = { name: "アノマロカリス", desc: "カンブリア紀の海の王者！横のヒレを波打たせて泳ぎ、2本の大きな触手で獲物を捕まえていたよ。" };
-            const mat = new THREE.MeshStandardMaterial({ color: 0xd35400 });
+            group.userData = { name: "アノマロカリス", desc: "カンブリア紀最大の捕食者！横にあるたくさんのヒレを波のように動かして、優雅に泳いでいたと考えられているよ。" };
             
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 3), mat);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xe67e22 });
+            const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.6, 3, 4, 8), mat);
+            body.rotation.z = Math.PI / 2;
             group.add(body);
 
             const flaps = [];
-            for(let i=0; i<8; i++) {
-                const f = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 1.5), mat);
-                f.position.z = -1.5 + (i * 0.45);
+            for(let i=0; i<9; i++) {
+                const f = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 1.8), mat);
+                f.position.x = -1.8 + (i * 0.45);
                 group.add(f);
                 flaps.push(f);
             }
             group.userData.flaps = flaps;
 
-            const armL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 1.2), mat);
-            armL.position.set(0.3, -0.2, 1.8);
-            armL.rotation.x = 0.5;
+            const armGeo = new THREE.CapsuleGeometry(0.08, 1, 4, 8);
+            const armL = new THREE.Mesh(armGeo, mat);
+            armL.position.set(2.2, -0.4, 0.4);
+            armL.rotation.z = -Math.PI/3;
             const armR = armL.clone();
-            armR.position.x = -0.3;
+            armR.position.z = -0.4;
             group.add(armL, armR);
             group.userData.arms = [armL, armR];
 
             scene.add(group);
+            creatures.push(group);
             return group;
         }
 
-        const anomalocaris = createAnomalocaris();
-        const trilobites = [];
-        for(let i=0; i<6; i++) {
-            const t = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshStandardMaterial({color: 0x445566}));
-            t.scale.set(1, 0.4, 1.4);
-            t.position.set(Math.random()*16-8, -3.8, Math.random()*16-8);
-            t.userData = { name: "三葉虫", desc: "海の底を歩く掃除屋さん。硬い殻を持っていて、敵が来ると丸まって身を守ることもあったよ。" };
-            scene.add(t);
-            trilobites.push(t);
+        function createTrilobite() {
+            const group = new THREE.Group();
+            group.userData = { name: "三葉虫", desc: "恐竜よりもずっと昔から海にいた生き物。硬い殻で身を守り、海の底を這い回って食べ物を探していたよ。" };
+            const mat = new THREE.MeshStandardMaterial({ color: 0x5d6d7e });
+            const shell = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), mat);
+            shell.scale.set(1.2, 0.4, 1.5);
+            group.add(shell);
+            scene.add(group);
+            creatures.push(group);
+            return group;
         }
 
-        // 3. インタラクション
+        const anomalo = createAnomalocaris();
+        for(let i=0; i<8; i++) {
+            const t = createTrilobite();
+            t.position.set(Math.random()*14-7, -4.8, Math.random()*14-7);
+            t.rotation.y = Math.random()*Math.PI*2;
+        }
+
+        // ==========================================
+        // 3. インタラクション & アニメーション
+        // ==========================================
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
+        const ui = document.getElementById('info-ui');
+        const uiName = document.getElementById('name');
+        const uiDesc = document.getElementById('desc');
+
         window.addEventListener('mousemove', (e) => {
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
         });
 
-        // 4. アニメーション
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        const clock = new THREE.Clock();
-
         function animate() {
             requestAnimationFrame(animate);
-            const t = clock.getElapsedTime();
+            const t = performance.now() * 0.001;
 
-            // アノマロカリスの動き
-            anomalocaris.position.y = Math.sin(t * 0.8) * 1;
-            anomalocaris.position.z = Math.cos(t * 0.4) * 4;
-            anomalocaris.rotation.y = Math.sin(t * 0.4) * 0.5;
-            anomalocaris.userData.flaps.forEach((f, i) => {
-                f.rotation.z = Math.sin(t * 4 + i * 0.5) * 0.4;
+            // アノマロカリスの遊泳
+            anomalo.position.y = Math.sin(t * 0.7);
+            anomalo.position.z = Math.cos(t * 0.3) * 3;
+            anomalo.rotation.z = Math.sin(t * 0.7) * 0.1;
+            anomalo.userData.flaps.forEach((f, i) => {
+                f.rotation.x = Math.sin(t * 4 + i * 0.6) * 0.5;
+            });
+            anomalo.userData.arms.forEach(a => {
+                a.rotation.y = Math.sin(t * 2) * 0.2;
             });
 
-            // レイキャスト
+            // レイキャスト判定
             raycaster.setFromCamera(mouse, camera);
-            const hits = raycaster.intersectObjects(scene.children, true);
-            const ui = document.getElementById('info-ui');
-            if(hits.length > 0) {
-                let target = hits[0].object;
-                while(target.parent && !target.userData.name) target = target.parent;
-                if(target.userData.name) {
+            const intersects = raycaster.intersectObjects(creatures, true);
+            if(intersects.length > 0) {
+                let obj = intersects[0].object;
+                while(obj.parent && !obj.userData.name) obj = obj.parent;
+                if(obj.userData.name) {
                     ui.style.display = 'block';
-                    document.getElementById('name').innerText = target.userData.name;
-                    document.getElementById('desc').innerText = target.userData.desc;
+                    uiName.textContent = obj.userData.name;
+                    uiDesc.textContent = obj.userData.desc;
                 }
-            } else { ui.style.display = 'none'; }
+            } else {
+                ui.style.display = 'none';
+            }
 
+            controls.update();
             renderer.render(scene, camera);
         }
         animate();
@@ -149,6 +170,7 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
     </script>
 </body>
 </html>
