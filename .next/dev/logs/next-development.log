@@ -11,3 +11,151 @@
 [00:00:08.162] Server  LOG       	- jsx was set to react-jsx (next.js uses the React automatic runtime)
 [00:00:08.163] Server  LOG     
 [00:00:08.481] Server  LOG     ✓ Ready in 7.9s
+[00:01:42.373] Server  LOG     ○ Compiling / ...
+[00:01:52.868] Server  ERROR   ⨯ ./components/Anomalocaris.tsx:1:17
+Ecmascript file had an error
+> 1 | import React, { useRef } from 'react'
+    |                 ^^^^^^
+  2 | import { useFrame } from '@react-three/fiber'
+  3 | import * as THREE from 'three'
+  4 |
+
+You're importing a component that needs `useRef`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+
+
+Import trace:
+  Server Component:
+    ./components/Anomalocaris.tsx
+    ./app/page.tsx
+
+
+[00:01:55.617] Server  WARN    ⚠ Cross origin request detected from 192.168.24.57 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+[00:01:55.654] Browser ERROR   uncaughtError: Error: ./components/Anomalocaris.tsx:1:17
+Ecmascript file had an error
+> 1 | import React, { useRef } from 'react'
+    |                 ^^^^^^
+  2 | import { useFrame } from '@react-three/fiber'
+  3 | import * as THREE from 'three'
+  4 |
+
+You're importing a component that needs `useRef`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+
+
+Import trace:
+  Server Component:
+    ./components/Anomalocaris.tsx
+    ./app/page.tsx
+
+
+[00:01:56.020] Browser ERROR   ./components/Anomalocaris.tsx:1:17
+Ecmascript file had an error
+> 1 | import React, { useRef } from 'react'
+    |                 ^^^^^^
+  2 | import { useFrame } from '@react-three/fiber'
+  3 | import * as THREE from 'three'
+  4 |
+
+You're importing a component that needs `useRef`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+Import trace:
+  Server Component:
+    ./components/Anomalocaris.tsx
+    ./app/page.tsx
+[00:01:57.539] Browser ERROR   ./components/Anomalocaris.tsx:1:17
+Ecmascript file had an error
+> 1 | import React, { useRef } from 'react'
+    |                 ^^^^^^
+  2 | import { useFrame } from '@react-three/fiber'
+  3 | import * as THREE from 'three'
+  4 |
+
+You're importing a component that needs `useRef`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+Import trace:
+  Server Component:
+    ./components/Anomalocaris.tsx
+    ./app/page.tsx
+[00:02:08.530] Server  ERROR   ⨯ ./components/Anomalocaris.tsx:1:17
+Ecmascript file had an error
+> 1 | import React, { useRef } from 'react'
+    |                 ^^^^^^
+  2 | import { useFrame } from '@react-three/fiber'
+  3 | import * as THREE from 'three'
+  4 |
+
+You're importing a component that needs `useRef`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+
+
+Import trace:
+  Server Component:
+    ./components/Anomalocaris.tsx
+    ./app/page.tsx
+
+
+[00:02:08.962] Browser ERROR   uncaughtError: Error: ./components/Anomalocaris.tsx:1:17
+Ecmascript file had an error
+> 1 | import React, { useRef } from 'react'
+    |                 ^^^^^^
+  2 | import { useFrame } from '@react-three/fiber'
+  3 | import * as THREE from 'three'
+  4 |
+
+You're importing a component that needs `useRef`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+
+
+Import trace:
+  Server Component:
+    ./components/Anomalocaris.tsx
+    ./app/page.tsx
+
+
+[00:02:09.176] Browser ERROR   ./components/Anomalocaris.tsx:1:17
+Ecmascript file had an error
+> 1 | import React, { useRef } from 'react'
+    |                 ^^^^^^
+  2 | import { useFrame } from '@react-three/fiber'
+  3 | import * as THREE from 'three'
+  4 |
+
+You're importing a component that needs `useRef`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+Import trace:
+  Server Component:
+    ./components/Anomalocaris.tsx
+    ./app/page.tsx
+[00:02:09.176] Browser ERROR   ./components/Anomalocaris.tsx:1:17
+Ecmascript file had an error
+> 1 | import React, { useRef } from 'react'
+    |                 ^^^^^^
+  2 | import { useFrame } from '@react-three/fiber'
+  3 | import * as THREE from 'three'
+  4 |
+
+You're importing a component that needs `useRef`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+Import trace:
+  Server Component:
+    ./components/Anomalocaris.tsx
+    ./app/page.tsx
+[00:03:33.064] Server  LOG     ✓ Compiled in 1390ms

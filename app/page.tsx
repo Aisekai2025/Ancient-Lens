@@ -1,3 +1,5 @@
+"use client"; // ← これを追加！
+
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Sky, Stars } from '@react-three/drei'
 import Anomalocaris from '../components/Anomalocaris'
