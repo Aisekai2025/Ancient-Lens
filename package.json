@@ -1,5 +1,5 @@
 {
-  "name": "ancient-lens-aquarium",
+  "name": "ancient-lens",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,12 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@react-three/drei": "^9.122.0",
-    "@react-three/fiber": "^8.18.0",
-    "next": "^16.1.6",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "three": "^0.150.1"
+    "@react-three/drei": "^9.0.0",
+    "@react-three/fiber": "^8.0.0",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "three": "^0.150.0"
   },
   "devDependencies": {
     "@types/node": "latest",
