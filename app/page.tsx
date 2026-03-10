@@ -1,17 +1,27 @@
 "use client";
 import React from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Environment as SkyEnv } from '@react-three/drei';
 import Anomalocaris from '../components/Anomalocaris';
+import Environment from '../components/Environment'; // 追加
 
 export default function Aquarium() {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#001529' }}>
-      <Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} />
+      <Canvas camera={{ position: [5, 2, 8], fov: 50 }}>
+        {/* 背景と照明 */}
+        <Environment />
+        
+        {/* 主役のアノマロカリス */}
         <Anomalocaris />
-        <OrbitControls />
+        
+        {/* 自由な視点操作 */}
+        <OrbitControls 
+          enableDamping 
+          maxDistance={15} 
+          minDistance={2}
+          makeDefault 
+        />
       </Canvas>
     </div>
   );
