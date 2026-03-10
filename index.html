@@ -2,38 +2,30 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Cambrian Deep Sea - Ancient Forest Edition</title>
+    <title>Cambrian Abyss - Hyper-Resolution Complete</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000205; font-family: 'Consolas', 'Hiragino Kaku Gothic ProN', sans-serif; }
         canvas { display: block; }
         #ui {
-            position: absolute; top: 25px; right: 25px; width: 320px; padding: 25px;
-            background: rgba(0, 15, 30, 0.95); border-right: 4px solid #00f0ff; border-radius: 4px;
+            position: absolute; top: 25px; right: 25px; width: 340px; padding: 25px;
+            background: rgba(0, 10, 20, 0.95); border-left: 5px solid #00f0ff; border-radius: 4px;
             color: #fff; display: none; pointer-events: none; z-index: 1000;
-            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
         }
         .hud { position: absolute; bottom: 20px; left: 20px; color: #00f0ff; font-size: 11px; opacity: 0.7; letter-spacing: 1.5px; line-height: 1.8; text-shadow: 0 0 5px #00f0ff; }
-        #scan-line {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(transparent, rgba(0, 255, 255, 0.1), transparent);
-            display: none; pointer-events: none; animation: scan 3s linear infinite;
-        }
-        @keyframes scan { from { transform: translateY(-100%); } to { transform: translateY(100%); } }
     </style>
 </head>
 <body>
-    <div id="scan-line"></div>
     <div id="ui">
-        <div style="font-size: 0.7em; color: #00f0ff; margin-bottom: 5px;">SPECIES CLASSIFICATION // ACTIVE</div>
-        <h2 id="name" style="margin:0;color:#fff;font-size:1.6em;letter-spacing:1px;"></h2>
+        <div style="font-size: 0.7em; color: #00f0ff; margin-bottom: 8px; letter-spacing: 2px;">GENETIC SCANNER // VER 6.0</div>
+        <h2 id="name" style="margin:0;color:#fff;font-size:1.8em;letter-spacing:1px;"></h2>
         <p id="desc" style="margin-top:15px;font-size:0.95em;line-height:1.8;color:#b2dfdb;"></p>
     </div>
     
     <div class="hud">
-        [AQUARIUM SYSTEM v5.0]<br>
-        LEFT CLICK: DROP ORGANIC FEED<br>
-        RIGHT CLICK: CHANGE LIGHT SPECTRUM<br>
-        MOUSE OVER: SCAN LIFEFORMS / WHEEL: ZOOM
+        [FULL-SPECTRUM OBSERVATION UNIT]<br>
+        CLICK: FEED / RIGHT-CLICK: CHANGE HUE<br>
+        WHEEL: ZOOM / HOVER: SCAN TARGET
     </div>
     
     <canvas id="cvs"></canvas>
@@ -42,19 +34,18 @@
         const canvas = document.getElementById('cvs');
         const ctx = canvas.getContext('2d');
         const ui = document.getElementById('ui');
-        const scanLine = document.getElementById('scan-line');
         
-        let w, h, creatures = [], foods = [], plants = [], zoom = 1.4;
+        let w, h, creatures = [], foods = [], plants = [], zoom = 1.3;
         let mx = 0, my = 0, target = null, lightHue = 180;
 
         const BIO = {
-            anomalo: { name: "ANOMALOCARIS", desc: "王者の風格。中層の支配者です。13対の鰭（ひれ）は、それぞれが独立した筋肉で制御され、驚くほど繊細な旋回性能を持っていました。" },
-            opabinia: { name: "OPABINIA", desc: "掃除機のような長いノズルを使い、海綿の隙間に隠れた小さな有機物を吸い出します。5つの目は全方位をカバーします。" },
-            wiwaxia: { name: "WIWAXIA", desc: "海底を這う移動要塞。全身の鱗は、捕食者の触手を通さないほど硬く、ライトを当てると虹色に輝きます。" },
-            halluci: { name: "HALLUCIGENIA", desc: "トゲを持つ奇妙な歩行者。海底の海綿の根元を歩き回り、堆積したデトリタスを摂取します。" },
-            trilo: { name: "TRILOBITE", desc: "高度な複眼を持つ節足動物。エサが落ちてくると、砂を巻き上げて猛スピードで海底を駆け抜けます。" },
-            pikaia: { name: "PIKAIA", desc: "私たちのルーツ。背中の神経索を軸に、体をS字にしならせて泳ぎます。エサ取り競争のスピードスターです。" },
-            odont: { name: "ODONTOGRIPHUS", desc: "平たい軟体動物。海底を滑るように進み、海綿の表面に付着した微生物を削り取って食べます。" }
+            anomalo: { name: "ANOMALOCARIS", desc: "カンブリア紀の絶対王者。13対の鰭（ひれ）は、波打つような滑らかな推進力を生み出します。大きな複眼にはサーチライトの反射が美しく映ります。" },
+            opabinia: { name: "OPABINIA", desc: "5つの複眼と象のようなノズルを持つ異形の生命。ノズル先端のハサミで獲物を捉えます。体の節々には、筋肉の動きに連動した光沢が見られます。" },
+            wiwaxia: { name: "WIWAXIA", desc: "全身を金属光沢のある鱗と鋭いトゲで武装。光の角度で虹色に輝く構造色を再現。外敵を寄せ付けない重装甲の底生生物です。" },
+            halluci: { name: "HALLUCIGENIA", desc: "トゲで歩く不思議な姿。7対のトゲには鋭いハイライトが入り、細い脚は波打つように地面を捉えます。前後左右が謎に包まれた古生物です。" },
+            trilo: { name: "TRILOBITE", desc: "高度な節足動物。方解石のレンズを持つ複眼は、ライトを当てるとクリスタルのように輝きます。多数の脚が連動して砂を掻く姿は圧巻です。" },
+            pikaia: { name: "PIKAIA", desc: "私たちの祖先。半透明の体の中に一本通る「脊索（せきさく）」が、サーチライトで青白く浮かび上がります。魚のように機敏に泳ぎます。" },
+            choia: { name: "CHOIA (Ancient Sponge)", desc: "カンブリア紀の海底に生息していた円盤状の海綿。中心から放射状に伸びる長いトゲは、捕食者から身を守り、泥に沈むのを防ぐ役割がありました。" }
         };
 
         function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
@@ -64,42 +55,47 @@
         window.addEventListener('mousedown', e => {
             if (e.button === 2) { lightHue = (lightHue + 60) % 360; return; }
             let found = null;
-            creatures.forEach(c => { if(Math.hypot(e.clientX - c.sx, e.clientY - c.sy) < c.sr) found = c; });
-            if(found) { target = (target === found) ? null : found; scanLine.style.display = target ? 'block' : 'none'; } 
-            else { foods.push({x: (e.clientX - w/2)/zoom + (target ? target.x : 0), y: (e.clientY - h/2)/zoom + (target ? target.y : 0), vy: 1.2}); }
+            [...creatures, ...plants].forEach(c => { if(Math.hypot(e.clientX - c.sx, e.clientY - c.sy) < (c.sr || c.size*zoom)) found = c; });
+            if(found) { target = (target === found) ? null : found; } 
+            else { foods.push({x: (e.clientX - w/2)/zoom + (target ? target.x : 0), y: (e.clientY - h/2)/zoom + (target ? target.y : 0), vy: 1.3}); }
         });
         window.addEventListener('contextmenu', e => e.preventDefault());
-        window.addEventListener('wheel', e => { zoom = Math.max(0.4, Math.min(5, zoom - e.deltaY * 0.001)); }, {passive:true});
+        window.addEventListener('wheel', e => { zoom = Math.max(0.3, Math.min(5, zoom - e.deltaY * 0.001)); }, {passive:true});
 
         class Plant {
             constructor() {
+                this.type = 'choia';
                 this.z = Math.random() * 900;
                 this.x = Math.random() * 4000 - 2000;
-                this.y = 420 + Math.random() * 50;
-                this.size = 30 + Math.random() * 40;
-                this.hue = 150 + Math.random() * 50;
+                this.y = 400 + Math.random() * 100;
+                this.size = 50 + Math.random() * 40;
             }
             draw(camX, camY) {
                 const p = 600 / (600 + this.z);
-                const sx = (this.x - camX) * p * zoom + w/2;
-                const sy = (this.y - camY) * p * zoom + h/2 + 150*zoom;
+                this.sx = (this.x - camX) * p * zoom + w/2;
+                this.sy = (this.y - camY) * p * zoom + h/2 + 150*zoom;
                 const s = this.size * p * zoom;
                 
                 ctx.save();
-                ctx.translate(sx, sy);
-                const dist = Math.hypot(sx - mx, sy - my);
-                const light = Math.max(0, 1 - dist / (250 * zoom));
+                ctx.translate(this.sx, this.sy);
+                const dist = Math.hypot(this.sx - mx, this.sy - my);
+                const light = Math.max(0, 1 - dist / (300 * zoom));
 
-                // チョイア（トゲ海綿）の描画
-                ctx.strokeStyle = `hsla(${this.hue}, 30%, ${20 + light * 40}%, ${p})`;
-                ctx.lineWidth = 1.5 * p * zoom;
-                for (let i = 0; i < 16; i++) {
-                    let a = (i / 16) * Math.PI * 2;
-                    ctx.beginPath(); ctx.moveTo(0, 0);
-                    ctx.lineTo(Math.cos(a) * s, Math.sin(a) * s * 0.5); ctx.stroke();
+                // チョイアのトゲ（高解像度：グラデーションとハイライト）
+                for (let i = 0; i < 24; i++) {
+                    let a = (i / 24) * Math.PI * 2;
+                    let grad = ctx.createLinearGradient(0,0, Math.cos(a)*s, Math.sin(a)*s*0.5);
+                    grad.addColorStop(0, `hsla(30, 20%, ${10+light*40}%, ${p})`);
+                    grad.addColorStop(1, `hsla(30, 10%, ${5+light*20}%, 0)`);
+                    ctx.strokeStyle = grad; ctx.lineWidth = 2 * p;
+                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * s, Math.sin(a) * s * 0.5); ctx.stroke();
                 }
-                ctx.fillStyle = `hsla(${this.hue}, 40%, ${10 + light * 30}%, ${p})`;
-                ctx.beginPath(); ctx.ellipse(0, 0, s * 0.3, s * 0.15, 0, 0, 7); ctx.fill();
+                // 中心部
+                let cGrad = ctx.createRadialGradient(0,0,0,0,0,s*0.3);
+                cGrad.addColorStop(0, `hsla(40, 30%, ${20+light*40}%, ${p})`);
+                cGrad.addColorStop(1, `hsla(20, 40%, 10%, ${p})`);
+                ctx.fillStyle = cGrad;
+                ctx.beginPath(); ctx.ellipse(0, 0, s*0.3, s*0.15, 0, 0, 7); ctx.fill();
                 ctx.restore();
             }
         }
@@ -107,15 +103,15 @@
         class Creature {
             constructor(type) {
                 this.type = type;
-                this.isBenthic = ['wiwaxia', 'halluci', 'trilo', 'odont'].includes(type);
+                this.isBenthic = ['wiwaxia', 'halluci', 'trilo'].includes(type);
                 this.spawn();
             }
             spawn() {
                 this.z = Math.random() * 800;
                 this.x = Math.random() * 4000 - 2000;
                 this.y = this.isBenthic ? 380 + Math.random()*40 : Math.random()*600 - 300;
-                this.vx = (Math.random()-0.5)*1.8; this.vy = (Math.random()-0.5)*0.3;
-                this.sizeBase = { anomalo:130, opabinia:90, wiwaxia:75, halluci:55, trilo:50, pikaia:70, odont:80 }[this.type];
+                this.vx = (Math.random()-0.5)*2; this.vy = (Math.random()-0.5)*0.4;
+                this.sizeBase = { anomalo:140, opabinia:100, wiwaxia:85, halluci:60, trilo:55, pikaia:75 }[this.type];
                 this.phase = Math.random() * 10;
             }
             update() {
@@ -145,74 +141,88 @@
                 ctx.translate(this.sx, this.sy);
                 ctx.scale(this.vx > 0 ? 1 : -1, 1);
                 ctx.globalAlpha = Math.max(0.1, p);
-                this.render(s, light, p);
+                this.render(s, light, t_val);
                 ctx.restore();
             }
-            render(s, light, p_scale) {
-                const t = Date.now() * 0.004 + this.phase;
-                const highlight = `hsla(${lightHue}, 100%, 85%, ${light})`;
-                ctx.shadowBlur = 20 * light; ctx.shadowColor = highlight;
+            render(s, light, t) {
+                const time = t * 5 + this.phase;
+                const hCol = `hsla(${lightHue}, 100%, 85%, ${light})`;
+                ctx.shadowBlur = 25 * light; ctx.shadowColor = hCol;
 
                 if (this.type === 'anomalo') {
-                    // アノマロカリス: 重厚な甲殻表現
-                    let bodyGrad = ctx.createLinearGradient(-s, -s/2, s, s/2);
-                    bodyGrad.addColorStop(0, '#4a0e05'); bodyGrad.addColorStop(0.5, '#c62828'); bodyGrad.addColorStop(1, '#ffab91');
-                    ctx.fillStyle = bodyGrad;
-                    ctx.beginPath(); ctx.ellipse(0, 0, s, s*0.35, 0, 0, 7); ctx.fill();
-                    // 13対の鰭の繊細なうねり
+                    // アノマロカリス: 重厚な赤い甲殻
+                    let g = ctx.createLinearGradient(-s,0,s,0); g.addColorStop(0,'#4a0000'); g.addColorStop(0.5,'#d32f2f'); g.addColorStop(1,'#ff8a65');
+                    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.35,0,0,7); ctx.fill();
                     for(let i=0; i<13; i++) {
-                        let flapH = s*0.45 + Math.sin(t + i*0.7 + Math.sin(t*0.5))*s*0.3;
-                        ctx.fillStyle = `rgba(255, 138, 101, ${0.4 + light*0.5})`;
-                        ctx.beginPath(); ctx.ellipse(-s*0.85+i*s*0.14, s*0.25, s*0.12, flapH, 0.15, 0, 7); ctx.fill();
-                        ctx.beginPath(); ctx.ellipse(-s*0.85+i*s*0.14, -s*0.25, s*0.12, flapH, -0.15, 0, 7); ctx.fill();
+                        ctx.fillStyle = `rgba(255, 112, 67, ${0.4 + light*0.5})`;
+                        let fh = s*0.4 + Math.sin(time + i*0.7)*s*0.25;
+                        ctx.beginPath(); ctx.ellipse(-s*0.8+i*s*0.14, s*0.25, s*0.12, fh, 0.2,0,7); ctx.fill();
+                        ctx.beginPath(); ctx.ellipse(-s*0.8+i*s*0.14, -s*0.25, s*0.12, fh, -0.2,0,7); ctx.fill();
                     }
-                    ctx.fillStyle = '#050505'; ctx.beginPath(); ctx.arc(s*0.75, -s*0.4, s*0.13, 0, 7); ctx.fill();
-                    ctx.beginPath(); ctx.arc(s*0.75, s*0.4, s*0.13, 0, 7); ctx.fill();
-                    if(light>0.2) { ctx.fillStyle=highlight; ctx.beginPath(); ctx.arc(s*0.78, -s*0.42, s*0.04, 0, 7); ctx.fill(); }
+                    ctx.fillStyle = '#050505'; ctx.beginPath(); ctx.arc(s*0.8, -s*0.4, s*0.14, 0, 7); ctx.fill();
+                    ctx.beginPath(); ctx.arc(s*0.8, s*0.4, s*0.14, 0, 7); ctx.fill();
+                    if(light>0.2){ ctx.fillStyle=hCol; ctx.beginPath(); ctx.arc(s*0.82,-s*0.43,s*0.04,0,7); ctx.fill(); }
+                } else if (this.type === 'opabinia') {
+                    // オパビニア: 深緑の体と5つの精密な複眼
+                    let g = ctx.createLinearGradient(-s,0,s,0); g.addColorStop(0,'#1b5e20'); g.addColorStop(1,'#81c784');
+                    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.3,0,0,7); ctx.fill();
+                    for(let i=0; i<5; i++){
+                        ctx.fillStyle = '#0a0a0a'; ctx.beginPath(); ctx.arc(s*0.6-i*s*0.06, -s*0.25-i*s*0.04, s*0.06, 0, 7); ctx.fill();
+                        if(light>0.3){ ctx.fillStyle=hCol; ctx.beginPath(); ctx.arc(s*0.61-i*s*0.06, -s*0.26-i*s*0.04, s*0.02, 0, 7); ctx.fill(); }
+                    }
+                    ctx.strokeStyle = hCol; ctx.lineWidth = s*0.12; ctx.beginPath(); ctx.moveTo(s*0.8,0); ctx.bezierCurveTo(s*1.5, Math.sin(time)*s*0.5, s*1.7, -s*0.4, s*1.6, s*0.5); ctx.stroke();
                 } else if (this.type === 'wiwaxia') {
-                    ctx.fillStyle = '#3e2723'; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.75,0,0,7); ctx.fill();
-                    for(let i=0; i<24; i++) {
-                        let a = -Math.PI + (i*0.26);
-                        ctx.strokeStyle = `hsla(20, 30%, ${30+light*50}%, 1)`; ctx.lineWidth = s*0.08;
-                        ctx.beginPath(); ctx.moveTo(Math.cos(a)*s*0.5, Math.sin(a)*s*0.3);
-                        ctx.lineTo(Math.cos(a)*s*0.9, Math.sin(a)*s*(i%2?1.4:1.0)); ctx.stroke();
+                    // ウィワクシア: 虹色に輝く構造色の鱗
+                    let g = ctx.createRadialGradient(0,0,0,0,0,s); g.addColorStop(0,'#5d4037'); g.addColorStop(1,'#212121');
+                    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.7,0,0,7); ctx.fill();
+                    for(let i=0; i<24; i++){
+                        let a = -Math.PI + i*0.26;
+                        ctx.strokeStyle = `hsla(${20+light*40}, 30%, ${30+light*50}%, 1)`; ctx.lineWidth = s*0.08;
+                        ctx.beginPath(); ctx.moveTo(Math.cos(a)*s*0.6, Math.sin(a)*s*0.3); ctx.lineTo(Math.cos(a)*s*0.9, Math.sin(a)*s*(i%2?1.3:1)); ctx.stroke();
+                    }
+                } else if (this.type === 'trilo') {
+                    // 三葉虫: 鏡面反射する硬い甲羅
+                    for(let i=0; i<4; i++) {
+                        let g = ctx.createRadialGradient(s*0.6-i*s*0.4, 0, 0, s*0.6-i*s*0.4, 0, s*0.5);
+                        g.addColorStop(0, `rgb(${60+light*40}, ${70+light*40}, ${80+light*40})`); g.addColorStop(1, '#1a1a1a');
+                        ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(s*0.6-i*s*0.4, 0, s*0.45, s*(0.8-i*0.1), 0,0,7); ctx.fill();
                     }
                 } else if (this.type === 'pikaia') {
-                    ctx.fillStyle = `rgba(178, 235, 242, ${0.3+light*0.5})`;
-                    ctx.beginPath(); ctx.moveTo(-s,0);
-                    for(let i=-s; i<s; i+=s/10) ctx.lineTo(i, Math.sin(t*2 + i*0.12)*s*0.35);
+                    // ピカイア: 内部構造が見える透明な体
+                    let g = ctx.createLinearGradient(-s,0,s,0); g.addColorStop(0,'rgba(0,188,212,0.1)'); g.addColorStop(1,`rgba(178,235,242,${0.3+light*0.6})`);
+                    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-s,0);
+                    for(let i=-s; i<s; i+=s/10) ctx.lineTo(i, Math.sin(time*0.4 + i*0.12)*s*0.35);
                     ctx.lineTo(s,0); ctx.fill();
-                    ctx.strokeStyle = highlight; ctx.lineWidth = 1; ctx.stroke();
-                } else if (this.type === 'trilo') {
-                    for(let i=0; i<4; i++) {
-                        ctx.fillStyle = `rgb(${30+i*20}, ${40+i*20}, ${50+i*20})`;
-                        ctx.beginPath(); ctx.ellipse(s*0.6-i*s*0.4, 0, s*0.45, s*(0.75-i*0.1), 0,0,7); ctx.fill();
+                    ctx.strokeStyle = hCol; ctx.lineWidth=1; ctx.stroke();
+                } else if (this.type === 'halluci') {
+                    ctx.fillStyle = '#4a148c'; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.2,0,0,7); ctx.fill();
+                    ctx.strokeStyle = hCol; ctx.lineWidth = s*0.06;
+                    for(let i=0; i<7; i++){
+                        ctx.beginPath(); ctx.moveTo(-s*0.7+i*s*0.2, -s*0.1); ctx.lineTo(-s*0.8+i*s*0.2, -s); ctx.stroke();
+                        let leg = Math.sin(time + i)*s*0.2;
+                        ctx.beginPath(); ctx.moveTo(-s*0.7+i*s*0.2, s*0.1); ctx.lineTo(-s*0.7+i*s*0.2+leg, s*0.5); ctx.stroke();
                     }
-                } else {
-                    ctx.fillStyle = `hsla(${this.phase*30}, 40%, ${20+light*30}%, 1)`;
-                    ctx.beginPath(); ctx.ellipse(0,0,s,s*0.3,0,0,7); ctx.fill();
                 }
             }
         }
 
         // 初期化
-        for(let i=0; i<40; i++) plants.push(new Plant());
-        const types = Object.keys(BIO);
-        types.forEach(type => { for(let i=0; i<4; i++) creatures.push(new Creature(type)); });
+        for(let i=0; i<35; i++) plants.push(new Plant());
+        ['anomalo','opabinia','wiwaxia','halluci','trilo','pikaia'].forEach(t => { for(let i=0; i<4; i++) creatures.push(new Creature(t)); });
         resize();
 
+        let t_val = 0;
         function loop() {
             ctx.fillStyle = '#00060c'; ctx.fillRect(0,0,w,h);
-            const t = performance.now() * 0.001;
+            t_val = performance.now() * 0.001;
             const camX = target ? target.x : 0;
             const camY = target ? target.y : 0;
 
-            const grad = ctx.createRadialGradient(mx, my, 0, mx, my, 380 * zoom);
+            const grad = ctx.createRadialGradient(mx, my, 0, mx, my, 350 * zoom);
             grad.addColorStop(0, `hsla(${lightHue}, 100%, 75%, 0.18)`);
             grad.addColorStop(1, 'transparent');
             ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
 
-            // 海底の海綿（視差効果）
             plants.sort((a,b) => b.z - a.z);
             plants.forEach(p => p.draw(camX, camY));
 
@@ -220,7 +230,7 @@
                 f.y += 1.3;
                 const fx = (f.x - camX)*zoom + w/2;
                 const fy = (f.y - camY)*zoom + h/2 + 150*zoom;
-                ctx.fillStyle = '#fff'; ctx.shadowBlur = 15; ctx.shadowColor = '#fff';
+                ctx.fillStyle = '#fff'; ctx.shadowBlur = 20; ctx.shadowColor = '#fff';
                 ctx.beginPath(); ctx.arc(fx, fy, 5*zoom, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
             });
 
