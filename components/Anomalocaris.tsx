@@ -5,111 +5,111 @@ import * as THREE from 'three';
 
 export default function Anomalocaris() {
   const groupRef = useRef<THREE.Group>(null!);
-  const sideFlaps = useRef<(THREE.Mesh | null)[]>([]);
+  const segmentsRef = useRef<(THREE.Group | null)[]>([]);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    groupRef.current.position.y = Math.sin(t * 0.4) * 0.2;
+    
+    // 全体のゆったりした揺れ
+    groupRef.current.position.y = Math.sin(t * 0.5) * 0.2;
+    groupRef.current.rotation.z = Math.sin(t * 0.3) * 0.05;
 
-    // ヒレのしなやかな波打ち
-    sideFlaps.current.forEach((mesh, i) => {
-      if (mesh) {
-        const phase = i % 13;
-        mesh.rotation.x = Math.sin(t * 2.5 - phase * 0.5) * 0.4;
+    // 節（セグメント）ごとの連動
+    segmentsRef.current.forEach((seg, i) => {
+      if (seg) {
+        // フィギュアが連動して動くような、位相をずらした「くねり」
+        const delay = i * 0.4;
+        // 胴体の上下動
+        seg.position.y = Math.sin(t * 2 - delay) * 0.05;
+        // 左右のヒレの羽ばたき
+        const flapRight = seg.children[1] as THREE.Mesh; // 右ヒレ
+        const flapLeft = seg.children[2] as THREE.Mesh;  // 左ヒレ
+        if (flapRight && flapLeft) {
+          const wave = Math.sin(t * 3 - delay) * 0.4;
+          flapRight.rotation.x = wave;
+          flapLeft.rotation.x = wave;
+        }
       }
     });
   });
 
   return (
     <group ref={groupRef}>
-      {/* 胴体：甲殻の質感を高める */}
+      {/* 13個の独立した可動セグメント */}
       {[...Array(13)].map((_, i) => (
-        <mesh key={i} position={[0, 0, (i - 6) * -0.4]} scale={[1.2 - i*0.05, 0.7 - i*0.03, 0.5]}>
-          <sphereGeometry args={[0.5, 32, 16]} />
-          <meshStandardMaterial color="#8b4513" roughness={0.2} metalness={0.1} />
-        </mesh>
+        <group 
+          key={i} 
+          position={[0, 0, (i - 6) * -0.45]}
+          ref={(el) => { segmentsRef.current[i] = el; }}
+        >
+          {/* 胴体の節（カプセル状のパーツ） */}
+          <mesh scale={[1.2 - i*0.05, 0.6 - i*0.03, 0.5]}>
+            <sphereGeometry args={[0.5, 16, 16]} />
+            <meshStandardMaterial 
+              color={i % 2 === 0 ? "#8B4513" : "#A0522D"} // 節ごとに色を変えて分割感を出す
+              roughness={0.2}
+            />
+          </mesh>
+
+          {/* 右のヒレ：アニア風に少し厚みと形状を整える */}
+          <mesh position={[0.7 - i*0.02, -0.1, 0]} rotation={[0, -0.2, 0.2]}>
+            <coneGeometry args={[0.2, 1.2, 4]} rotation={[0, 0, Math.PI / 2]} />
+            <meshStandardMaterial color="#CD853F" transparent opacity={0.9} side={THREE.DoubleSide} />
+          </mesh>
+
+          {/* 左のヒレ */}
+          <mesh position={[-0.7 + i*0.02, -0.1, 0]} rotation={[0, 0.2, -0.2]}>
+            <coneGeometry args={[0.2, 1.2, 4]} rotation={[0, 0, -Math.PI / 2]} />
+            <meshStandardMaterial color="#CD853F" transparent opacity={0.9} side={THREE.DoubleSide} />
+          </mesh>
+        </group>
       ))}
 
-      {/* --- アカデミック再現：精密パイ・マウス --- */}
-      <group position={[0, -0.45, 1.7]} rotation={[Math.PI / 2.2, 0, 0]}>
-        {/* 口の土台（筋肉組織） */}
-        <mesh>
-          <torusGeometry args={[0.35, 0.08, 16, 50]} />
-          <meshStandardMaterial color="#4a1a1a" />
-        </mesh>
+      {/* --- 頭部パーツ群 --- */}
+      <group position={[0, 0, 1.8]}>
+        {/* 精密パイ・マウス（お腹側） */}
+        <group position={[0, -0.4, 0]} rotation={[Math.PI / 2.1, 0, 0]}>
+          <mesh><torusGeometry args={[0.3, 0.06]} /><meshStandardMaterial color="#331111" /></mesh>
+          {[...Array(32)].map((_, j) => (
+            <mesh key={j} rotation={[0, 0, (j/32)*Math.PI*2]} position={[0.2, 0, 0]}>
+              <boxGeometry args={[0.15, 0.05, 0.01]} /><meshStandardMaterial color="#5d2e2e" />
+            </mesh>
+          ))}
+        </group>
 
-        {/* 32枚の重なり合う硬質プレート */}
-        {[...Array(32)].map((_, i) => {
-          const angle = (i / 32) * Math.PI * 2;
-          const isLarge = i % 4 === 0; // 4枚に1枚、大きなプレートがある学説を再現
-          return (
-            <group key={i} rotation={[0, 0, angle]}>
-              <mesh position={[0.25, 0, 0.02]}>
-                <boxGeometry args={[isLarge ? 0.25 : 0.15, 0.08, 0.02]} />
-                <meshStandardMaterial 
-                  color={isLarge ? "#5d2e2e" : "#3d1e1e"} 
-                  roughness={0.1} 
-                />
-              </mesh>
-              {/* プレート先端の「返し」の歯 */}
-              <mesh position={[isLarge ? 0.1 : 0.05, 0, 0.05]} rotation={[0, -0.5, 0]}>
-                <coneGeometry args={[0.015, 0.1, 4]} />
-                <meshStandardMaterial color="#222" />
-              </mesh>
-            </group>
-          );
-        })}
-      </group>
-
-      {/* 複眼：高精細化（光を反射するレンズ感） */}
-      <group position={[0, 0.4, 2.1]}>
+        {/* 飛び出した複眼 */}
         {[0.8, -0.8].map((x, i) => (
-          <group key={i} position={[x, 0, 0]}>
-            <mesh rotation={[0.2, 0, x > 0 ? 0.6 : -0.6]}>
-              <cylinderGeometry args={[0.04, 0.04, 0.5]} />
-              <meshStandardMaterial color="#8b4513" />
+          <group key={i} position={[x, 0.3, 0]}>
+            <mesh rotation={[0.2, 0, x > 0 ? 0.6 : -0.6]} position={[0, -0.2, 0]}>
+              <cylinderGeometry args={[0.04, 0.04, 0.4]} /><meshStandardMaterial color="#8B4513" />
             </mesh>
-            <mesh position={[0, 0.3, 0]}>
-              <sphereGeometry args={[0.22, 32, 32]} />
-              <meshPhongMaterial 
-                color="#111" 
-                shininess={100} 
-                specular={new THREE.Color("#fff")} 
-              />
+            <mesh position={[0, 0.1, 0]}>
+              <sphereGeometry args={[0.2, 32, 32]} /><meshPhongMaterial color="#111" shininess={100} />
             </mesh>
+          </group>
+        ))}
+
+        {/* 捕食用前脚 */}
+        {[0.3, -0.3].map((x, i) => (
+          <group key={i} position={[x, -0.1, 0.3]} rotation={[0.8, x > 0 ? 0.2 : -0.2, 0]}>
+            <mesh><cylinderGeometry args={[0.08, 0.04, 1.2]} /><meshStandardMaterial color="#A0522D" /></mesh>
+            {[...Array(8)].map((_, k) => (
+              <mesh key={k} position={[0, (k-4)*0.15, 0.08]} rotation={[1.6, 0, 0]}>
+                <coneGeometry args={[0.02, 0.2]} /><meshStandardMaterial color="#4A2A1A" />
+              </mesh>
+            ))}
           </group>
         ))}
       </group>
 
-      {/* 捕食用の前脚：トゲの密度アップ */}
-      {[0.3, -0.3].map((x, j) => (
-        <group key={j} position={[x, -0.1, 2.3]} rotation={[0.8, x > 0 ? 0.2 : -0.2, 0]}>
-          <mesh>
-            <cylinderGeometry args={[0.08, 0.04, 1.4]} />
-            <meshStandardMaterial color="#a0522d" />
+      {/* 尾扇 */}
+      <group position={[0, 0, -3.5]}>
+        {[0.5, 0, -0.5].map((rot, i) => (
+          <mesh key={i} rotation={[0, 0, rot]} position={[0, 0.1*i, -0.2*i]}>
+            <planeGeometry args={[1.2, 0.8]} /><meshStandardMaterial color="#8B0000" transparent opacity={0.8} />
           </mesh>
-          {[...Array(12)].map((_, k) => (
-            <mesh key={k} position={[0, (k-6)*0.18, 0.08]} rotation={[1.6, 0, 0]}>
-              <coneGeometry args={[0.025, 0.25, 8]} />
-              <meshStandardMaterial color="#4a2a1a" />
-            </mesh>
-          ))}
-        </group>
-      ))}
-
-      {/* 側葉と尾扇は前回の「しなやかな動き」を継承 */}
-      {[...Array(13)].map((_, i) => (
-        <group key={i} position={[0, 0, (i - 5) * -0.45]}>
-          <mesh ref={(el) => { sideFlaps.current[i] = el; }} position={[0.9, -0.1, 0]}>
-            <coneGeometry args={[0.25, 1.5, 32]} rotation={[0, 0, Math.PI / 2]} />
-            <meshStandardMaterial color="#cd853f" transparent opacity={0.8} side={THREE.DoubleSide} />
-          </mesh>
-          <mesh ref={(el) => { sideFlaps.current[i + 13] = el; }} position={[-0.9, -0.1, 0]}>
-            <coneGeometry args={[0.25, 1.5, 32]} rotation={[0, 0, -Math.PI / 2]} />
-            <meshStandardMaterial color="#cd853f" transparent opacity={0.8} side={THREE.DoubleSide} />
-          </mesh>
-        </group>
-      ))}
+        ))}
+      </group>
     </group>
   );
 }
