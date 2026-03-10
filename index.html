@@ -2,18 +2,20 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Cambrian 2.5D Aquarium - No External Assets</title>
+    <title>Cambrian HD Aquarium - Deep Sea Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #001219; font-family: sans-serif; color: #fff; }
-        canvas { display: block; background: radial-gradient(circle at top, #003a4d 0%, #001219 80%); }
+        body { margin: 0; overflow: hidden; background: #000b14; font-family: 'Hiragino Kaku Gothic ProN', sans-serif; }
+        canvas { display: block; cursor: crosshair; }
+        /* 図鑑UI */
         #ui {
-            position: absolute; top: 20px; right: 20px; width: 260px; padding: 15px;
-            background: rgba(0, 50, 70, 0.9); border: 2px solid #00f0ff; border-radius: 12px;
-            display: none; pointer-events: none; box-shadow: 0 0 15px #00ffff66;
+            position: absolute; top: 25px; right: 25px; width: 280px; padding: 20px;
+            background: rgba(0, 40, 60, 0.95); border: 2px solid #00e5ff; border-radius: 20px;
+            color: #fff; display: none; pointer-events: none; z-index: 100;
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.3);
         }
-        h2 { margin: 0 0 10px; color: #00ffff; font-size: 1.2em; border-bottom: 1px solid #00ffff; }
-        p { margin: 0; font-size: 0.9em; line-height: 1.5; }
-        .hint { position: absolute; bottom: 10px; left: 10px; color: #00f0ff; opacity: 0.6; font-size: 12px; }
+        h2 { margin: 0 0 10px; color: #00e5ff; font-size: 1.4em; text-shadow: 0 0 10px rgba(0,229,255,0.5); }
+        p { margin: 0; font-size: 0.95em; line-height: 1.6; color: #e0f7fa; }
+        .instructions { position: absolute; bottom: 20px; left: 20px; color: #4db6ac; font-size: 13px; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -21,149 +23,220 @@
         <h2 id="name"></h2>
         <p id="desc"></p>
     </div>
-    <div class="hint">マウスを動かして古代生物をさがそう！</div>
-    <canvas id="aquarium"></canvas>
+    <div class="instructions">マウスを重ねて古代の生命をスキャンしよう</div>
+    <canvas id="cvs"></canvas>
 
     <script>
-        const canvas = document.getElementById('aquarium');
+        const canvas = document.getElementById('cvs');
         const ctx = canvas.getContext('2d');
         const ui = document.getElementById('ui');
         const nameEl = document.getElementById('name');
         const descEl = document.getElementById('desc');
 
-        let width, height;
+        let w, h;
         const creatures = [];
 
-        // 1. 生物データの定義
-        const data = {
-            anomalo: { name: "アノマロカリス", desc: "カンブリア紀の絶対王者！横のヒレを波打たせて優雅に泳ぎ、2本の触手で獲物を捕まえたよ。" },
-            trilo: { name: "三葉虫", desc: "硬い殻を持つ古代の住人。海の底を歩いて食べ物を探していたよ。" }
+        // 生物図鑑データ
+        const BIO_DATA = {
+            anomalo: { name: "アノマロカリス", desc: "カンブリア紀最強の捕食者。左右のヒレを1つずつ順番に動かすことで、滑らかに加速して獲物を追い詰めたよ。" },
+            trilo: { name: "三葉虫", desc: "節足動物の仲間。背中には硬い殻があり、お腹側にはたくさんの脚があったんだ。砂の中の栄養を食べていたよ。" },
+            pikaia: { name: "ピカイア", desc: "私たちの遠い祖先に近い生き物。背中に「原索」という棒状の組織があって、魚のようにしなやかに泳ぐんだ。" },
+            sessile: { name: "ディンキソニア", desc: "海底に張り付いて生活していた不思議な生き物。動物なのか植物なのか、今でも科学者の間で議論されているよ。" }
         };
 
-        // 2. リサイズ設定
         function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
         }
         window.addEventListener('resize', resize);
         resize();
 
-        // 3. 生物クラス（擬似3D）
         class Creature {
-            constructor(type, x, y, z) {
+            constructor(type) {
                 this.type = type;
-                this.x = x; this.y = y; this.z = z;
-                this.baseSize = type === 'anomalo' ? 100 : 40;
-                this.angle = Math.random() * Math.PI * 2;
-                this.data = data[type];
+                this.reset();
+                this.data = BIO_DATA[type];
                 this.hover = false;
             }
 
+            reset() {
+                this.z = Math.random() * 500;
+                this.x = Math.random() * w;
+                this.y = (this.type === 'sessile' || this.type === 'trilo') ? h * 0.9 : Math.random() * h;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.phase = Math.random() * Math.PI * 2;
+                this.sizeBase = { anomalo: 120, trilo: 45, pikaia: 60, sessile: 80 }[this.type];
+            }
+
             update(t) {
-                if(this.type === 'anomalo') {
-                    this.x = Math.cos(t * 0.3) * (width * 0.3) + width / 2;
-                    this.y = Math.sin(t * 0.5) * 50 + height / 2;
-                    this.z = Math.sin(t * 0.3) * 100 + 200;
-                } else {
-                    this.x += Math.sin(t + this.angle) * 0.5;
-                    this.y = height * 0.85 + Math.cos(t * 2 + this.angle) * 2;
-                }
+                const speedMult = this.type === 'pikaia' ? 1.5 : 0.5;
+                this.x += this.vx * speedMult;
+                if (this.x < -200) this.x = w + 200;
+                if (this.x > w + 200) this.x = -200;
+
+                // 深度によるサイズ減衰
+                this.scale = 600 / (600 + this.z);
+                this.size = this.sizeBase * this.scale;
             }
 
             draw(t) {
-                const scale = 400 / (400 + this.z);
-                const drawX = this.x;
-                const drawY = this.y;
-                const size = this.baseSize * scale;
-
                 ctx.save();
-                ctx.translate(drawX, drawY);
+                ctx.translate(this.x, this.y);
+                if (this.vx < 0) ctx.scale(-1, 1); // 進行方向に反転
 
-                if (this.type === 'anomalo') {
-                    // アノマロカリスの描画
-                    ctx.fillStyle = '#e67e22';
-                    // 胴体
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, size, size * 0.4, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    // ヒレ（アニメーション）
-                    for(let i=0; i<6; i++) {
-                        const wave = Math.sin(t * 5 + i) * (size * 0.3);
-                        ctx.fillStyle = '#d35400';
-                        ctx.fillRect(-size + i*(size*0.3), size*0.3, size*0.2, wave);
-                        ctx.fillRect(-size + i*(size*0.3), -size*0.3 - wave, size*0.2, wave);
-                    }
-                    // 触手
-                    ctx.strokeStyle = '#e67e22';
-                    ctx.lineWidth = size * 0.1;
-                    ctx.beginPath();
-                    ctx.moveTo(size * 0.8, 0);
-                    ctx.quadraticCurveTo(size * 1.5, Math.sin(t*3)*20, size * 1.2, 20);
-                    ctx.stroke();
-                } else {
-                    // 三葉虫の描画
-                    ctx.fillStyle = '#445566';
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, size, size * 0.6, 0, 0, Math.PI * 2);
-                    ctx.fill();
+                const s = this.size;
+                const p = this.phase + t * 4;
+
+                switch(this.type) {
+                    case 'anomalo': this.drawAnomalo(s, p); break;
+                    case 'trilo': this.drawTrilo(s, p); break;
+                    case 'pikaia': this.drawPikaia(s, p); break;
+                    case 'sessile': this.drawSessile(s, p); break;
                 }
                 ctx.restore();
+            }
 
-                // マウス判定用
-                this.screenX = drawX;
-                this.screenY = drawY;
-                this.screenSize = size;
+            drawAnomalo(s, p) {
+                // 胴体グラデーション
+                const grad = ctx.createLinearGradient(-s, 0, s, 0);
+                grad.addColorStop(0, '#d35400'); grad.addColorStop(1, '#ff8c00');
+                ctx.fillStyle = grad;
+                
+                // メインボディ
+                ctx.beginPath();
+                ctx.ellipse(0, 0, s, s * 0.35, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // サイドフラップ（高解像度アニメ）
+                for(let i=0; i<10; i++) {
+                    const wave = Math.sin(p + i * 0.8) * (s * 0.4);
+                    ctx.fillStyle = i % 2 === 0 ? '#e67e22' : '#ca6f1e';
+                    ctx.beginPath();
+                    ctx.ellipse(-s*0.8 + i*(s*0.18), s*0.2, s*0.15, Math.abs(wave), 0, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(-s*0.8 + i*(s*0.18), -s*0.2, s*0.15, Math.abs(wave), 0, 0, Math.PI*2);
+                    ctx.fill();
+                }
+
+                // 特徴的な大きな目
+                ctx.fillStyle = '#2c3e50';
+                ctx.beginPath(); ctx.arc(s*0.7, -s*0.4, s*0.12, 0, 7); ctx.fill();
+                ctx.beginPath(); ctx.arc(s*0.7, s*0.4, s*0.12, 0, 7); ctx.fill();
+
+                // 触手
+                ctx.strokeStyle = '#e67e22'; ctx.lineWidth = s*0.08;
+                ctx.beginPath();
+                ctx.moveTo(s*0.9, s*0.1);
+                ctx.bezierCurveTo(s*1.5, s*0.5 + Math.sin(p)*20, s*1.8, s*(-0.2), s*1.3, s*(-0.5));
+                ctx.stroke();
+            }
+
+            drawPikaia(s, p) {
+                ctx.fillStyle = 'rgba(200, 230, 255, 0.7)';
+                ctx.beginPath();
+                // 魚のようなしなやかな体
+                ctx.moveTo(-s, 0);
+                for(let i = -s; i < s; i += 5) {
+                    const y = Math.sin(p + i * 0.05) * (s * 0.2);
+                    ctx.lineTo(i, y);
+                }
+                ctx.lineTo(s, s * 0.1);
+                ctx.lineTo(s, -s * 0.1);
+                ctx.closePath();
+                ctx.fill();
+                // 背中のスジ（原索）
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            drawTrilo(s, p) {
+                ctx.fillStyle = '#455a64';
+                // 甲羅の節
+                for(let i=0; i<3; i++) {
+                    ctx.beginPath();
+                    ctx.ellipse(-s*0.3 + i*(s*0.3), 0, s*0.3, s*0.5 - (i*s*0.05), 0, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                // 小さな脚（ワサワサ動く）
+                ctx.strokeStyle = '#263238';
+                ctx.lineWidth = 2;
+                for(let i=0; i<8; i++) {
+                    const move = Math.sin(p*2 + i) * 5;
+                    ctx.beginPath(); ctx.moveTo(-s*0.6+i*s*0.15, s*0.3); ctx.lineTo(-s*0.6+i*s*0.15 + move, s*0.6); ctx.stroke();
+                }
+            }
+
+            drawSessile(s, p) {
+                // ディンキソニア
+                ctx.fillStyle = 'rgba(121, 85, 72, 0.6)';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, s, s*0.7, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                for(let i=-s; i<s; i+=10) {
+                    ctx.beginPath(); ctx.moveTo(i, -s*0.5); ctx.lineTo(i, s*0.5); ctx.stroke();
+                }
             }
         }
 
-        // 初期配置
-        creatures.push(new Creature('anomalo', 0, 0, 0));
-        for(let i=0; i<6; i++) {
-            creatures.push(new Creature('trilo', Math.random()*width, height*0.8, Math.random()*100));
+        // 生物の初期化
+        creatures.push(new Creature('anomalo'));
+        for(let i=0; i<3; i++) creatures.push(new Creature('pikaia'));
+        for(let i=0; i<4; i++) creatures.push(new Creature('trilo'));
+        for(let i=0; i<5; i++) {
+            const s = new Creature('sessile');
+            s.x = Math.random() * w; s.y = h * 0.92;
+            creatures.push(s);
         }
 
-        // 4. マウスインタラクション
-        let mouseX = 0, mouseY = 0;
-        window.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-            
-            let found = false;
-            creatures.forEach(c => {
-                const dx = mouseX - c.screenX;
-                const dy = mouseY - c.screenY;
-                if(Math.sqrt(dx*dx + dy*dy) < c.screenSize) {
-                    ui.style.display = 'block';
-                    nameEl.innerText = c.data.name;
-                    descEl.innerText = c.data.desc;
-                    found = true;
-                }
-            });
-            if(!found) ui.style.display = 'none';
-        });
+        function render() {
+            // 背景（水の透明感）
+            const sky = ctx.createRadialGradient(w/2, 0, 0, w/2, 0, h);
+            sky.addColorStop(0, '#004d40'); sky.addColorStop(1, '#001219');
+            ctx.fillStyle = sky;
+            ctx.fillRect(0,0,w,h);
 
-        // 5. ループ
-        function loop() {
-            ctx.clearRect(0, 0, width, height);
             const t = performance.now() * 0.001;
 
-            // 泡の演出（簡易）
+            // マリンスノー（背景の粒子）
             ctx.fillStyle = "rgba(255,255,255,0.1)";
-            for(let i=0; i<10; i++) {
+            for(let i=0; i<20; i++) {
                 ctx.beginPath();
-                ctx.arc((t*50 + i*100)%width, (height - (t*80 + i*200)%height), 2, 0, 7);
+                ctx.arc((i*137 + t*20)%w, (i*713 + t*15)%h, 1.5, 0, 7);
                 ctx.fill();
             }
 
-            creatures.sort((a,b) => b.z - a.z); // 奥から描画
+            // 生物の更新と描画
+            creatures.sort((a,b) => b.z - a.z);
+            let hovered = null;
+
             creatures.forEach(c => {
                 c.update(t);
                 c.draw(t);
+
+                // マウス判定
+                const dx = mouse.x - c.x;
+                const dy = mouse.y - c.y;
+                if(Math.sqrt(dx*dx + dy*dy) < c.size) hovered = c;
             });
 
-            requestAnimationFrame(loop);
+            if(hovered) {
+                ui.style.display = 'block';
+                nameEl.innerText = hovered.data.name;
+                descEl.innerText = hovered.data.desc;
+            } else {
+                ui.style.display = 'none';
+            }
+
+            requestAnimationFrame(render);
         }
-        loop();
+
+        const mouse = { x: 0, y: 0 };
+        window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+        render();
     </script>
 </body>
 </html>
