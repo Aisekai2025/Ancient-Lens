@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Cambrian HD - The Ultimate Deep Sea</title>
+    <title>Cambrian Ecosystem - Benthic Update</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000205; font-family: 'Hiragino Kaku Gothic ProN', sans-serif; }
         canvas { display: block; }
@@ -10,179 +10,151 @@
             position: absolute; top: 20px; right: 20px; width: 300px; padding: 25px;
             background: rgba(0, 15, 25, 0.95); border: 2px solid #00f0ff; border-radius: 20px;
             color: #fff; display: none; pointer-events: none; z-index: 1000;
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
         }
         #mode-btn { 
             position: absolute; top: 20px; left: 20px; padding: 12px 24px; 
-            background: #004d40; color: #fff; border: 2px solid #00f0ff; 
-            border-radius: 30px; cursor: pointer; font-weight: bold; transition: 0.3s;
+            background: #004d40; color: #fff; border: 2px solid #00f0ff; border-radius: 30px; cursor: pointer;
         }
-        #mode-btn:hover { background: #00bfa5; box-shadow: 0 0 15px #00f0ff; }
         .controls { position: absolute; bottom: 20px; left: 20px; color: #4db6ac; font-size: 13px; line-height: 1.6; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; }
     </style>
 </head>
 <body>
-    <button id="mode-btn">深海モード: OFF</button>
-    <div id="ui"><h2 id="name" style="margin:0;color:#00f0ff;text-shadow:0 0 10px #00f0ff;"></h2><p id="desc" style="margin-top:10px;line-height:1.6;"></p></div>
-    <div class="controls">
-        ホイール：ズームイン・アウト<br>
-        クリック：その場所へ「エサ」を投下<br>
-        生き物をクリック：追跡カメラ
-    </div>
+    <button id="mode-btn">深海モード切替</button>
+    <div id="ui"><h2 id="name" style="margin:0;color:#00f0ff;"></h2><p id="desc" style="margin-top:10px;"></p></div>
+    <div class="controls">クリック：エサ投下 | 生物クリック：追跡 | ホイール：ズーム</div>
     <canvas id="cvs"></canvas>
 
     <script>
         const canvas = document.getElementById('cvs');
         const ctx = canvas.getContext('2d');
         const ui = document.getElementById('ui');
-        let w, h, creatures = [], foods = [], isDeep = false, zoom = 1.3;
+        let w, h, creatures = [], foods = [], rocks = [], isDeep = false, zoom = 1.2;
         let camX = 0, camY = 0, target = null;
 
         const BIO = {
-            anomalo: { name: "アノマロカリス", desc: "カンブリア紀最大の王者。高解像度な複眼と13対のヒレを持ち、エサを見つけると猛スピードで突進します。" },
-            opabinia: { name: "オパビニア", desc: "5つの目を持つ奇妙な姿。長いノズルを器用に操り、沈んでくるエサをピンポイントでキャッチします。" },
-            halluci: { name: "ハルキゲニア", desc: "背中に鋭いトゲ、腹側に細い脚を持つ。海底を波打つように歩き、落ちたエサの破片を食べます。" },
-            trilo: { name: "三葉虫", desc: "節足動物の先駆者。硬い甲羅の質感を再現。エサが近くにあると脚の動きが速くなります。" },
-            pikaia: { name: "ピカイア", desc: "私たちの祖先に近い脊索動物。半透明の体の中に走る一本の線は、背骨のルーツです。" },
-            odont: { name: "オドントグリフス", desc: "【新生物】平べったい軟体動物の仲間。海底を滑るように動き、デトリタス（エサの残り）を食べます。" }
+            anomalo: { name: "アノマロカリス", desc: "遊泳性。中層を自由に泳ぎ、上から落ちてくるエサを真っ先に狙います。" },
+            opabinia: { name: "オパビニア", desc: "遊泳性。長いノズルを使い、泳ぎながらエサをキャッチします。" },
+            wiwaxia: { name: "ウィワクシア", desc: "【新生物】底生。全身が硬い鱗と鋭いトゲで守られています。海底を滑るように進みます。" },
+            halluci: { name: "ハルキゲニア", desc: "底生。海底から離れず、砂に落ちたエサを丁寧に探します。" },
+            trilo: { name: "三葉虫", desc: "底生。海底付近を這い回ります。エサが海底に届くまで待ちます。" },
+            pikaia: { name: "ピカイア", desc: "遊泳性。しなやかな体で、水面から中層を素早く移動します。" },
+            odont: { name: "オドントグリフス", desc: "底生。平らな体で海底の有機物を食べます。" }
         };
 
-        function resize() { 
-            w = canvas.width = window.innerWidth; 
-            h = canvas.height = window.innerHeight; 
-            if(!target) { camX = w/2; camY = h/2; }
-        }
+        function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; camX = w/2; camY = h/2; }
         window.addEventListener('resize', resize);
-        window.addEventListener('wheel', e => { zoom = Math.max(0.3, Math.min(5.0, zoom - e.deltaY * 0.001)); }, {passive: true});
-        
+        window.addEventListener('wheel', e => { zoom = Math.max(0.3, Math.min(5, zoom - e.deltaY * 0.001)); }, {passive:true});
         window.addEventListener('mousedown', e => {
             let found = null;
-            creatures.forEach(c => {
-                if(Math.hypot(e.clientX - c.sx, e.clientY - c.sy) < c.sr) found = c;
-            });
-            if(found) { target = (target === found) ? null : found; } 
-            else { foods.push({x: (e.clientX - w/2)/zoom + camX, y: (e.clientY - h/2)/zoom + camY, life: 1}); }
+            creatures.forEach(c => { if(Math.hypot(e.clientX - c.sx, e.clientY - c.sy) < c.sr) found = c; });
+            if(found) target = (target === found) ? null : found;
+            else foods.push({x: (e.clientX - w/2)/zoom + camX, y: (e.clientY - h/2)/zoom + camY});
         });
+        document.getElementById('mode-btn').onclick = () => isDeep = !isDeep;
 
-        document.getElementById('mode-btn').onclick = function() {
-            isDeep = !isDeep;
-            this.innerText = `深海モード: ${isDeep ? 'ON' : 'OFF'}`;
-            this.style.background = isDeep ? '#311b92' : '#004d40';
-        };
+        // 海底の岩石生成
+        for(let i=0; i<30; i++) rocks.push({x: Math.random()*4000-2000, y: 0, s: 50+Math.random()*150});
 
         class Creature {
             constructor(type) {
                 this.type = type;
-                this.x = Math.random() * w * 2 - w;
-                this.y = (type==='halluci' || type==='trilo' || type==='odont') ? h*0.9 : Math.random()*h;
-                this.z = Math.random() * 500;
-                this.vx = (Math.random()-0.5)*2; this.vy = (Math.random()-0.5)*0.5;
-                this.p = Math.random() * 10;
+                this.isBenthic = ['wiwaxia', 'halluci', 'trilo', 'odont'].includes(type);
+                this.spawn();
+            }
+            spawn() {
+                this.x = Math.random()*2000-1000; this.z = Math.random()*600;
+                this.y = this.isBenthic ? 800 + Math.random()*100 : Math.random()*600;
+                this.vx = (Math.random()-0.5)*3; this.vy = (Math.random()-0.5);
             }
             update(t) {
-                // エサを追うAI
                 if(foods.length > 0) {
                     let f = foods[0];
                     let dx = f.x - this.x, dy = f.y - this.y;
-                    let dist = Math.hypot(dx, dy);
-                    if(dist < 500 / zoom) {
-                        this.vx += dx * 0.002; this.vy += dy * 0.002;
-                        if(dist < 15) foods.shift(); 
+                    // 底生生物はエサが海底近く(y>700)に来るまで反応しない
+                    if(!this.isBenthic || f.y > 700) {
+                        let dist = Math.hypot(dx, dy);
+                        if(dist < 600) { this.vx += dx*0.003; this.vy += dy*0.003; if(dist<20) foods.shift(); }
                     }
                 }
-                this.vx *= 0.97; this.vy *= 0.97;
+                this.vx *= 0.98; this.vy *= 0.98;
                 this.x += this.vx; this.y += this.vy;
-                if(this.x < camX - w) this.x = camX + w; if(this.x > camX + w) this.x = camX - w;
+                // 底生生物の高度制限
+                if(this.isBenthic) { if(this.y < 750) this.vy += 0.5; if(this.y > 950) this.vy -= 0.5; }
+                if(this.x < camX-2000) this.x = camX+2000; if(this.x > camX+2000) this.x = camX-2000;
             }
             draw(t) {
-                let s = (600 / (600 + this.z)) * zoom;
-                this.sx = (this.x - camX) * zoom + w/2;
-                this.sy = (this.y - camY) * zoom + h/2;
-                this.sr = 80 * s;
-                ctx.save(); ctx.translate(this.sx, this.sy); ctx.scale(this.vx > 0 ? s : -s, s);
+                let s = (600/(600+this.z)) * zoom;
+                this.sx = (this.x - camX)*zoom + w/2; this.sy = (this.y - camY)*zoom + h/2;
+                this.sr = 80*s;
+                ctx.save(); ctx.translate(this.sx, this.sy); ctx.scale(this.vx>0?s:-s, s);
                 this.render(t, s); ctx.restore();
             }
             render(t, s) {
-                let p = t * 5 + this.p;
-                let light = isDeep ? '#00f0ff' : '#ffab40';
-                ctx.shadowBlur = isDeep ? 15 : 0; ctx.shadowColor = light;
-
+                let p = t*5; let color = isDeep ? '#00f0ff' : '#ffab40';
+                ctx.shadowBlur = isDeep?15:0; ctx.shadowColor = color;
                 if(this.type==='anomalo') {
-                    // 高解像度アノマロ：多層グラデーション
-                    let g = ctx.createLinearGradient(-100,0,100,0);
-                    g.addColorStop(0,'#bf360c'); g.addColorStop(0.5,'#ff7043'); g.addColorStop(1,'#d84315');
-                    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0,0,100,32,0,0,7); ctx.fill();
-                    for(let i=0; i<10; i++) {
-                        ctx.fillStyle = `rgba(230, 126, 34, ${0.4 + Math.sin(p+i)*0.4})`;
-                        ctx.beginPath(); ctx.ellipse(-80+i*18, 30, 12, 40+Math.sin(p+i)*20, 0.2, 0, 7); ctx.fill();
-                        ctx.beginPath(); ctx.ellipse(-80+i*18,-30, 12, 40+Math.sin(p+i)*20,-0.2, 0, 7); ctx.fill();
+                    let g = ctx.createLinearGradient(-100,0,100,0); g.addColorStop(0,'#bf360c'); g.addColorStop(1,'#d84315');
+                    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,0,100,32,0,0,7); ctx.fill();
+                    for(let i=0; i<10; i++){
+                        ctx.fillStyle=`rgba(230,126,34,${0.5+Math.sin(p+i)*0.4})`;
+                        ctx.beginPath(); ctx.ellipse(-80+i*18,30,12,45+Math.sin(p+i)*15,0.2,0,7); ctx.fill();
+                        ctx.beginPath(); ctx.ellipse(-80+i*18,-30,12,45+Math.sin(p+i)*15,-0.2,0,7); ctx.fill();
                     }
-                    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(75,-35,12,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(75,35,12,0,7); ctx.fill();
-                    ctx.strokeStyle=light; ctx.lineWidth=5; ctx.beginPath(); ctx.moveTo(90,0); ctx.quadraticCurveTo(150,Math.sin(p)*30,130,30); ctx.stroke();
-                } else if(this.type==='opabinia') {
-                    ctx.fillStyle='#2e7d32'; ctx.beginPath(); ctx.ellipse(0,0,75,22,0,0,7); ctx.fill();
-                    for(let i=0; i<5; i++) { ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(55-i*5,-20-i*4,4,0,7); ctx.fill(); }
-                    ctx.strokeStyle=light; ctx.lineWidth=6; ctx.beginPath(); ctx.moveTo(70,0); ctx.bezierCurveTo(130,Math.sin(p)*30,150,-20,140,40); ctx.stroke();
+                } else if(this.type==='wiwaxia') {
+                    // ウィワクシア：鱗とトゲ
+                    ctx.fillStyle='#5d4037'; ctx.beginPath(); ctx.ellipse(0,0,60,35,0,0,7); ctx.fill();
+                    ctx.strokeStyle='#8d6e63'; ctx.lineWidth=3;
+                    for(let i=0; i<12; i++){ 
+                        let ang = -Math.PI + (i*0.3);
+                        ctx.beginPath(); ctx.moveTo(Math.cos(ang)*40, Math.sin(ang)*20);
+                        ctx.lineTo(Math.cos(ang)*70, Math.sin(ang)*60); ctx.stroke();
+                    }
                 } else if(this.type==='halluci') {
                     ctx.fillStyle='#6a1b9a'; ctx.beginPath(); ctx.ellipse(0,0,50,10,0,0,7); ctx.fill();
-                    ctx.strokeStyle='#fff'; ctx.lineWidth=2.5;
-                    for(let i=0; i<7; i++){
-                        ctx.beginPath(); ctx.moveTo(-35+i*12,-5); ctx.lineTo(-40+i*12,-45); ctx.stroke();
-                        let lMove = Math.sin(p + i)*10;
-                        ctx.strokeStyle='#9575cd'; ctx.beginPath(); ctx.moveTo(-35+i*12,5); ctx.lineTo(-35+i*12+lMove,25); ctx.stroke();
-                    }
+                    ctx.strokeStyle='#fff'; for(let i=0; i<7; i++){ ctx.beginPath(); ctx.moveTo(-35+i*12,-5); ctx.lineTo(-40+i*12,-45); ctx.stroke(); }
+                } else if(this.type==='opabinia') {
+                    ctx.fillStyle='#2e7d32'; ctx.beginPath(); ctx.ellipse(0,0,75,22,0,0,7); ctx.fill();
+                    ctx.strokeStyle=color; ctx.lineWidth=6; ctx.beginPath(); ctx.moveTo(70,0); ctx.bezierCurveTo(120,Math.sin(p)*30,150,-20,140,40); ctx.stroke();
                 } else if(this.type==='trilo') {
-                    for(let i=0; i<3; i++){ ctx.fillStyle=i==0?'#37474f':'#546e7a'; ctx.beginPath(); ctx.ellipse(30-i*30,0,25,40-i*5,0,0,7); ctx.fill(); }
-                    ctx.strokeStyle=light; ctx.lineWidth=2;
-                    for(let i=0; i<10; i++){ ctx.beginPath(); ctx.moveTo(-40+i*8,20); ctx.lineTo(-45+i*8+Math.sin(p*2+i)*8,35); ctx.stroke(); }
+                    ctx.fillStyle='#37474f'; ctx.beginPath(); ctx.ellipse(0,0,45,30,0,0,7); ctx.fill();
+                    ctx.strokeStyle='#111'; for(let i=0; i<8; i++){ ctx.beginPath(); ctx.moveTo(-30+i*8,20); ctx.lineTo(-30+i*8+Math.sin(p*2+i)*8,35); ctx.stroke(); }
                 } else if(this.type==='pikaia') {
-                    let g = ctx.createLinearGradient(-60,0,60,0); g.addColorStop(0,'rgba(129,212,250,0.2)'); g.addColorStop(1,light);
-                    ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(-70,0);
+                    ctx.fillStyle='rgba(129,212,250,0.6)'; ctx.beginPath(); ctx.moveTo(-70,0);
                     for(let i=-70; i<70; i+=10) ctx.lineTo(i,Math.sin(p+i*0.08)*18);
                     ctx.lineTo(70,0); ctx.fill();
-                } else if(this.type==='odont') {
-                    // オドントグリフス：平たい体と細かな縁
-                    ctx.fillStyle='#8d6e63'; ctx.beginPath(); ctx.ellipse(0,0,60,35,0,0,7); ctx.fill();
-                    ctx.strokeStyle='#a1887f'; ctx.lineWidth=2;
-                    for(let i=0; i<Math.PI*2; i+=0.5){ ctx.beginPath(); ctx.moveTo(Math.cos(i)*60, Math.sin(i)*35); ctx.lineTo(Math.cos(i)*65, Math.sin(i)*40); ctx.stroke(); }
                 }
             }
         }
 
-        // 初期化
+        const types = ['anomalo','opabinia','wiwaxia','halluci','trilo','pikaia'];
+        types.forEach(type => { for(let i=0; i<4; i++) creatures.push(new Creature(type)); });
         resize();
-        creatures.push(new Creature('anomalo'), new Creature('opabinia'), new Creature('opabinia'));
-        for(let i=0; i<5; i++) creatures.push(new Creature('halluci'), new Creature('pikaia'), new Creature('trilo'), new Creature('odont'));
 
         function loop() {
-            ctx.fillStyle = isDeep ? '#000408' : '#001a1d';
-            ctx.fillRect(0,0,w,h);
-            const t = performance.now() * 0.001;
-
+            ctx.fillStyle = isDeep ? '#000408' : '#001a1d'; ctx.fillRect(0,0,w,h);
+            const t = performance.now()*0.001;
             if(target) { camX += (target.x - camX)*0.05; camY += (target.y - camY)*0.05; }
-
-            // エサの描画
-            foods.forEach(f => {
-                f.y += 1.5;
-                ctx.fillStyle='#fff'; ctx.shadowBlur=15; ctx.shadowColor='#fff';
-                ctx.beginPath(); ctx.arc((f.x-camX)*zoom+w/2, (f.y-camY)*zoom+h/2, 5*zoom, 0, 7); ctx.fill();
-                ctx.shadowBlur=0;
+            
+            // 岩場の描画
+            rocks.forEach(r => {
+                let rx = (r.x - camX)*zoom + w/2; let ry = (950 + r.y - camY)*zoom + h/2;
+                ctx.fillStyle = isDeep ? '#001111' : '#0a2a2a';
+                ctx.beginPath(); ctx.moveTo(rx-r.s*zoom, ry); ctx.lineTo(rx, ry-r.s*0.6*zoom); ctx.lineTo(rx+r.s*zoom, ry); ctx.fill();
             });
 
-            let hover = null;
-            creatures.sort((a,b) => b.z - a.z);
+            foods.forEach(f => { f.y += 2; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc((f.x-camX)*zoom+w/2, (f.y-camY)*zoom+h/2, 5*zoom,0,7); ctx.fill(); });
+            foods = foods.filter(f => f.y < 1000);
+
+            let hover = null; creatures.sort((a,b)=>b.z-a.z);
             creatures.forEach(c => {
                 c.update(t); c.draw(t);
-                if(Math.hypot(mx - c.sx, my - c.sy) < c.sr) hover = c;
+                if(Math.hypot(mx-c.sx, my-c.sy) < c.sr) hover = c;
             });
-
             if(hover) { ui.style.display='block'; document.getElementById('name').innerText=BIO[hover.type].name; document.getElementById('desc').innerText=BIO[hover.type].desc; }
             else ui.style.display='none';
-
             requestAnimationFrame(loop);
         }
-
-        let mx, my; window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+        let mx, my; window.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
         loop();
     </script>
 </body>
