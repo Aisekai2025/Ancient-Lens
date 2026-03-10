@@ -20,7 +20,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "@types/three": "^0.150.0",
+    "@types/three": "^0.150.2",
     "typescript": "latest"
   }
 }

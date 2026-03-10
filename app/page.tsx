@@ -1,24 +1,18 @@
-"use client"; // ← これを追加！
-
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Sky, Stars } from '@react-three/drei'
-import Anomalocaris from '../components/Anomalocaris'
+"use client";
+import React from 'react'; // Reactを明示的にインポート
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import Anomalocaris from '../components/Anomalocaris';
 
 export default function Aquarium() {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#001529' }}>
-      <Canvas camera={{ position: [5, 5, 5], fov: 50 }}>
+      <Canvas camera={{ position: [0, 2, 10], fov: 50 }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} />
-        
-        {/* 古生代の海っぽさを出す演出 */}
-        <fog attach="fog" args={['#001529', 5, 15]} />
-        
         <Anomalocaris />
-        
-        {/* ズームイン・アウト・回転を可能にする */}
-        <OrbitControls enableDamping />
+        <OrbitControls />
       </Canvas>
     </div>
-  )
+  );
 }
