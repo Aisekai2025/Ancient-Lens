@@ -1,5 +1,0 @@
-[00:00:03.738] Server  LOG     ✓ Ready in 3.4s
-[00:00:21.769] Server  ERROR   ⨯ Error: The default export is not a React Component in "/layout"
-[00:00:21.960] Server  ERROR   ⨯ Error: The default export is not a React Component in "/layout"
-[00:00:23.174] Browser ERROR   uncaughtError: Error: The default export is not a React Component in "/layout"
-[00:00:58.646] Server  LOG     ✓ Compiled in 256ms
