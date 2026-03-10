@@ -2,149 +2,168 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Cambrian 3D Aquarium - No External Assets</title>
+    <title>Cambrian 2.5D Aquarium - No External Assets</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000808; font-family: 'Hiragino Kaku Gothic ProN', sans-serif; }
-        canvas { display: block; }
-        #info-ui {
-            position: absolute; top: 20px; right: 20px; width: 260px; padding: 20px;
-            background: rgba(0, 40, 50, 0.9); border: 2px solid #00ffff; border-radius: 15px;
-            color: #fff; display: none; pointer-events: none; z-index: 1000;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+        body { margin: 0; overflow: hidden; background: #001219; font-family: sans-serif; color: #fff; }
+        canvas { display: block; background: radial-gradient(circle at top, #003a4d 0%, #001219 80%); }
+        #ui {
+            position: absolute; top: 20px; right: 20px; width: 260px; padding: 15px;
+            background: rgba(0, 50, 70, 0.9); border: 2px solid #00f0ff; border-radius: 12px;
+            display: none; pointer-events: none; box-shadow: 0 0 15px #00ffff66;
         }
-        #info-ui h2 { margin: 0 0 10px; color: #00ffff; font-size: 1.3em; border-bottom: 2px solid #00ffff; }
-        .hint { position: absolute; bottom: 15px; left: 15px; color: #00ffff; opacity: 0.6; font-size: 12px; }
+        h2 { margin: 0 0 10px; color: #00ffff; font-size: 1.2em; border-bottom: 1px solid #00ffff; }
+        p { margin: 0; font-size: 0.9em; line-height: 1.5; }
+        .hint { position: absolute; bottom: 10px; left: 10px; color: #00f0ff; opacity: 0.6; font-size: 12px; }
     </style>
 </head>
 <body>
-    <div id="info-ui">
+    <div id="ui">
         <h2 id="name"></h2>
         <p id="desc"></p>
     </div>
-    <div class="hint">マウスドラッグでカメラ回転 / 生物にマウスを重ねると解説</div>
+    <div class="hint">マウスを動かして古代生物をさがそう！</div>
+    <canvas id="aquarium"></canvas>
 
-    <!-- ライブラリの読み込みに失敗した場合のフォールバック処理を含めたメインスクリプト -->
-    <script type="module">
-        // 外部サーバーが拒否されるため、動的にライブラリをインポートしようと試みますが、
-        // 失敗した場合はエラーを表示する仕組みです。
-        // ※ VercelでCORSが通らない場合、本来はnpm installが必要ですが、
-        // このコードは「ブラウザが許可する最小限のインポート」を試みます。
-        
-        import * as THREE from 'https://cdn.jsdelivr.net';
-        import { OrbitControls } from 'https://cdn.jsdelivr.net';
+    <script>
+        const canvas = document.getElementById('aquarium');
+        const ctx = canvas.getContext('2d');
+        const ui = document.getElementById('ui');
+        const nameEl = document.getElementById('name');
+        const descEl = document.getElementById('desc');
 
-        // --- シーン構築 ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000d10);
-        scene.fog = new THREE.FogExp2(0x000d10, 0.08);
-
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 5, 10);
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        document.body.appendChild(renderer.domElement);
-
-        // --- ライティング ---
-        const light = new THREE.DirectionalLight(0x00ffff, 2);
-        light.position.set(5, 10, 5);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040, 1.5));
-
-        // 海底
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(100, 100),
-            new THREE.MeshStandardMaterial({ color: 0x051515 })
-        );
-        floor.rotation.x = -Math.PI / 2;
-        floor.position.y = -5;
-        scene.add(floor);
-
-        // --- 生物生成 ---
+        let width, height;
         const creatures = [];
 
-        // アノマロカリス
-        const anomaloGroup = new THREE.Group();
-        anomaloGroup.userData = { name: "アノマロカリス", desc: "カンブリア紀の絶対王者！エビのような触手と円形の口が特徴。左右のヒレを器用に動かして、獲物を追いかけたよ。" };
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xc0392b });
-        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 3, 4, 8), bodyMat);
-        body.rotation.z = Math.PI / 2;
-        anomaloGroup.add(body);
+        // 1. 生物データの定義
+        const data = {
+            anomalo: { name: "アノマロカリス", desc: "カンブリア紀の絶対王者！横のヒレを波打たせて優雅に泳ぎ、2本の触手で獲物を捕まえたよ。" },
+            trilo: { name: "三葉虫", desc: "硬い殻を持つ古代の住人。海の底を歩いて食べ物を探していたよ。" }
+        };
 
-        const flaps = [];
-        for(let i=0; i<8; i++) {
-            const f = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.05, 2), bodyMat);
-            f.position.x = -1.5 + (i * 0.45);
-            anomaloGroup.add(f);
-            flaps.push(f);
+        // 2. リサイズ設定
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
         }
-        
-        const armL = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 1, 4, 8), bodyMat);
-        armL.position.set(2, -0.5, 0.4);
-        armL.rotation.z = -1;
-        const armR = armL.clone(); armR.position.z = -0.4;
-        anomaloGroup.add(armL, armR);
-        
-        scene.add(anomaloGroup);
-        creatures.push(anomaloGroup);
+        window.addEventListener('resize', resize);
+        resize();
 
-        // 三葉虫
-        for(let i=0; i<10; i++) {
-            const t = new THREE.Mesh(
-                new THREE.SphereGeometry(0.4, 16, 16),
-                new THREE.MeshStandardMaterial({ color: 0x34495e })
-            );
-            t.scale.set(1.2, 0.4, 1.5);
-            t.position.set(Math.random()*16-8, -4.8, Math.random()*16-8);
-            t.userData = { name: "三葉虫", desc: "硬い殻を持つ古代の海の住人。敵から身を守るためにダンゴムシのように丸くなることもあったんだ。" };
-            scene.add(t);
-            creatures.push(t);
+        // 3. 生物クラス（擬似3D）
+        class Creature {
+            constructor(type, x, y, z) {
+                this.type = type;
+                this.x = x; this.y = y; this.z = z;
+                this.baseSize = type === 'anomalo' ? 100 : 40;
+                this.angle = Math.random() * Math.PI * 2;
+                this.data = data[type];
+                this.hover = false;
+            }
+
+            update(t) {
+                if(this.type === 'anomalo') {
+                    this.x = Math.cos(t * 0.3) * (width * 0.3) + width / 2;
+                    this.y = Math.sin(t * 0.5) * 50 + height / 2;
+                    this.z = Math.sin(t * 0.3) * 100 + 200;
+                } else {
+                    this.x += Math.sin(t + this.angle) * 0.5;
+                    this.y = height * 0.85 + Math.cos(t * 2 + this.angle) * 2;
+                }
+            }
+
+            draw(t) {
+                const scale = 400 / (400 + this.z);
+                const drawX = this.x;
+                const drawY = this.y;
+                const size = this.baseSize * scale;
+
+                ctx.save();
+                ctx.translate(drawX, drawY);
+
+                if (this.type === 'anomalo') {
+                    // アノマロカリスの描画
+                    ctx.fillStyle = '#e67e22';
+                    // 胴体
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, size, size * 0.4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    // ヒレ（アニメーション）
+                    for(let i=0; i<6; i++) {
+                        const wave = Math.sin(t * 5 + i) * (size * 0.3);
+                        ctx.fillStyle = '#d35400';
+                        ctx.fillRect(-size + i*(size*0.3), size*0.3, size*0.2, wave);
+                        ctx.fillRect(-size + i*(size*0.3), -size*0.3 - wave, size*0.2, wave);
+                    }
+                    // 触手
+                    ctx.strokeStyle = '#e67e22';
+                    ctx.lineWidth = size * 0.1;
+                    ctx.beginPath();
+                    ctx.moveTo(size * 0.8, 0);
+                    ctx.quadraticCurveTo(size * 1.5, Math.sin(t*3)*20, size * 1.2, 20);
+                    ctx.stroke();
+                } else {
+                    // 三葉虫の描画
+                    ctx.fillStyle = '#445566';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, size, size * 0.6, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+
+                // マウス判定用
+                this.screenX = drawX;
+                this.screenY = drawY;
+                this.screenSize = size;
+            }
         }
 
-        // --- アニメーション & 操作 ---
-        const controls = new OrbitControls(camera, renderer.domElement);
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        const ui = document.getElementById('info-ui');
+        // 初期配置
+        creatures.push(new Creature('anomalo', 0, 0, 0));
+        for(let i=0; i<6; i++) {
+            creatures.push(new Creature('trilo', Math.random()*width, height*0.8, Math.random()*100));
+        }
 
+        // 4. マウスインタラクション
+        let mouseX = 0, mouseY = 0;
         window.addEventListener('mousemove', (e) => {
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            let found = false;
+            creatures.forEach(c => {
+                const dx = mouseX - c.screenX;
+                const dy = mouseY - c.screenY;
+                if(Math.sqrt(dx*dx + dy*dy) < c.screenSize) {
+                    ui.style.display = 'block';
+                    nameEl.innerText = c.data.name;
+                    descEl.innerText = c.data.desc;
+                    found = true;
+                }
+            });
+            if(!found) ui.style.display = 'none';
         });
 
-        function animate() {
-            requestAnimationFrame(animate);
+        // 5. ループ
+        function loop() {
+            ctx.clearRect(0, 0, width, height);
             const t = performance.now() * 0.001;
 
-            anomaloGroup.position.y = Math.sin(t) * 1.5;
-            anomaloGroup.position.z = Math.cos(t * 0.5) * 4;
-            flaps.forEach((f, i) => { f.rotation.x = Math.sin(t * 4 + i * 0.6) * 0.5; });
-            armL.rotation.y = Math.sin(t * 2) * 0.3;
-            armR.rotation.y = Math.sin(t * 2) * 0.3;
+            // 泡の演出（簡易）
+            ctx.fillStyle = "rgba(255,255,255,0.1)";
+            for(let i=0; i<10; i++) {
+                ctx.beginPath();
+                ctx.arc((t*50 + i*100)%width, (height - (t*80 + i*200)%height), 2, 0, 7);
+                ctx.fill();
+            }
 
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(creatures, true);
-            if(intersects.length > 0) {
-                let obj = intersects[0].object;
-                while(obj.parent && !obj.userData.name) obj = obj.parent;
-                if(obj.userData.name) {
-                    ui.style.display = 'block';
-                    document.getElementById('name').innerText = obj.userData.name;
-                    document.getElementById('desc').innerText = obj.userData.desc;
-                }
-            } else { ui.style.display = 'none'; }
+            creatures.sort((a,b) => b.z - a.z); // 奥から描画
+            creatures.forEach(c => {
+                c.update(t);
+                c.draw(t);
+            });
 
-            controls.update();
-            renderer.render(scene, camera);
+            requestAnimationFrame(loop);
         }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        loop();
     </script>
 </body>
 </html>
