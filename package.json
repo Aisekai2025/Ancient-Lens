@@ -1,10 +1,16 @@
 {
-  "name": "ancient-lens",
+  "name": "ancient-lens-aquarium",
   "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
   "dependencies": {
     "@react-three/drei": "^9.0.0",
     "@react-three/fiber": "^8.0.0",
-    "@types/three": "^0.150.0",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
@@ -14,6 +20,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@types/three": "^0.150.0",
     "typescript": "latest"
   }
 }
