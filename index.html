@@ -3,68 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D - Evolution Edition</title>
+    <title>Cambrian 3D - Deep Sea Evolution</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #00050a; font-family: 'Helvetica Neue', Arial, sans-serif; color: #fff; }
+        body { margin: 0; overflow: hidden; background: #00050a; font-family: sans-serif; color: #fff; }
         canvas { display: block; }
         #hologram-ui {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%);
-            background: rgba(0, 20, 40, 0.8); backdrop-filter: blur(10px);
-            border: 1px solid #00ffff; box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
-            padding: 25px; border-radius: 12px; z-index: 10; display: none; width: 320px; opacity: 0;
-            transition: all 0.4s cubic-bezier(0.1, 1.5, 0.5, 1);
+            background: rgba(0, 30, 60, 0.8); backdrop-filter: blur(10px);
+            border: 1px solid #00ffff; padding: 25px; border-radius: 15px;
+            z-index: 10; display: none; width: 300px; opacity: 0;
+            transition: all 0.4s ease-out;
         }
         #hologram-ui.active { display: block; opacity: 1; transform: translate(-50%, -50%); }
-        #holo-title { margin: 0; font-size: 22px; color: #00ffff; text-shadow: 0 0 10px #0ff; }
+        #holo-title { margin: 0; font-size: 24px; color: #00ffff; }
         #holo-desc { font-size: 14px; line-height: 1.6; color: #e0f8f8; margin: 15px 0; }
-        #close-btn { background: rgba(0, 255, 255, 0.2); border: 1px solid #00ffff; color: #00ffff; padding: 8px; cursor: pointer; width: 100%; border-radius: 6px; }
-        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: rgba(0, 255, 255, 0.5); font-size: 12px; pointer-events: none; }
+        #close-btn { background: #00ffff; border: none; color: #001a1a; padding: 10px; cursor: pointer; width: 100%; border-radius: 5px; font-weight: bold; }
+        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #00ffff; font-size: 12px; opacity: 0.6; }
     </style>
 </head>
 <body>
 <div id="hologram-ui">
     <h2 id="holo-title"></h2>
-    <div id="holo-en" style="font-style: italic; color: #88dddd; font-size: 14px;"></div>
+    <div id="holo-en" style="font-style: italic; color: #88dddd;"></div>
     <p id="holo-desc"></p>
-    <button id="close-btn" onclick="closeHolo()">CLOSE DATA</button>
+    <button id="close-btn" onclick="closeHolo()">DATA CLOSE</button>
 </div>
-<div id="hint">DRAG: VIEW / CLICK: INTERACT</div>
+<div id="hint">CLICK CREATURE TO ANALYZE / DRAG TO ROTATE VIEW</div>
 
 <script src="https://cdnjs.cloudflare.com"></script>
 <script>
-// --- シーン基本設定 ---
+// --- シーン・カメラ・レンダラー ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000612);
-scene.fog = new THREE.FogExp2(0x000612, 0.015);
+scene.fog = new THREE.FogExp2(0x000612, 0.012);
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-camera.position.set(0, 5, 50);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+camera.position.set(0, 10, 60);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // --- ライト ---
-scene.add(new THREE.AmbientLight(0x002244, 1.5));
-const sun = new THREE.DirectionalLight(0x00ffaa, 1.0);
-sun.position.set(0, 50, 0);
-scene.add(sun);
+scene.add(new THREE.AmbientLight(0x224466, 2.0));
+const light = new THREE.DirectionalLight(0x00ffaa, 1.2);
+light.position.set(0, 100, 0);
+scene.add(light);
 
-// --- マテリアル ---
+// --- マリンスノー ---
+const snowGeo = new THREE.BufferGeometry();
+const snowPos = [];
+for(let i=0; i<1000; i++) {
+    snowPos.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
+}
+snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowPos, 3));
+const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.2, transparent: true, opacity: 0.5}));
+scene.add(snow);
+
+// --- 生物構築 ---
 const matAnom = new THREE.MeshPhysicalMaterial({ color: 0x1a6655, transmission: 0.4, roughness: 0.3 });
-const matHallu = new THREE.MeshPhysicalMaterial({ color: 0xffaaaa, roughness: 0.5 });
+const matHallu = new THREE.MeshPhysicalMaterial({ color: 0xffaaaa, roughness: 0.6 });
 
-// --- 生物構築関数 ---
 function buildAnomalocaris() {
     const group = new THREE.Group();
     const segments = [];
     let parent = group;
-    for(let i=0; i<8; i++) {
-        const s = 1 - Math.pow((i - 2)/6, 2);
+    for(let i=0; i<10; i++) {
+        const s = 1 - Math.pow((i - 2)/8, 2);
         const seg = new THREE.Group();
-        if(i > 0) seg.position.z = -1.2 * s;
-        const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), matAnom);
-        body.scale.set(1.5*s, 0.5*s, 1.2*s);
+        if(i > 0) seg.position.z = -1.5 * s;
+        const body = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 12), matAnom);
+        body.scale.set(1.6*s, 0.6*s, 1.2*s);
         seg.add(body);
         parent.add(seg);
         segments.push(seg);
@@ -75,10 +84,9 @@ function buildAnomalocaris() {
 
 function buildHallucigenia() {
     const group = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 4, 4, 8), matHallu);
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 4, 4, 12), matHallu);
     body.rotation.x = Math.PI/2;
     group.add(body);
-    // 背中のトゲ
     for(let i=0; i {
     for(let i=0; i { if(child.isMesh) child.userData.entityData = entity; });
         entities.push(entity);
@@ -95,19 +103,19 @@ window.addEventListener('pointerdown', (e) => {
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(scene.children, true);
     for (let i = 0; i  {
-        // ターゲットに向かって泳ぐ
+        // AI移動
         if(ent.mesh.position.distanceTo(ent.target) < 5) {
-            ent.target.set((Math.random()-0.5)*80, ent.mesh.position.y, (Math.random()-0.5)*80);
+            ent.target.set((Math.random()-0.5)*100, ent.mesh.position.y, (Math.random()-0.5)*100);
         }
         dummy.position.copy(ent.mesh.position);
         dummy.lookAt(ent.target);
         ent.mesh.quaternion.slerp(dummy.quaternion, 0.02);
         ent.mesh.translateZ(ent.def.speed);
 
-        // 体のうねり（アノマロカリスのみ）
-        if(ent.def.id === 'anomalocaris') {
+        // 体の動き
+        if(ent.segments) {
             ent.segments.forEach((seg, i) => {
-                seg.rotation.y = Math.sin(time * 3 - i * 0.5 + idx) * 0.1;
+                seg.rotation.y = Math.sin(time * 3 - i * 0.4 + idx) * 0.15;
             });
         }
     });
