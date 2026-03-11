@@ -3,107 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D Deep Sea - Evolution Edition</title>
+    <title>Cambrian 3D - Evolution Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #00050a; font-family: 'Segoe UI', sans-serif; color: #fff; }
+        body { margin: 0; overflow: hidden; background: #00050a; font-family: 'Helvetica Neue', Arial, sans-serif; color: #fff; }
         canvas { display: block; }
         #hologram-ui {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%);
-            background: rgba(0, 40, 80, 0.6); backdrop-filter: blur(12px);
-            border: 2px solid #00f7ff; box-shadow: 0 0 40px rgba(0, 247, 255, 0.4);
-            padding: 30px; border-radius: 20px; z-index: 10; display: none; width: 350px; opacity: 0;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: rgba(0, 20, 40, 0.8); backdrop-filter: blur(10px);
+            border: 1px solid #00ffff; box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+            padding: 25px; border-radius: 12px; z-index: 10; display: none; width: 320px; opacity: 0;
+            transition: all 0.4s cubic-bezier(0.1, 1.5, 0.5, 1);
         }
         #hologram-ui.active { display: block; opacity: 1; transform: translate(-50%, -50%); }
-        #holo-title { margin: 0; font-size: 26px; color: #00f7ff; text-shadow: 0 0 15px #00f7ff; }
-        #holo-desc { font-size: 15px; line-height: 1.7; color: #d0ffff; margin-top: 15px; }
-        #close-btn {
-            background: #00f7ff; border: none; color: #002222; padding: 10px; 
-            cursor: pointer; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 20px;
-        }
-        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #00f7ff; font-size: 12px; letter-spacing: 2px; text-shadow: 0 0 10px #000; pointer-events: none; }
+        #holo-title { margin: 0; font-size: 22px; color: #00ffff; text-shadow: 0 0 10px #0ff; }
+        #holo-desc { font-size: 14px; line-height: 1.6; color: #e0f8f8; margin: 15px 0; }
+        #close-btn { background: rgba(0, 255, 255, 0.2); border: 1px solid #00ffff; color: #00ffff; padding: 8px; cursor: pointer; width: 100%; border-radius: 6px; }
+        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: rgba(0, 255, 255, 0.5); font-size: 12px; pointer-events: none; }
     </style>
 </head>
 <body>
-<div id="canvas-container"></div>
 <div id="hologram-ui">
     <h2 id="holo-title"></h2>
-    <div id="holo-en" style="font-style: italic; color: #88dddd;"></div>
+    <div id="holo-en" style="font-style: italic; color: #88dddd; font-size: 14px;"></div>
     <p id="holo-desc"></p>
-    <button id="close-btn" onclick="closeHolo()">SYSTEM CLOSE</button>
+    <button id="close-btn" onclick="closeHolo()">CLOSE DATA</button>
 </div>
-<div id="hint">DRAG: ROTATE / CLICK WATER: FEED / CLICK CREATURE: ANALYZE</div>
+<div id="hint">DRAG: VIEW / CLICK: INTERACT</div>
 
 <script src="https://cdnjs.cloudflare.com"></script>
 <script>
-// --- CORE SETUP ---
+// --- シーン基本設定 ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000816);
-scene.fog = new THREE.FogExp2(0x000816, 0.015);
+scene.background = new THREE.Color(0x000612);
+scene.fog = new THREE.FogExp2(0x000612, 0.015);
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 5, 50);
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- LIGHTING & ENVIRONMENT ---
-scene.add(new THREE.AmbientLight(0x112244, 2));
-const sunLight = new THREE.DirectionalLight(0x00ffff, 1.5);
-sunLight.position.set(0, 100, 0);
-scene.add(sunLight);
+// --- ライト ---
+scene.add(new THREE.AmbientLight(0x002244, 1.5));
+const sun = new THREE.DirectionalLight(0x00ffaa, 1.0);
+sun.position.set(0, 50, 0);
+scene.add(sun);
 
-// 海底の砂紋
-const groundGeo = new THREE.PlaneGeometry(300, 300, 50, 50);
-const groundMat = new THREE.MeshStandardMaterial({ color: 0x051122, roughness: 0.8 });
-const ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2; ground.position.y = -40;
-scene.add(ground);
+// --- マテリアル ---
+const matAnom = new THREE.MeshPhysicalMaterial({ color: 0x1a6655, transmission: 0.4, roughness: 0.3 });
+const matHallu = new THREE.MeshPhysicalMaterial({ color: 0xffaaaa, roughness: 0.5 });
 
-// --- CREATURE BUILDERS ---
-const commonMat = (col) => new THREE.MeshPhysicalMaterial({ color: col, transmission: 0.3, roughness: 0.4 });
+// --- 生物構築関数 ---
+function buildAnomalocaris() {
+    const group = new THREE.Group();
+    const segments = [];
+    let parent = group;
+    for(let i=0; i<8; i++) {
+        const s = 1 - Math.pow((i - 2)/6, 2);
+        const seg = new THREE.Group();
+        if(i > 0) seg.position.z = -1.2 * s;
+        const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), matAnom);
+        body.scale.set(1.5*s, 0.5*s, 1.2*s);
+        seg.add(body);
+        parent.add(seg);
+        segments.push(seg);
+        parent = seg;
+    }
+    return { mesh: group, segments };
+}
 
 function buildHallucigenia() {
     const group = new THREE.Group();
-    const segments = [];
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 6, 4, 8), commonMat(0xff88aa));
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 4, 4, 8), matHallu);
     body.rotation.x = Math.PI/2;
     group.add(body);
-    // トゲと脚
-    for(let i=0; i ({mesh: new THREE.Group(), segments: []}) /* 簡易化 */ },
-    { id: 'hallucigenia', jp: 'ハルキゲニア', en: 'Hallucigenia', desc: '「夢のような」姿をした生物。どっちが頭か長年謎でした。', count: 10, speed: 0.02, yRange: [-39, -38], build: buildHallucigenia }
-];
-
-const entities = [];
-entityDefs.forEach(def => {
-    for(let i=0; i<def.count; i++) {
-        const { mesh, segments } = def.build();
-        mesh.position.set((Math.random()-0.5)*100, def.yRange[0], (Math.random()-0.5)*100);
-        scene.add(mesh);
-        entities.push({ def, mesh, segments, target: new THREE.Vector3() });
+    // 背中のトゲ
+    for(let i=0; i {
+    for(let i=0; i { if(child.isMesh) child.userData.entityData = entity; });
+        entities.push(entity);
     }
 });
 
-// --- INTERACTION & ANIMATION ---
-function animate() {
-    requestAnimationFrame(animate);
-    const time = Date.now() * 0.001;
-    
-    entities.forEach(ent => {
-        // 浮遊アニメーション
-        ent.mesh.position.y += Math.sin(time + ent.mesh.position.x) * 0.01;
+// --- インタラクション ---
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('pointerdown', (e) => {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children, true);
+    for (let i = 0; i  {
+        // ターゲットに向かって泳ぐ
+        if(ent.mesh.position.distanceTo(ent.target) < 5) {
+            ent.target.set((Math.random()-0.5)*80, ent.mesh.position.y, (Math.random()-0.5)*80);
+        }
+        dummy.position.copy(ent.mesh.position);
+        dummy.lookAt(ent.target);
+        ent.mesh.quaternion.slerp(dummy.quaternion, 0.02);
         ent.mesh.translateZ(ent.def.speed);
-        
-        // 境界チェック
-        if(ent.mesh.position.length() > 150) ent.mesh.lookAt(0,0,0);
+
+        // 体のうねり（アノマロカリスのみ）
+        if(ent.def.id === 'anomalocaris') {
+            ent.segments.forEach((seg, i) => {
+                seg.rotation.y = Math.sin(time * 3 - i * 0.5 + idx) * 0.1;
+            });
+        }
     });
 
     renderer.render(scene, camera);
 }
-
-function closeHolo() { document.getElementById('hologram-ui').classList.remove('active'); }
-
-// 初期化実行
 animate();
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
 </script>
 </body>
 </html>
