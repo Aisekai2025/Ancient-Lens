@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D - Great Evolution</title>
+    <title>Cambrian 3D - Ultimate Deep Sea</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #00050a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #fff; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #00050a; font-family: sans-serif; color: #fff; user-select: none; }
         canvas { display: block; }
         #hologram-ui {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%);
-            background: rgba(0, 30, 60, 0.8); backdrop-filter: blur(10px);
+            background: rgba(0, 40, 80, 0.85); backdrop-filter: blur(12px);
             border: 1px solid #00ffff; padding: 25px; border-radius: 15px;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
             z-index: 10; display: none; width: 300px; opacity: 0;
             transition: all 0.4s ease-out;
         }
@@ -27,52 +27,52 @@
     <h2 id="holo-title"></h2>
     <div id="holo-en" style="font-style: italic; color: #88dddd; font-size: 14px;"></div>
     <p id="holo-desc"></p>
-    <button id="close-btn" onclick="closeHolo()">DATA CLOSE</button>
+    <button id="close-btn" onclick="closeHolo()">SYSTEM CLOSE</button>
 </div>
 <div id="hint">CLICK CREATURE TO ANALYZE / DRAG TO ROTATE VIEW</div>
 
 <script src="https://cdnjs.cloudflare.com"></script>
 <script>
-// --- CORE SETUP ---
+// --- シーン・カメラ・レンダラー ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000612);
 scene.fog = new THREE.FogExp2(0x000612, 0.015);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
-camera.position.set(0, 15, 80);
+camera.position.set(0, 15, 85);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-// --- LIGHTING ---
-scene.add(new THREE.AmbientLight(0x224466, 2.0));
+// --- ライト ---
+scene.add(new THREE.AmbientLight(0x224466, 2.5));
 const light = new THREE.DirectionalLight(0x00ffaa, 1.5);
 light.position.set(0, 100, 0);
 scene.add(light);
 
-// --- GROUND ---
+// --- 海底の砂場 ---
 const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(300, 300),
-    new THREE.MeshStandardMaterial({ color: 0x051122, roughness: 0.9 })
+    new THREE.PlaneGeometry(400, 400),
+    new THREE.MeshStandardMaterial({ color: 0x051122, roughness: 1.0 })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -40;
 scene.add(ground);
 
-// --- MARINE SNOW ---
+// --- マリンスノー ---
 const snowPos = [];
-for(let i=0; i<800; i++) snowPos.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
+for(let i=0; i<1000; i++) snowPos.push((Math.random()-0.5)*250, (Math.random()-0.5)*250, (Math.random()-0.5)*250);
 const snowGeo = new THREE.BufferGeometry();
 snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowPos, 3));
-const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.15, transparent: true, opacity: 0.4}));
+const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.15, transparent: true, opacity: 0.5}));
 scene.add(snow);
 
-// --- CREATURE BUILDERS ---
+// --- 生物構築関数 ---
 const matAnom = new THREE.MeshPhysicalMaterial({ color: 0x1a6655, transmission: 0.4, roughness: 0.3 });
 const matHallu = new THREE.MeshPhysicalMaterial({ color: 0xffaaaa, roughness: 0.6 });
-const matTrilo = new THREE.MeshPhysicalMaterial({ color: 0x554433, roughness: 0.8 });
+const matTrilo = new THREE.MeshPhysicalMaterial({ color: 0x664422, roughness: 0.8 });
 
 function buildAnomalocaris() {
     const group = new THREE.Group();
@@ -83,7 +83,7 @@ function buildAnomalocaris() {
         const seg = new THREE.Group();
         if(i > 0) seg.position.z = -1.5 * s;
         const body = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 12), matAnom);
-        body.scale.set(1.6*s, 0.6*s, 1.2*s);
+        body.scale.set(1.6 * s, 0.6 * s, 1.2 * s);
         seg.add(body);
         parent.add(seg);
         segments.push(seg);
@@ -95,15 +95,14 @@ function buildAnomalocaris() {
 function buildHallucigenia() {
     const group = new THREE.Group();
     const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 4, 8, 8), matHallu);
-    body.rotation.x = Math.PI/2;
+    body.rotation.x = Math.PI / 2;
     group.add(body);
     for(let i=0; i 0) {
             ent.segments.forEach(function(seg, i) {
-                seg.rotation.y = Math.sin(time * 3 - i * 0.5 + idx) * 0.15;
+                seg.rotation.y = Math.sin(time * 3 - (i * 0.5) + idx) * 0.15;
             });
         }
     });
-
     renderer.render(scene, camera);
 }
 animate();
