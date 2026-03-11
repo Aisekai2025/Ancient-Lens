@@ -219,6 +219,52 @@ class Creature {
         ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
         ctx.stroke();
     }
+    /**
+     * 古代の巨大生物: 深海の激しい水流と共に現れる幻の個体
+     */
+    renderAncientGiant(s, light, t) {
+        // 本体（巨大な発光体のような表現）
+        let g = ctx.createRadialGradient(0, 0, 0, 0, 0, s);
+        g.addColorStop(0, `rgba(0, 255, 255, ${0.3 + light * 0.4})`);
+        g.addColorStop(1, 'rgba(0, 10, 30, 0)');
+        ctx.fillStyle = g;
+        this.drawEllipse(0, 0, s, s * 0.6);
+
+        // 巨大な触手または鰭の残像
+        ctx.strokeStyle = `rgba(0, 240, 255, ${0.2 + light * 0.3})`;
+        ctx.lineWidth = 4;
+        for (let i = 0; i < 8; i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            let tx = Math.sin(t + i) * s * 0.8;
+            let ty = s * 0.5 + i * s * 0.1;
+            ctx.quadraticCurveTo(tx, ty, -s * 0.5 + i * s * 0.1, s * 1.5);
+            ctx.stroke();
+        }
+    }
+
+    // 古いコードと互換性を持たせるための空のupdate（必要に応じて）
+    update() {
+        // エサへの反応
+        if (foods.length > 0 && !this.isLegend) {
+            let dx = foods[0].x - this.x;
+            let dy = foods[0].y - this.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < 800) {
+                this.vx += dx * 0.002;
+                this.vy += dy * 0.002;
+                if (dist < 20) foods.shift();
+            }
+        }
+
+        // 物理計算
+        this.vx *= 0.98; this.vy *= 0.98;
+        this.x += this.vx; this.y += this.vy;
+
+        // 画面端のワープ（教材として分かりやすく）
+        if (this.x > 3500) this.x = -3500;
+        if (this.x < -3500) this.x = 3500;
+    }
 
     // 補助関数: 楕円描画
     drawEllipse(x, y, rx, ry) {
