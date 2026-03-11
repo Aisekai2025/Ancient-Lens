@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D - Great Evolution</title>
+    <title>Cambrian 3D - Trilobite Update</title>
     <style>
         body { margin: 0; overflow: hidden; background: #00050a; font-family: sans-serif; color: #fff; }
         canvas { display: block; }
@@ -12,7 +12,7 @@
             background: rgba(0, 30, 60, 0.8); backdrop-filter: blur(10px);
             border: 1px solid #00ffff; padding: 25px; border-radius: 15px;
             z-index: 10; display: none; width: 300px; opacity: 0;
-            transition: all 0.4s ease-out; pointer-events: auto;
+            transition: all 0.4s ease-out;
         }
         #hologram-ui.active { display: block; opacity: 1; transform: translate(-50%, -50%); }
         #holo-title { margin: 0; font-size: 24px; color: #00ffff; text-shadow: 0 0 10px #0ff; }
@@ -32,37 +32,45 @@
 
 <script src="https://cdnjs.cloudflare.com"></script>
 <script>
-// --- 基本設定 ---
+// --- シーン基本設定 ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000612);
-scene.fog = new THREE.FogExp2(0x000612, 0.012);
+scene.fog = new THREE.FogExp2(0x000612, 0.015);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
-camera.position.set(0, 10, 70);
+camera.position.set(0, 20, 80);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- 照明 ---
+// --- ライト ---
 scene.add(new THREE.AmbientLight(0x224466, 2.0));
-const sun = new THREE.DirectionalLight(0x00ffaa, 1.2);
-sun.position.set(0, 100, 0);
-scene.add(sun);
+const light = new THREE.DirectionalLight(0x00ffaa, 1.5);
+light.position.set(0, 100, 0);
+scene.add(light);
+
+// --- 海底 ---
+const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(300, 300),
+    new THREE.MeshStandardMaterial({ color: 0x051122, roughness: 0.9 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -40;
+scene.add(ground);
 
 // --- マリンスノー ---
 const snowPos = [];
-for(let i=0; i<1000; i++) {
-    snowPos.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
-}
+for(let i=0; i<800; i++) snowPos.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
 const snowGeo = new THREE.BufferGeometry();
 snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowPos, 3));
-const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.15, transparent: true, opacity: 0.4}));
+const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.2, transparent: true, opacity: 0.4}));
 scene.add(snow);
 
-// --- 生物構築 ---
+// --- 生物構築関数 ---
 const matAnom = new THREE.MeshPhysicalMaterial({ color: 0x1a6655, transmission: 0.4, roughness: 0.3 });
 const matHallu = new THREE.MeshPhysicalMaterial({ color: 0xffaaaa, roughness: 0.6 });
+const matTrilo = new THREE.MeshPhysicalMaterial({ color: 0x554433, roughness: 0.8 });
 
 function buildAnomalocaris() {
     const group = new THREE.Group();
@@ -87,7 +95,6 @@ function buildHallucigenia() {
     const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 4, 8, 8), matHallu);
     body.rotation.x = Math.PI/2;
     group.add(body);
-    // トゲを2列追加
     for(let i=0; i {
     for(let i=0; i { if(child.isMesh) child.userData.entityData = entity; });
         entities.push(entity);
@@ -104,7 +111,6 @@ window.addEventListener('pointerdown', (e) => {
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(scene.children, true);
     for (let i = 0; i  {
-        // AI移動
         if(ent.mesh.position.distanceTo(ent.target) < 5) {
             ent.target.set((Math.random()-0.5)*120, ent.mesh.position.y, (Math.random()-0.5)*120);
         }
@@ -113,14 +119,12 @@ window.addEventListener('pointerdown', (e) => {
         ent.mesh.quaternion.slerp(dummy.quaternion, 0.015);
         ent.mesh.translateZ(ent.def.speed);
 
-        // 体のうねり（アノマロカリスのみ）
         if(ent.segments && ent.segments.length > 0) {
             ent.segments.forEach((seg, i) => {
                 seg.rotation.y = Math.sin(time * 3 - i * 0.5 + idx) * 0.15;
             });
         }
     });
-
     renderer.render(scene, camera);
 }
 animate();
