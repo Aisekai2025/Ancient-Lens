@@ -1,231 +1,285 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>Cambrian Abyss - Mythical Scanner Edition</title>
-    <style>
-        @import url('https://fonts.googleapis.com');
-        body { margin: 0; overflow: hidden; background: #000205; font-family: 'Share Tech Mono', 'Hiragino Kaku Gothic ProN', monospace; }
-        canvas { display: block; }
-       
-        /* 調査用デジタルUI */
-        #ui {
-            position: absolute; top: 25px; right: 25px; width: 320px; padding: 25px;
-            background: rgba(0, 15, 25, 0.92); border-left: 4px solid #00f0ff; border-radius: 4px;
-            color: #fff; display: none; pointer-events: none; z-index: 1000;
-            box-shadow: 0 0 40px rgba(0,240,255,0.2);
-            backdrop-filter: blur(10px);
-        }
-        #vital-log {
-            position: absolute; bottom: 80px; left: 25px; width: 250px;
-            color: #00f0ff; font-size: 10px; opacity: 0.6; text-align: left; pointer-events: none;
-            line-height: 1.5; text-shadow: 0 0 5px #00f0ff;
-        }
-        .hud { position: absolute; bottom: 25px; right: 25px; color: #00f0ff; font-size: 11px; opacity: 0.5; letter-spacing: 2px; }
-       
-        /* レア生物接近時の警告UI */
-        #rare-alert {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: #ff3d00; font-size: 24px; font-weight: bold; border: 2px solid #ff3d00;
-            padding: 20px; display: none; pointer-events: none; animation: blink 0.5s infinite;
-            letter-spacing: 5px; z-index: 2000;
-        }
-        @keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
-    </style>
+<meta charset="UTF-8">
+<title>Cambrian Abyss - Mythical Scanner Edition v8.1</title>
+<style>
+@import url('https://fonts.googleapis.com');
+body { margin: 0; overflow: hidden; background: #000205; font-family: 'Share Tech Mono', 'Hiragino Kaku Gothic ProN', monospace; }
+canvas { display: block; }
+
+/* 調査用デジタル UI */
+#ui {
+    position: absolute; top: 25px; right: 25px; width: 320px; padding: 25px;
+    background: rgba(0, 15, 25, 0.92); border-left: 4px solid #00f0ff; border-radius: 4px;
+    color: #fff; display: none; pointer-events: none; z-index: 1000;
+    box-shadow: 0 0 40px rgba(0,240,255,0.2);
+    backdrop-filter: blur(10px);
+}
+#vital-log {
+    position: absolute; bottom: 80px; left: 25px; width: 250px;
+    color: #00f0ff; font-size: 10px; opacity: 0.6; text-align: left; pointer-events: none;
+    line-height: 1.5; text-shadow: 0 0 5px #00f0ff;
+}
+.hud { position: absolute; bottom: 25px; right: 25px; color: #00f0ff; font-size: 11px; opacity: 0.5; letter-spacing: 2px; }
+
+/* レア生物接近時の警告 UI */
+#rare-alert {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    color: #ff3d00; font-size: 24px; font-weight: bold; border: 2px solid #ff3d00;
+    padding: 20px; display: none; pointer-events: none; animation: blink 0.5s infinite;
+    letter-spacing: 5px; z-index: 2000; background: rgba(0,0,0,0.5);
+}
+@keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+</style>
 </head>
 <body>
-    <div id="rare-alert">UNIDENTIFIED GIANT DETECTED</div>
-    <div id="ui">
-        <div style="font-size: 0.7em; color: #00f0ff; margin-bottom: 5px; letter-spacing: 3px;">BIO-DATA ANALYSIS // LOG: ACTIVE</div>
-        <h2 id="name" style="margin:0;font-size:1.6em;color:#fff;border-bottom:1px solid #00f0ff;padding-bottom:5px;"></h2>
-        <div id="vital-id" style="font-size: 0.8em; color: #00f0ff; margin: 8px 0;"></div>
-        <p id="desc" style="margin-top:15px;font-size:0.9em;line-height:1.7;color:#b2dfdb;"></p>
-    </div>
-   
-    <div id="vital-log"></div>
-    <div class="hud">ABYSSAL SCANNER v8.0 // LEGENDARY BIOME CONNECTED</div>
-   
-    <canvas id="cvs"></canvas>
+<div id="rare-alert">UNIDENTIFIED GIANT DETECTED</div>
+<div id="ui">
+    <div style="font-size: 0.7em; color: #00f0ff; margin-bottom: 5px; letter-spacing: 3px;">BIO-DATA ANALYSIS // LOG: ACTIVE</div>
+    <h2 id="name" style="margin:0;font-size:1.6em;color:#fff;border-bottom:1px solid #00f0ff;padding-bottom:5px;"></h2>
+    <div id="vital-id" style="font-size: 0.8em; color: #00f0ff; margin: 8px 0;"></div>
+    <p id="desc" style="margin-top:15px;font-size:0.9em;line-height:1.7;color:#b2dfdb;"></p>
+</div>
+<div id="vital-log"></div>
+<div class="hud">ABYSSAL SCANNER v8.1 // LEGENDARY BIOME CONNECTED</div>
+<canvas id="cvs"></canvas>
 
-    <script>
-        const canvas = document.getElementById('cvs');
-        const ctx = canvas.getContext('2d');
-        const ui = document.getElementById('ui');
-        const vitalLog = document.getElementById('vital-log');
-        const rareAlert = document.getElementById('rare-alert');
-       
-        let w, h, creatures = [], foods = [], bubbles = [], rocks = [], rareCreature = null, zoom = 1.3;
-        let mx = 0, my = 0, target = null, lightHue = 180;
+<script>
+const canvas = document.getElementById('cvs');
+const ctx = canvas.getContext('2d');
+const ui = document.getElementById('ui');
+const vitalLog = document.getElementById('vital-log');
+const rareAlert = document.getElementById('rare-alert');
 
-        const BIO = {
-            anomalo: { name: "ANOMALOCARIS", desc: "カンブリア紀最大の王者。複眼には1万以上の個眼があり、深海のわずかな光も逃さず獲物を捉えました。" },
-            opabinia: { name: "OPABINIA", desc: "5つの眼を持つ異形の生命。長いノズルの先で、海綿の隙間に隠れた獲物を器用に吸い取ります。" },
-            wiwaxia: { name: "WIWAXIA", desc: "全身を硬い鱗と鋭いトゲで武装。サーチライトを当てると、鱗の表面で虹色の構造色が鈍く輝きます。" },
-            halluci: { name: "HALLUCIGENIA", desc: "トゲで歩く不思議な姿。7対の鋭い棘は、上空から襲いかかるアノマロカリスに対する防衛手段です。" },
-            trilo: { name: "TRILOBITE", desc: "海底の掃除屋。方解石の眼がライトを捉えると宝石のように輝き、無数の脚が砂を巻き上げて進みます。" },
-            pikaia: { name: "PIKAIA", desc: "脊索動物。半透明の体躯はライトを透過し、内部の神経索が青白く発光するように見えます。" },
-            legend: { name: "ANCIENT GIANT", desc: "【超希少個体】刺胞動物の祖先。半透明の巨大な傘をゆらめかせ、深海の奥底から現れる伝説の巨龍です。" }
-        };
+let w, h, creatures = [], foods = [], bubbles = [], rocks = [], particles = [], dusts = [], rareCreature = null, zoom = 1.3;
+let mx = window.innerWidth/2, my = window.innerHeight/2, target = null, lightHue = 180;
 
-        function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
-        window.addEventListener('resize', resize);
-        window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-        window.addEventListener('mousedown', e => {
-            let found = null;
-            creatures.forEach(c => { if(Math.hypot(e.clientX - c.sx, e.clientY - c.sy) < c.sr) found = c; });
-            if(rareCreature && Math.hypot(e.clientX - rareCreature.sx, e.clientY - rareCreature.sy) < rareCreature.sr) found = rareCreature;
-           
-            if(found) target = (target === found) ? null : found;
-            else foods.push({x: (e.clientX - w/2)/zoom + (target ? target.x : 0), y: (e.clientY - h/2)/zoom + (target ? target.y : 0), vy: 1.0});
-        });
-        window.addEventListener('wheel', e => { zoom = Math.max(0.4, Math.min(5, zoom - e.deltaY * 0.001)); }, {passive:true});
+const BIO = {
+    anomalo: { name: "ANOMALOCARIS", desc: "カンブリア紀最大の王者。複眼には1万以上の個眼があり、深海のわずかな光も逃さず獲物を捉えました。" },
+    opabinia: { name: "OPABINIA", desc: "5つの眼を持つ異形の生命。長いノズルの先で、海綿の隙間に隠れた獲物を器用に吸い取ります。" },
+    wiwaxia: { name: "WIWAXIA", desc: "全身を硬い鱗と鋭いトゲで武装。サーチライトを当てると、鱗の表面で虹色の構造色が鈍く輝きます。" },
+    halluci: { name: "HALLUCIGENIA", desc: "トゲで歩く不思議な姿。7対の鋭い棘は、上空から襲いかかるアノマロカリスに対する防衛手段です。" },
+    trilo: { name: "TRILOBITE", desc: "海底の掃除屋。方解石の眼がライトを捉えると宝石のように輝き、無数の脚が砂を巻き上げて進みます。" },
+    pikaia: { name: "PIKAIA", desc: "脊索動物。半透明の体躯はライトを透過し、内部の神経索が青白く発光するように見えます。" },
+    legend: { name: "ANCIENT GIANT", desc: "【超希少個体】刺胞動物の祖先。半透明の巨大な傘をゆらめかせ、深海の奥底から現れる伝説の巨龍です。" }
+};
 
-        for(let i=0; i<10; i++) rocks.push({ x: Math.random()*5000-2500, y: 450, z: Math.random()*1000, s: 150+Math.random()*250 });
+function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+window.addEventListener('mousedown', e => {
+    let found = null;
+    let all = [...creatures];
+    if(rareCreature) all.push(rareCreature);
+    all.forEach(c => { if(Math.hypot(e.clientX - c.sx, e.clientY - c.sy) < c.sr) found = c; });
+    if(found) target = (target === found) ? null : found;
+    else foods.push({x: (e.clientX - w/2)/zoom + (target ? target.x : 0), y: (e.clientY - h/2)/zoom + (target ? target.y : 0), vy: 1.0});
+});
+window.addEventListener('wheel', e => { zoom = Math.max(0.4, Math.min(5, zoom - e.deltaY * 0.001)); }, {passive:true});
 
-        class Creature {
-            constructor(type, isLegend = false) {
-                this.type = type;
-                this.isLegend = isLegend;
-                this.isBenthic = ['wiwaxia', 'halluci', 'trilo'].includes(type);
-                this.spawn();
-                this.id = Math.random().toString(16).slice(2, 8).toUpperCase();
-            }
-            spawn() {
-                this.z = this.isLegend ? 1200 : Math.random() * 800;
-                this.x = this.isLegend ? -3000 : Math.random() * 4000 - 2000;
-                this.y = this.isBenthic ? 380 + Math.random()*40 : Math.random()*600 - 300;
-                this.vx = this.isLegend ? 1.5 : (Math.random()-0.5)*1.8;
-                this.vy = (Math.random()-0.5)*0.4;
-                this.sizeBase = { anomalo:150, opabinia:110, wiwaxia:90, halluci:65, trilo:60, pikaia:80, legend:600 }[this.type];
-            }
-            update(t) {
-                if(foods.length > 0 && !this.isLegend) {
-                    let f = foods;
-                    let dx = f.x - this.x, dy = f.y - this.y;
-                    let dist = Math.hypot(dx, dy);
-                    if(!this.isBenthic || f.y > 300) {
-                        if(dist < 700) { this.vx += dx * 0.0025; this.vy += dy * 0.0025; if(dist < 20) foods.shift(); }
-                    }
-                }
-                this.vx *= 0.985; this.vy *= 0.985;
-                this.x += this.vx; this.y += this.vy;
-                if(this.x > 3000 && !this.isLegend) this.x = -3000;
-            }
-            draw(camX, camY, t) {
-                const p = 700 / (700 + this.z);
-                this.sx = (this.x - camX) * p * zoom + w/2;
-                this.sy = (this.y - camY) * p * zoom + h/2 + 150*zoom;
-                const s = this.sizeBase * p * zoom;
-                this.sr = s;
-                const light = Math.max(0, 1 - Math.hypot(this.sx - mx, this.sy - my) / (320 * zoom));
+// 環境オブジェクト初期化
+for(let i=0; i<15; i++) rocks.push({ x: Math.random()*5000-2500, y: 450, z: Math.random()*1000, s: 150+Math.random()*250 });
+for(let i=0; i<100; i++) particles.push({ x: Math.random()*w, y: Math.random()*h, s: Math.random()*1.5, v: 0.1+Math.random()*0.4, p: Math.random()*10 });
 
-                ctx.save(); ctx.translate(this.sx, this.sy); ctx.scale(this.vx > 0 ? 1 : -1, 1);
-                ctx.globalAlpha = this.isLegend ? (0.2 + light * 0.4) : Math.max(0.1, p);
-                this.renderHighRes(s, light, t); ctx.restore();
-            }
-            renderHighRes(s, light, t) {
-                const hCol = `hsla(${lightHue}, 100%, 85%, ${light})`;
-                ctx.shadowBlur = 30 * light; ctx.shadowColor = hCol;
-
-                if (this.type === 'legend') {
-                    // 伝説の巨大生物：半透明のグロー
-                    let g = ctx.createRadialGradient(0,0,0,0,0,s);
-                    g.addColorStop(0, `rgba(0, 255, 255, ${0.4 + light*0.5})`);
-                    g.addColorStop(1, 'rgba(0, 10, 30, 0)');
-                    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0,0,s, s*0.6, Math.sin(t)*0.2,0,7); ctx.fill();
-                    for(let i=0; i<12; i++) {
-                        ctx.strokeStyle = `rgba(0, 255, 255, ${0.2 + light*0.3})`;
-                        ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0,0);
-                        ctx.quadraticCurveTo(Math.sin(t+i)*s, s*0.8, -s*0.5+i*s*0.1, s*2 + Math.cos(t+i)*s*0.5); ctx.stroke();
-                    }
-                } else if (this.type === 'anomalo') {
-                    let g = ctx.createLinearGradient(-s,0,s,0); g.addColorStop(0,'#4a0000'); g.addColorStop(0.5,'#c62828'); g.addColorStop(1,'#ffab91');
-                    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.35,0,0,7); ctx.fill();
-                    for(let i=0; i<13; i++){
-                        ctx.fillStyle = `rgba(255, 112, 67, ${0.4+light*0.5})`;
-                        let fh = s*0.45 + Math.sin(t*5 + i*0.8)*s*0.3;
-                        ctx.beginPath(); ctx.ellipse(-s*0.8+i*s*0.14, s*0.25, s*0.12, fh, 0.2,0,7); ctx.fill();
-                        ctx.beginPath(); ctx.ellipse(-s*0.8+i*s*0.14, -s*0.25, s*0.12, fh, -0.2,0,7); ctx.fill();
-                    }
-                    ctx.fillStyle = '#050505'; ctx.beginPath(); ctx.arc(s*0.8, -s*0.4, s*0.14, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(s*0.8, s*0.4, s*0.14, 0, 7); ctx.fill();
-                    if(light>0.2){ ctx.fillStyle=hCol; ctx.beginPath(); ctx.arc(s*0.82,-s*0.44,s*0.04,0,7); ctx.fill(); }
-                } else if (this.type === 'pikaia') {
-                    let pg = ctx.createLinearGradient(-s,0,s,0); pg.addColorStop(0,'rgba(0,188,212,0.1)'); pg.addColorStop(1,`rgba(178,235,242,${0.3+light*0.7})`);
-                    ctx.fillStyle = pg; ctx.beginPath(); ctx.moveTo(-s,0);
-                    for(let i=-s; i<s; i+=s/10) ctx.lineTo(i, Math.sin(t*4 + i*0.12)*s*0.4);
-                    ctx.lineTo(s,0); ctx.fill();
-                } else if (this.type === 'trilo') {
-                    for(let i=0; i<4; i++) {
-                        ctx.fillStyle = `rgb(${40+i*20+light*40}, ${50+i*20+light*40}, ${60+i*20+light*40})`;
-                        ctx.beginPath(); ctx.ellipse(s*0.6-i*s*0.4, 0, s*0.45, s*(0.8-i*0.1), 0,0,7); ctx.fill();
-                    }
-                }
+class Creature {
+    constructor(type, isLegend = false) {
+        this.type = type;
+        this.isLegend = isLegend;
+        this.isBenthic = ['wiwaxia', 'halluci', 'trilo'].includes(type);
+        this.spawn();
+        this.id = Math.random().toString(16).slice(2, 8).toUpperCase();
+    }
+    spawn() {
+        this.z = this.isLegend ? 1200 : Math.random() * 800;
+        this.x = this.isLegend ? -4000 : Math.random() * 4000 - 2000;
+        this.y = this.isBenthic ? 380 + Math.random()*40 : Math.random()*600 - 300;
+        this.vx = this.isLegend ? 1.5 : (Math.random()-0.5)*1.2;
+        this.vy = (Math.random()-0.5)*0.3;
+        this.sizeBase = { anomalo:140, opabinia:100, wiwaxia:85, halluci:60, trilo:55, pikaia:75, legend:700 }[this.type];
+    }
+    update(t) {
+        if(foods.length > 0 && !this.isLegend) {
+            let f = foods[0];
+            let dx = f.x - this.x, dy = f.y - this.y;
+            let dist = Math.hypot(dx, dy);
+            if(!this.isBenthic || f.y > 300) {
+                if(dist < 700) { this.vx += dx * 0.002; this.vy += dy * 0.002; if(dist < 20) foods.shift(); }
             }
         }
-
-        ['anomalo','opabinia','wiwaxia','halluci','trilo','pikaia'].forEach(t => { for(let i=0; i<4; i++) creatures.push(new Creature(t)); });
-
-        function loop() {
-            ctx.fillStyle = '#00080f'; ctx.fillRect(0,0,w,h);
-            const t = performance.now() * 0.001;
-            const camX = target ? target.x : 0;
-            const camY = target ? target.y : 0;
-
-            // レア生物の出現管理（5%の確率でチェック）
-            if(!rareCreature && Math.random() < 0.0005) {
-                rareCreature = new Creature('legend', true);
-                rareAlert.style.display = 'block';
-                setTimeout(() => rareAlert.style.display = 'none', 4000);
-            }
-            if(rareCreature) {
-                rareCreature.update(t); rareCreature.draw(camX, camY, t);
-                if(rareCreature.x > 4000) rareCreature = null;
-            }
-
-            // 環境演出
-            rocks.sort((a,b)=>b.z-a.z).forEach(r => {
-                const pr = 700 / (700 + r.z);
-                const rx = (r.x - camX)*pr*zoom + w/2; const ry = (r.y - camY)*pr*zoom + h/2 + 150*zoom;
-                ctx.fillStyle = `rgba(10, 30, 45, ${pr})`;
-                ctx.beginPath(); ctx.moveTo(rx-r.s*pr, ry); ctx.lineTo(rx, ry-r.s*pr); ctx.lineTo(rx+r.s*pr, ry); ctx.fill();
-                if(Math.random()<0.005) bubbles.push({x: r.x, y: r.y, z: r.z, s: 2+Math.random()*5, life: 1});
-            });
-
-            bubbles = bubbles.filter(b => b.life > 0);
-            bubbles.forEach(b => {
-                b.y -= 1.2; b.life -= 0.0015; const bp = 700 / (700 + b.z);
-                ctx.fillStyle = `rgba(255,255,255,${b.life*0.4})`;
-                ctx.beginPath(); ctx.arc((b.x-camX)*bp*zoom+w/2, (b.y-camY)*bp*zoom+h/2+150*zoom, b.s*bp*zoom, 0, 7); ctx.fill();
-            });
-
-            // サーチライト
-            const grad = ctx.createRadialGradient(mx, my, 0, mx, my, 350 * zoom);
-            grad.addColorStop(0, `rgba(0, 255, 255, 0.12)`);
-            grad.addColorStop(1, 'transparent');
-            ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
-
-            // 生物描画
-            let hover = null;
-            creatures.sort((a,b) => b.z - a.z).forEach(c => {
-                c.update(t); c.draw(camX, camY, t);
-                if(Math.hypot(mx-c.sx, my-c.sy) < c.sr) hover = c;
-            });
-           
-            if(hover || target) {
-                ui.style.display = 'block'; const c = hover || target;
-                document.getElementById('name').innerText = BIO[c.type].name;
-                document.getElementById('desc').innerText = BIO[c.type].desc;
-                document.getElementById('vital-id').innerText = `ID: ${c.id} / STATUS: STABLE / DEPTH: ${Math.floor(c.z)}m`;
-            } else ui.style.display = 'none';
-
-            if(t % 0.8 < 0.02) {
-                const logs = [`SCANNING SECTOR: ${Math.floor(mx)}:${Math.floor(my)}`, `THERMAL_LV: 4.1°C`, `PARTICLE_COUNT: ${bubbles.length}`, `O2: NORMAL`].join("<br>");
-                vitalLog.innerHTML = logs;
-            }
-
-            requestAnimationFrame(loop);
+        this.vx *= 0.99; this.vy *= 0.99;
+        this.x += this.vx; this.y += this.vy;
+        if(this.isBenthic && Math.abs(this.vx) > 0.15 && Math.random() < 0.08) {
+            dusts.push({ x: this.x, y: this.y + 30, z: this.z, vx: -this.vx*0.3, vy: -0.1, life: 1, s: 10+Math.random()*15 });
         }
-        loop();
-    </script>
+        if(this.x > 4000 && !this.isLegend) this.x = -4000;
+    }
+    draw(camX, camY, t) {
+        const p = 700 / (700 + this.z);
+        this.sx = (this.x - camX) * p * zoom + w/2;
+        this.sy = (this.y - camY) * p * zoom + h/2 + 150*zoom;
+        const s = this.sizeBase * p * zoom;
+        this.sr = s;
+        
+        // エラー回避のためのバリデーション
+        const dist = Math.hypot(this.sx - mx, this.sy - my);
+        let light = Math.max(0, 1 - dist / (320 * zoom));
+        if (isNaN(light)) light = 0;
+
+        ctx.save(); ctx.translate(this.sx, this.sy); ctx.scale(this.vx > 0 ? 1 : -1, 1);
+        ctx.globalAlpha = this.isLegend ? (0.2 + light * 0.4) : Math.max(0.1, p);
+        this.renderHighRes(s, light, t); ctx.restore();
+    }
+    renderHighRes(s, light, t) {
+        const hCol = `hsla(${lightHue}, 100%, 85%, ${light})`;
+        ctx.shadowBlur = 30 * light; ctx.shadowColor = hCol;
+
+        if (this.type === 'legend') {
+            let g = ctx.createRadialGradient(0,0,0,0,0,s);
+            g.addColorStop(0, `rgba(0, 255, 255, ${0.4 + light*0.5})`);
+            g.addColorStop(1, 'rgba(0, 10, 30, 0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0,0,s, s*0.6, Math.sin(t)*0.2,0,7); ctx.fill();
+            for(let i=0; i<12; i++) {
+                ctx.strokeStyle = `rgba(0, 255, 255, ${0.2 + light*0.3})`;
+                ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0,0);
+                ctx.quadraticCurveTo(Math.sin(t+i)*s, s*0.8, -s*0.5+i*s*0.1, s*2 + Math.cos(t+i)*s*0.5); ctx.stroke();
+            }
+        } else if (this.type === 'anomalo') {
+            let g = ctx.createLinearGradient(-s,0,s,0); g.addColorStop(0,'#4a0000'); g.addColorStop(0.5,'#c62828'); g.addColorStop(1,'#ffab91');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.35,0,0,7); ctx.fill();
+            for(let i=0; i<13; i++){
+                ctx.fillStyle = `rgba(255, 112, 67, ${0.4+light*0.5})`;
+                let fh = s*0.45 + Math.sin(t*5 + i*0.8)*s*0.3;
+                ctx.beginPath(); ctx.ellipse(-s*0.8+i*s*0.14, s*0.25, s*0.12, fh, 0.2,0,7); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(-s*0.8+i*s*0.14, -s*0.25, s*0.12, fh, -0.2,0,7); ctx.fill();
+            }
+            ctx.fillStyle = '#050505'; ctx.beginPath(); ctx.arc(s*0.8, -s*0.4, s*0.14, 0, 7); ctx.fill(); 
+            ctx.beginPath(); ctx.arc(s*0.8, s*0.4, s*0.14, 0, 7); ctx.fill();
+            if(light>0.2){ ctx.fillStyle=hCol; ctx.beginPath(); ctx.arc(s*0.82,-s*0.44,s*0.04,0,7); ctx.fill(); }
+        } else if (this.type === 'pikaia') {
+            let pg = ctx.createLinearGradient(-s,0,s,0); 
+            pg.addColorStop(0,'rgba(0,188,212,0.1)'); 
+            pg.addColorStop(1,`rgba(178,235,242,${0.3+light*0.7})`);
+            ctx.fillStyle = pg; ctx.beginPath(); ctx.moveTo(-s,0);
+            for(let i=-s; i<s; i+=s/10) ctx.lineTo(i, Math.sin(t*4 + i*0.12)*s*0.4);
+            ctx.lineTo(s,0); ctx.fill();
+        } else if (this.type === 'trilo') {
+            for(let i=0; i<4; i++) {
+                ctx.fillStyle = `rgb(${40+i*20+light*40}, ${50+i*20+light*40}, ${60+i*20+light*40})`;
+                ctx.beginPath(); ctx.ellipse(s*0.6-i*s*0.4, 0, s*0.45, s*(0.8-i*0.1), 0,0,7); ctx.fill();
+            }
+        } else if (this.type === 'wiwaxia') {
+            ctx.fillStyle = '#3e2723'; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.75,0,0,7); ctx.fill();
+            for(let i=0; i<24; i++){
+                let a = -Math.PI + i*0.26;
+                ctx.strokeStyle = `hsla(20, 30%, ${30+light*50}%, 1)`; ctx.lineWidth = s*0.08;
+                ctx.beginPath(); ctx.moveTo(Math.cos(a)*s*0.5, Math.sin(a)*s*0.3); ctx.lineTo(Math.cos(a)*s*0.9, Math.sin(a)*s*(i%2?1.4:1.0)); ctx.stroke();
+            }
+        } else if (this.type === 'opabinia') {
+            ctx.fillStyle = '#1b5e20'; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.3,0,0,7); ctx.fill();
+            for(let i=0; i<5; i++){
+                ctx.fillStyle = '#0a0a0a'; ctx.beginPath(); ctx.arc(s*0.55-i*s*0.06, -s*0.25-i*s*0.04, s*0.06, 0, 7); ctx.fill();
+                if(light>0.3){ ctx.fillStyle=hCol; ctx.beginPath(); ctx.arc(s*0.56-i*s*0.06, -s*0.26-i*s*0.04, s*0.02, 0, 7); ctx.fill(); }
+            }
+            ctx.strokeStyle = hCol; ctx.lineWidth = s*0.12; ctx.beginPath(); ctx.moveTo(s*0.8,0); ctx.bezierCurveTo(s*1.4, Math.sin(t*0.8)*s*0.4, s*1.7, -s*0.3, s*1.6, s*0.5); ctx.stroke();
+        }
+    }
+}
+
+// 生物の生成
+['anomalo','opabinia','wiwaxia','halluci','trilo','pikaia'].forEach(t => { for(let i=0; i<4; i++) creatures.push(new Creature(t)); });
+
+function loop() {
+    ctx.fillStyle = '#00080f'; ctx.fillRect(0,0,w,h);
+    const t = performance.now() * 0.001;
+    const camX = target ? target.x : 0;
+    const camY = target ? target.y : 0;
+
+    // マリンスノー
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    particles.forEach(p => {
+        p.y += p.v; p.x += Math.sin(t + p.p)*0.3;
+        if(p.y > h) p.y = -10;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 7); ctx.fill();
+    });
+
+    // レア生物の出現管理
+    if(!rareCreature && Math.random() < 0.0005) {
+        rareCreature = new Creature('legend', true);
+        rareAlert.style.display = 'block';
+        setTimeout(() => rareAlert.style.display = 'none', 4000);
+    }
+    if(rareCreature) {
+        rareCreature.update(t); rareCreature.draw(camX, camY, t);
+        if(rareCreature.x > 4000) rareCreature = null;
+    }
+
+    // 環境演出（岩場・気泡）
+    rocks.sort((a,b)=>b.z-a.z).forEach(r => {
+        const pr = 700 / (700 + r.z);
+        const rx = (r.x - camX)*pr*zoom + w/2; const ry = (r.y - camY)*pr*zoom + h/2 + 150*zoom;
+        ctx.fillStyle = `rgba(10, 30, 45, ${pr})`;
+        ctx.beginPath(); ctx.moveTo(rx-r.s*pr, ry); ctx.lineTo(rx, ry-r.s*pr); 
+        ctx.lineTo(rx+r.s*pr, ry); ctx.fill();
+        if(Math.random()<0.005) bubbles.push({x: r.x, y: r.y, z: r.z, s: 2+Math.random()*5, life: 1});
+    });
+
+    bubbles = bubbles.filter(b => b.life > 0);
+    bubbles.forEach(b => {
+        b.y -= 1.2; b.life -= 0.0015; const bp = 700 / (700 + b.z);
+        ctx.fillStyle = `rgba(255,255,255,${b.life*0.4})`;
+        ctx.beginPath(); ctx.arc((b.x-camX)*bp*zoom+w/2, (b.y-camY)*bp*zoom+h/2+150*zoom, b.s*bp*zoom, 0, 7); ctx.fill();
+    });
+
+    // 砂ぼこり
+    dusts = dusts.filter(d => d.life > 0);
+    dusts.forEach(d => {
+        d.x += d.vx; d.y += d.vy; d.life -= 0.006;
+        const pr = 700 / (700 + d.z);
+        const dsx = (d.x - camX) * pr * zoom + w/2;
+        const dsy = (d.y - camY) * pr * zoom + h/2 + 150*zoom;
+        const l = Math.max(0, 1 - Math.hypot(dsx - mx, dsy - my)/(300*zoom));
+        ctx.fillStyle = `rgba(${120+l*100}, ${120+l*100}, ${100+l*50}, ${d.life*0.15})`;
+        ctx.beginPath(); ctx.arc(dsx, dsy, d.s*pr*zoom*(2-d.life), 0, 7); ctx.fill();
+    });
+
+    // サーチライト
+    const grad = ctx.createRadialGradient(mx, my, 0, mx, my, 350 * zoom);
+    grad.addColorStop(0, `rgba(0, 255, 255, 0.12)`);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+
+    // 生物描画
+    let hover = null;
+    creatures.sort((a,b) => b.z - a.z).forEach(c => {
+        c.update(t); c.draw(camX, camY, t);
+        if(Math.hypot(mx-c.sx, my-c.sy) < c.sr) hover = c;
+    });
+
+    // エサ
+    foods.forEach(f => {
+        f.y += 1.0; const fx = (f.x-camX)*zoom+w/2, fy = (f.y-camY)*zoom+h/2+150*zoom;
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(fx, fy, 5*zoom, 0, 7); ctx.fill();
+    });
+
+    // UI管理
+    if(hover || target) {
+        ui.style.display = 'block'; const c = hover || target;
+        document.getElementById('name').innerText = BIO[c.type].name;
+        document.getElementById('desc').innerText = BIO[c.type].desc;
+        document.getElementById('vital-id').innerText = `ID: ${c.id} / STATUS: STABLE / DEPTH: ${Math.floor(c.z)}m`;
+    } else ui.style.display = 'none';
+
+    if(t % 0.8 < 0.02) {
+        const logs = [`SCANNING SECTOR: ${Math.floor(mx)}:${Math.floor(my)}`, 
+        `THERMAL_LV: 4.1°C`, `PARTICLE_COUNT: ${bubbles.length + dusts.length}`, `O2: NORMAL`].join("<br>");
+        vitalLog.innerHTML = logs;
+    }
+    requestAnimationFrame(loop);
+}
+
+resize();
+loop();
+</script>
 </body>
 </html>
