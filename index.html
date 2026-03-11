@@ -3,26 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian Aquarium - Evolution Edition</title>
+    <title>Cambrian Aquarium - Ultimate Sinusoidal Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000408; font-family: 'Segoe UI', Meiryo, sans-serif; color: #fff; }
+        body { margin: 0; overflow: hidden; background: #000408; font-family: 'Meiryo', sans-serif; color: #fff; }
         canvas { display: block; }
         
         /* ホログラムUI */
         #hologram-ui {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0, 30, 60, 0.85); backdrop-filter: blur(15px);
-            border: 2px solid #00ffff; box-shadow: 0 0 40px rgba(0, 255, 255, 0.4);
-            padding: 25px; border-radius: 15px; display: none; width: 340px; z-index: 1000;
+            background: rgba(0, 30, 60, 0.9); backdrop-filter: blur(15px);
+            border: 2px solid #00ffff; box-shadow: 0 0 50px rgba(0, 255, 255, 0.4);
+            padding: 25px; border-radius: 15px; display: none; width: 350px; z-index: 1000;
         }
         #hologram-ui.active { display: block; }
-        #holo-title { margin: 0; font-size: 22px; color: #00ffff; text-shadow: 0 0 10px #0ff; }
-        #holo-desc { font-size: 14px; line-height: 1.6; margin: 15px 0; color: #ccffff; }
-        #close-btn { background: rgba(0,255,255,0.2); border: 1px solid #0ff; color: #0ff; width: 100%; padding: 8px; cursor: pointer; }
+        #holo-title { margin: 0; font-size: 24px; color: #00ffff; border-bottom: 1px solid #0ff; }
+        #holo-desc { font-size: 15px; line-height: 1.7; margin: 15px 0; color: #e0f8f8; }
+        #close-btn { background: #00ffff; border: none; padding: 10px; width: 100%; cursor: pointer; font-weight: bold; color: #000; }
 
-        /* HUD */
-        #hud { position: absolute; bottom: 20px; width: 100%; text-align: center; pointer-events: none; color: #00ffff; font-size: 13px; letter-spacing: 2px; text-shadow: 0 0 5px #000; }
-        #food-count { position: absolute; top: 20px; right: 20px; color: #0ff; }
+        #hud { position: absolute; bottom: 20px; width: 100%; text-align: center; pointer-events: none; color: #00ffff; font-size: 13px; opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -40,7 +38,7 @@
 
 <script>
 // ==========================================
-// 1. シーンセットアップ
+// 1. 環境構築
 // ==========================================
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x00050a);
@@ -55,7 +53,7 @@ renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
 const ambient = new THREE.AmbientLight(0x1a2a4a, 2.5); scene.add(ambient);
-const pointLight = new THREE.PointLight(0x00ffff, 2, 300); pointLight.position.set(0, 100, 0); scene.add(pointLight);
+const pointLight = new THREE.PointLight(0x00ffff, 2.5, 300); pointLight.position.set(0, 100, 0); scene.add(pointLight);
 
 // 海底
 const bottomY = -50;
@@ -74,12 +72,12 @@ const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: 0xfffff
 scene.add(snow);
 
 // ==========================================
-// 2. 高解像度生物モデリング
+// 2. マテリアル設定
 // ==========================================
 const mats = {
     anomalocaris: new THREE.MeshPhysicalMaterial({ color: 0x1a6655, transmission: 0.2, roughness: 0.3 }),
     opabinia: new THREE.MeshPhysicalMaterial({ color: 0x884488, transmission: 0.3, roughness: 0.4 }),
-    pikaia: new THREE.MeshPhysicalMaterial({ color: 0xaaaaff, transmission: 0.7, transparent: true, opacity: 0.7 }),
+    pikaia: new THREE.MeshPhysicalMaterial({ color: 0xaaaaff, transmission: 0.7, transparent: true, opacity: 0.8 }),
     trilo: new THREE.MeshStandardMaterial({ color: 0x443322, roughness: 0.8 }),
     hallu: new THREE.MeshPhysicalMaterial({ color: 0xcc5533, transmission: 0.2 }),
     marr: new THREE.MeshPhysicalMaterial({ color: 0x3366aa, transmission: 0.3 }),
@@ -87,36 +85,43 @@ const mats = {
     food: new THREE.MeshBasicMaterial({ color: 0x00ffff })
 };
 
-// --- ピカイア (蛇行運動 特化型) ---
+// ==========================================
+// 3. 生物モデリング (ピカイア超改善版)
+// ==========================================
+
+// --- ピカイア (蛇行アニメーションの極致) ---
 function buildPikaia() {
     const group = new THREE.Group();
     const segments = [];
     let parent = group;
-    const segCount = 35; // 節を大幅に増加
+    const segCount = 40; // 節を大幅に増やして滑らかに
     for(let i=0; i<segCount; i++) {
         const s = Math.sin((i/segCount)*Math.PI);
         const seg = new THREE.Group();
-        seg.position.z = -0.3;
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.8*s+0.1, 0.4), mats.pikaia);
+        seg.position.z = -0.3; // 前の節との距離
+        
+        // 胴体パーツ：後ろに行くほど平たくしなやかに
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.8*s+0.1, 0.4), mats.pikaia);
         seg.add(body);
-        parent.add(seg); segments.push(seg); parent = seg;
+        
+        parent.add(seg);
+        segments.push(seg);
+        parent = seg;
     }
-    return { mesh: group, segments, type: 'swim_pikaia' };
+    return { mesh: group, segments, type: 'pikaia' };
 }
 
 // --- アノマロカリス ---
 function buildAnomalocaris() {
-    const group = new THREE.Group();
-    const segments = [];
+    const group = new THREE.Group(); const segments = [];
     const head = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 16), mats.anomalocaris);
     head.scale.set(1.2, 0.7, 1); group.add(head);
-    // 触手（しなり重視）
     for(let side of [-1, 1]) {
         const armBase = new THREE.Group(); armBase.position.set(0.8*side, -0.3, 1); head.add(armBase);
-        let curr = armBase; const aSegs = [];
+        let curr = armBase;
         for(let k=0; k<8; k++) {
             const part = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.5), mats.anomalocaris);
-            part.position.z = 0.25; const w = new THREE.Group(); w.add(part); curr.add(w); curr = w; aSegs.push(w);
+            part.position.z = 0.25; const w = new THREE.Group(); w.add(part); curr.add(w); curr = w;
         }
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.4), new THREE.MeshBasicMaterial({color:0}));
         eye.position.set(1.5*side, 0.8, 0.5); head.add(eye);
@@ -137,8 +142,7 @@ function buildAnomalocaris() {
 
 // --- オパビニア ---
 function buildOpabinia() {
-    const group = new THREE.Group();
-    const segments = [];
+    const group = new THREE.Group(); const segments = [];
     const head = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 16), mats.opabinia);
     head.scale.set(1, 0.6, 1.4); group.add(head);
     for(let i=0; i<5; i++) {
@@ -215,15 +219,15 @@ function buildMarrella() {
 }
 
 // ==========================================
-// 3. 生態系AI & エサシステム
+// 4. 生態系管理
 // ==========================================
 const defs = [
-    { id:'anom', jp:'アノマロカリス', en:'Anomalocaris', desc:'当時の海の王。3Dモデルでは12枚のヒレが連動して波打つ様子と、しなやかな触手の動きを再現しました。エサに最も早く反応します。', build:buildAnomalocaris, count:3, speed:0.18, yRange:[-10, 20] },
-    { id:'opab', jp:'オパビニア', en:'Opabinia', desc:'5つの目を持つ奇妙な生物。多関節で構成された長い吻（ふん）が、生き物のように空間を漂います。', build:buildOpabinia, count:4, speed:0.1, yRange:[-20, 5] },
-    { id:'pika', jp:'ピカイア', en:'Pikaia', desc:'【遊泳改善版】35個の節による「進行波」アルゴリズムを採用。リボンのような滑らかな蛇行運動を3Dで完全再現しました。', build:buildPikaia, count:8, speed:0.08, yRange:[-30, -5] },
-    { id:'trilo', jp:'三葉虫', en:'Trilobite', desc:'海底の掃除屋。エサが海底に落ちると、多脚を動かして集まってきます。', build:buildTrilobite, count:7, speed:0.05, yRange:[bottomY, bottomY] },
-    { id:'hallu', jp:'ハルキゲニア', en:'Hallucigenia', desc:'長い脚で海底を歩く姿を再現。エサの匂いを感じるとゆっくりと方向を変えます。', build:buildHallucigenia, count:6, speed:0.04, yRange:[bottomY, bottomY] },
-    { id:'marr', jp:'マルレラ', en:'Marrella', desc:'「レースのエビ」。繊細な羽のような足を動かして中層を舞います。', build:buildMarrella, count:6, speed:0.07, yRange:[-15, 15] }
+    { id:'anom', jp:'アノマロカリス', en:'Anomalocaris', desc:'最強の捕食者。12対のヒレを波打たせて泳ぎます。', build:buildAnomalocaris, count:3, speed:0.18, yRange:[-10, 20] },
+    { id:'opab', jp:'オパビニア', en:'Opabinia', desc:'5つの目と長い吻。吻の先にはハサミがあります。', build:buildOpabinia, count:4, speed:0.1, yRange:[-20, 5] },
+    { id:'pika', jp:'ピカイア', en:'Pikaia', desc:'【遊泳改善】おしりを振る不自然さを解消し、頭部から尾部にかけて振幅が増大する「生物学的蛇行」を実装。脊椎動物の始祖らしい滑らかな動きになりました。', build:buildPikaia, count:8, speed:0.09, yRange:[-30, -5] },
+    { id:'trilo', jp:'三葉虫', en:'Trilobite', desc:'海底の掃除屋。エサが落ちると集まってきます。', build:buildTrilobite, count:7, speed:0.05, yRange:[bottomY, bottomY] },
+    { id:'hallu', jp:'ハルキゲニア', en:'Hallucigenia', desc:'長い脚で海底を歩く。トゲは身を守るためのものです。', build:buildHallucigenia, count:6, speed:0.04, yRange:[bottomY, bottomY] },
+    { id:'marr', jp:'マルレラ', en:'Marrella', desc:'「レースのエビ」。繊細な姿で中層を舞います。', build:buildMarrella, count:6, speed:0.07, yRange:[-15, 15] }
 ];
 
 const entities = [];
@@ -237,15 +241,14 @@ defs.forEach(def => {
     }
 });
 
-// エサ管理
+// エサシステム
 const foods = [];
 function dropFood(pos) {
     const f = new THREE.Mesh(new THREE.SphereGeometry(0.6), mats.food);
-    f.position.copy(pos); scene.add(f);
-    foods.push(f);
+    f.position.copy(pos); scene.add(f); foods.push(f);
 }
 
-// 静的環境
+// ウミユリ等の背景
 for(let i=0; i<100; i++) {
     const x = (Math.random()-0.5)*250, z = (Math.random()-0.5)*250, h = 2+Math.random()*6;
     const g = new THREE.Group(); const s = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.2, h), mats.flora);
@@ -255,7 +258,7 @@ for(let i=0; i<100; i++) {
 }
 
 // ==========================================
-// 4. インタラクション & アニメーション
+// 5. インタラクション & アニメーション
 // ==========================================
 let isDragging = false, lastX, lastY;
 window.addEventListener('wheel', e => { targetCamRadius = Math.max(20, Math.min(300, targetCamRadius + e.deltaY*0.15)); });
@@ -279,10 +282,8 @@ window.addEventListener('pointerup', e => {
             return;
         }
     }
-    // 何もないところならエサを落とす
     const foodPos = new THREE.Vector3().copy(camera.position).add(ray.ray.direction.multiplyScalar(60));
     dropFood(foodPos);
-    document.getElementById('hologram-ui').classList.remove('active');
 });
 
 function closeHolo() { document.getElementById('hologram-ui').classList.remove('active'); }
@@ -291,28 +292,16 @@ const dummy = new THREE.Object3D();
 function animate() {
     requestAnimationFrame(animate);
     const time = Date.now() * 0.002;
-
     camRadius += (targetCamRadius - camRadius) * 0.1;
     camera.position.set(camRadius*Math.sin(camAngleX)*Math.cos(camAngleY), camRadius*Math.sin(camAngleY), camRadius*Math.cos(camAngleX)*Math.cos(camAngleY));
     camera.lookAt(0, 0, 0);
 
-    // エサの物理
-    foods.forEach((f, idx) => {
-        f.position.y -= 0.08;
-        if(f.position.y < bottomY) f.position.y = bottomY;
-    });
+    foods.forEach(f => { f.position.y -= 0.08; if(f.position.y < bottomY) f.position.y = bottomY; });
 
     entities.forEach(e => {
-        // エサを探すAI
-        let target = e.target;
-        let minDist = 60;
-        foods.forEach(f => {
-            const d = e.mesh.position.distanceTo(f.position);
-            if(d < minDist) { target = f.position; minDist = d; }
-        });
-
+        let target = e.target; let minDist = 60;
+        foods.forEach(f => { const d = e.mesh.position.distanceTo(f.position); if(d < minDist) { target = f.position; minDist = d; } });
         if(target && e.mesh.position.distanceTo(target) < 2) {
-            // エサを食べた
             const fIdx = foods.findIndex(f => f.position.equals(target));
             if(fIdx > -1) { scene.remove(foods[fIdx]); foods.splice(fIdx, 1); }
             e.target = null;
@@ -321,21 +310,23 @@ function animate() {
         if(!e.target || e.mesh.position.distanceTo(e.target) < 5) {
             const tx = (Math.random()-0.5)*200, tz = (Math.random()-0.5)*200;
             let ty = e.def.yRange[0] + (e.def.yRange[1]-e.def.yRange[0])*Math.random();
-            if(e.type !== 'swim' && e.type !== 'swim_pikaia') ty = bottomY + e.offset;
+            if(e.type !== 'swim' && e.type !== 'pikaia') ty = bottomY + e.offset;
             e.target = new THREE.Vector3(tx, ty, tz);
         }
         
         dummy.position.copy(e.mesh.position); dummy.lookAt(target || e.target);
         e.mesh.quaternion.slerp(dummy.quaternion, 0.03);
         e.mesh.translateZ(e.def.speed);
-        if(e.type !== 'swim' && e.type !== 'swim_pikaia') e.mesh.position.y = bottomY + e.offset;
+        if(e.type !== 'swim' && e.type !== 'pikaia') e.mesh.position.y = bottomY + e.offset;
 
-        // --- 改良版アニメーション ---
+        // --- アニメーション制御 ---
         e.segments.forEach((seg, i) => {
-            if(e.type === 'swim_pikaia') {
-                // ピカイア：進行波（頭から尾へうねりが伝わる）
-                const wave = Math.sin(time * 5 - i * 0.3 + e.phase);
-                seg.rotation.y = wave * 0.35;
+            if(e.type === 'pikaia') {
+                // ピカイア：頭(i=0)はほぼ振らず、後ろに行くほど振幅を大きくする
+                // phaseの引き算(time - i*0.2)によって波が頭から後ろへ流れる
+                const amplitude = (i / e.segments.length) * 0.5; // 後方増幅
+                const wave = Math.sin(time * 6 - i * 0.25 + e.phase);
+                seg.rotation.y = wave * amplitude;
             } else if(e.type === 'swim') {
                 const wave = Math.sin(time * 3 - i * 0.4 + e.phase);
                 seg.rotation.x = wave * 0.12;
@@ -344,7 +335,6 @@ function animate() {
                     seg.userData.fL.rotation.z = flap; seg.userData.fR.rotation.z = -flap;
                 }
             } else {
-                // 這う生物の微細な振動
                 seg.rotation.y = Math.sin(time * 4 - i * 0.2) * 0.05;
             }
         });
