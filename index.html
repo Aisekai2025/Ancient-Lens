@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D Deep Sea - Evolution Edition</title>
+    <title>Cambrian 3D Deep Sea - Stability Edition</title>
     <style>
         body { margin: 0; overflow: hidden; background: #00050a; font-family: 'Helvetica Neue', Arial, sans-serif; user-select: none; color: #fff; }
         canvas { display: block; }
@@ -34,184 +34,112 @@
     <p id="holo-desc"></p>
     <button id="close-btn" onclick="closeHolo()">探査を続ける / Continue</button>
 </div>
-<div id="hint">ドラッグ：視点移動 | 生物タップ：詳細解析 | 水中タップ：有機物投下</div>
+<div id="hint">ドラッグ：視点移動 | 生物タップ：詳細解析</div>
 
 <script src="https://cdnjs.cloudflare.com"></script>
 <script>
 // 1. 基本セットアップ
-const scene = new THREE.Scene();
+var scene = new THREE.Scene();
 scene.background = new THREE.Color(0x00040a);
 scene.fog = new THREE.FogExp2(0x00040a, 0.015);
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
+var renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-// 2. 環境光
+// 2. ライティング
 scene.add(new THREE.AmbientLight(0x002244, 1.2));
-const topLight = new THREE.DirectionalLight(0x44ffcc, 0.8);
+var topLight = new THREE.DirectionalLight(0x44ffcc, 0.8);
 topLight.position.set(0, 50, 0);
 scene.add(topLight);
 
 // マリンスノー
-const snowGeo = new THREE.BufferGeometry();
-const snowPosArr = [];
-for(let i=0; i<1200; i++) snowPosArr.push((Math.random()-0.5)*150, (Math.random()-0.5)*150, (Math.random()-0.5)*150);
+var snowGeo = new THREE.BufferGeometry();
+var snowPosArr = [];
+for(var i=0; i<1200; i++) snowPosArr.push((Math.random()-0.5)*150, (Math.random()-0.5)*150, (Math.random()-0.5)*150);
 snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowPosArr, 3));
-const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: 0x88ffff, size: 0.1, transparent: true, opacity: 0.4 }));
+var snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: 0x88ffff, size: 0.1, transparent: true, opacity: 0.4 }));
 scene.add(snow);
 
 // 海底
-const bottomY = -30;
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x050a10, roughness: 1 }));
+var bottomY = -30;
+var ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x050a10, roughness: 1 }));
 ground.rotation.x = -Math.PI / 2; ground.position.y = bottomY;
 scene.add(ground);
 
-// 3. 生物マテリアル
-const matAnom = new THREE.MeshPhysicalMaterial({ color: 0x1a6655, transmission: 0.3, roughness: 0.4 });
-const matHallu = new THREE.MeshPhysicalMaterial({ color: 0xcc66aa, roughness: 0.5 });
-const matMarrella = new THREE.MeshPhysicalMaterial({ color: 0x4477aa, transmission: 0.5, roughness: 0.2 });
+// 3. マテリアル
+var matAnom = new THREE.MeshPhysicalMaterial({ color: 0x1a6655, transmission: 0.3, roughness: 0.4 });
+var matHallu = new THREE.MeshPhysicalMaterial({ color: 0xcc66aa, roughness: 0.5 });
+var matMarrella = new THREE.MeshPhysicalMaterial({ color: 0x4477aa, transmission: 0.5, roughness: 0.2 });
 
-// 4. 生物構築関数
+// 4. 生物構築
 function buildAnomalocaris() {
-    const group = new THREE.Group(); const segments = []; let parent = group;
-    for(let i=0; i<12; i++) {
-        const s = 1 - Math.pow((i-2)/10, 2);
-        const seg = new THREE.Group(); if(i>0) seg.position.z = -1.2 * s;
-        const b = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), matAnom);
+    var group = new THREE.Group(); var segments = []; var parent = group;
+    for(var i=0; i<12; i++) {
+        var s = 1 - Math.pow((i-2)/10, 2);
+        var seg = new THREE.Group(); if(i>0) seg.position.z = -1.2 * s;
+        var b = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), matAnom);
         b.scale.set(1.8*s, 0.6*s, 1.2*s); seg.add(b);
         if(i>0 && i<10) {
-            const fL = new THREE.Mesh(new THREE.BoxGeometry(3.5*s, 0.05, 1.5*s), matAnom); fL.position.set(1.8*s, 0, 0); seg.add(fL);
-            const fR = new THREE.Mesh(new THREE.BoxGeometry(3.5*s, 0.05, 1.5*s), matAnom); fR.position.set(-1.8*s, 0, 0); seg.add(fR);
-            seg.userData = { fL, fR };
+            var fL = new THREE.Mesh(new THREE.BoxGeometry(3.5*s, 0.05, 1.5*s), matAnom); fL.position.set(1.8*s, 0, 0); seg.add(fL);
+            var fR = new THREE.Mesh(new THREE.BoxGeometry(3.5*s, 0.05, 1.5*s), matAnom); fR.position.set(-1.8*s, 0, 0); seg.add(fR);
+            seg.userData = { fL: fL, fR: fR };
         }
         parent.add(seg); segments.push(seg); parent = seg;
     }
-    return { mesh: group, segments };
+    return { mesh: group, segments: segments };
 }
 
 function buildHallucigenia() {
-    const group = new THREE.Group(); const segments = []; let parent = group;
-    for(let i=0; i<8; i++) {
-        const seg = new THREE.Group(); if(i>0) seg.position.z = -0.8;
-        const b = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), matHallu); seg.add(b);
-        const spike = new THREE.Mesh(new THREE.CylinderGeometry(0, 0.1, 1.5), matHallu);
+    var group = new THREE.Group(); var segments = []; var parent = group;
+    for(var i=0; i<8; i++) {
+        var seg = new THREE.Group(); if(i>0) seg.position.z = -0.8;
+        var b = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), matHallu); seg.add(b);
+        var spike = new THREE.Mesh(new THREE.CylinderGeometry(0, 0.1, 1.5), matHallu);
         spike.position.y = 0.8; spike.rotation.x = 0.2; seg.add(spike);
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.05, 1), matHallu);
+        var leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.05, 1), matHallu);
         leg.position.y = -0.5; leg.position.x = 0.3; seg.add(leg);
         parent.add(seg); segments.push(seg); parent = seg;
     }
-    return { mesh: group, segments };
+    return { mesh: group, segments: segments };
 }
 
 function buildMarrella() {
-    const group = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 2, 4, 8), matMarrella);
+    var group = new THREE.Group();
+    var body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 2, 4, 8), matMarrella);
     body.rotation.x = Math.PI/2; group.add(body);
-    const hornL = new THREE.Mesh(new THREE.TorusGeometry(2, 0.05, 8, 12, Math.PI/2), matMarrella);
+    var hornL = new THREE.Mesh(new THREE.TorusGeometry(2, 0.05, 8, 12, Math.PI/2), matMarrella);
     hornL.position.set(0.5, 0.5, 1); hornL.rotation.y = -0.5; group.add(hornL);
-    const hornR = hornL.clone(); hornR.position.x = -0.5; hornR.rotation.y = 0.5; group.add(hornR);
+    var hornR = hornL.clone(); hornR.position.x = -0.5; hornR.rotation.y = 0.5; group.add(hornR);
     return { mesh: group, segments: [] };
 }
 
-// 5. 生態系データ
-const entityDefs = [
+// 5. 生態系スポーン
+var entityDefs = [
     { id: 'anomalocaris', jp: 'アノマロカリス', en: 'Anomalocaris', desc: 'カンブリア紀最大の捕食者。強靭な前部付属肢で獲物を捕らえます。', build: buildAnomalocaris, count: 3, speed: 0.15, yMin: -10, yMax: 15 },
     { id: 'hallucigenia', jp: 'ハルキゲニア', en: 'Hallucigenia', desc: '「夢のような」を意味する名を持つ。背中に鋭い棘、腹側に細い脚を持つ奇妙な姿。', build: buildHallucigenia, count: 5, speed: 0.03, yMin: bottomY+1, yMax: bottomY+2 },
     { id: 'marrella', jp: 'マルレラ', en: 'Marrella', desc: 'バージェス頁岩で最も多く発見される節足動物。レースのような繊細な鰓が特徴。', build: buildMarrella, count: 8, speed: 0.07, yMin: -5, yMax: 5 }
 ];
 
-const entities = [];
-entityDefs.forEach(def => {
-    for(let i=0; i { if(c.isMesh) c.userData.entityData = entity; });
-        entities.push(entity);
-    }
-});
-
-// 6. インタラクション
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let camAngleX = 0, camAngleY = 0.2, isDragging = false, prevMouse = { x: 0, y: 0 };
-
-window.addEventListener('pointerdown', e => { isDragging = true; prevMouse = { x: e.clientX, y: e.clientY }; });
-window.addEventListener('pointermove', e => {
-    if(isDragging) {
-        camAngleX -= (e.clientX - prevMouse.x) * 0.005;
-        camAngleY = Math.max(-0.8, Math.min(0.8, camAngleY - (e.clientY - prevMouse.y) * 0.005));
-    }
-    prevMouse = { x: e.clientX, y: e.clientY };
-});
-window.addEventListener('pointerup', e => {
-    isDragging = false;
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    const hits = raycaster.intersectObjects(scene.children, true);
-    const targetHit = hits.find(h => h.object.userData.entityData);
-    if(targetHit) {
-        const d = targetHit.object.userData.entityData.def;
-        document.getElementById('holo-title').innerText = d.jp;
-        document.getElementById('holo-en').innerText = d.en;
-        document.getElementById('holo-desc').innerText = d.desc;
-        document.getElementById('hologram-ui').classList.add('active');
-    }
-});
-
-function closeHolo() { document.getElementById('hologram-ui').classList.remove('active'); }
-
-// 7. アニメーションループ
-const dummy = new THREE.Object3D();
-function animate() {
-    requestAnimationFrame(animate);
-    const time = Date.now() * 0.002;
-    
-    // カメラ
-    const r = 60;
-    camera.position.x = r * Math.sin(camAngleX) * Math.cos(camAngleY);
-    camera.position.y = r * Math.sin(camAngleY);
-    camera.position.z = r * Math.cos(camAngleX) * Math.cos(camAngleY);
-    camera.lookAt(0, 0, 0);
-
-    // マリンスノー
-    const posAttr = snow.geometry.attributes.position;
-    for(let i=0; i<posAttr.count; i++) {
-        let y = posAttr.getY(i);
-        y -= 0.02;
-        if(y < bottomY) y = 50;
-        posAttr.setY(i, y);
-    }
-    posAttr.needsUpdate = true;
-
-    // 生物挙動
-    entities.forEach((ent, idx) => {
-        if(!ent.target || ent.mesh.position.distanceTo(ent.target) < 5) {
-            ent.target = new THREE.Vector3((Math.random()-0.5)*100, ent.def.yMin + Math.random()*(ent.def.yMax - ent.def.yMin), (Math.random()-0.5)*100);
-        }
-        dummy.position.copy(ent.mesh.position);
-        dummy.lookAt(ent.target);
-        ent.mesh.quaternion.slerp(dummy.quaternion, 0.02);
-        ent.mesh.translateZ(ent.def.speed);
-
-        // 体の波打ち
-        const off = idx * 10;
-        if (ent.segments) {
-            ent.segments.forEach((seg, i) => {
-                seg.rotation.y = Math.sin(time * 3 - i * 0.6 + off) * 0.15;
+var entities = [];
+for (var d = 0; d  0) {
+            for (var s = 0; s < ent.segments.length; s++) {
+                var seg = ent.segments[s];
+                seg.rotation.y = Math.sin(time * 3 - s * 0.6 + n * 10) * 0.15;
                 if(seg.userData.fL) {
-                    const flap = Math.sin(time * 5 - i * 0.5 + off) * 0.4;
+                    var flap = Math.sin(time * 5 - s * 0.5 + n * 10) * 0.4;
                     seg.userData.fL.rotation.z = flap; seg.userData.fR.rotation.z = -flap;
                 }
-            });
+            }
         }
-    });
-
+    }
     renderer.render(scene, camera);
 }
 animate();
 
-window.addEventListener('resize', () => {
+window.addEventListener('resize', function() {
     camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
