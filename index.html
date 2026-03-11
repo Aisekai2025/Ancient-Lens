@@ -3,36 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D - Ultimate Aquarium</title>
+    <title>Cambrian 3D Deep Sea - Ultimate Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #00050a; font-family: sans-serif; color: #fff; }
+        body { margin: 0; overflow: hidden; background: #00050a; font-family: 'Helvetica Neue', Arial, sans-serif; color: #fff; user-select: none; }
         canvas { display: block; }
+        /* 未来的なホログラムUI */
         #hologram-ui {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%);
-            background: rgba(0, 30, 60, 0.8); backdrop-filter: blur(10px);
-            border: 1px solid #00ffff; padding: 25px; border-radius: 15px;
-            z-index: 10; display: none; width: 300px; opacity: 0;
-            transition: all 0.4s ease-out;
+            background: rgba(0, 25, 50, 0.75); backdrop-filter: blur(10px);
+            border: 1px solid #00f7ff; padding: 25px; border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 247, 255, 0.3);
+            z-index: 10; display: none; width: 320px; opacity: 0;
+            transition: all 0.4s cubic-bezier(0.1, 1.5, 0.5, 1);
         }
         #hologram-ui.active { display: block; opacity: 1; transform: translate(-50%, -50%); }
-        #holo-title { margin: 0; font-size: 24px; color: #00ffff; text-shadow: 0 0 10px #0ff; }
-        #holo-desc { font-size: 14px; line-height: 1.6; color: #e0f8f8; margin: 15px 0; }
-        #close-btn { background: #00ffff; border: none; color: #001a1a; padding: 10px; cursor: pointer; width: 100%; border-radius: 5px; font-weight: bold; }
-        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #00ffff; font-size: 12px; opacity: 0.6; pointer-events: none; }
+        #holo-title { margin: 0; font-size: 24px; color: #00f7ff; text-shadow: 0 0 10px #00f7ff; letter-spacing: 2px; }
+        #holo-en { font-size: 14px; color: #88dddd; font-style: italic; margin-bottom: 10px; }
+        #holo-desc { font-size: 14px; line-height: 1.6; color: #e0f8f8; margin-bottom: 20px; }
+        #close-btn { 
+            background: rgba(0, 247, 255, 0.1); border: 1px solid #00f7ff; color: #00f7ff;
+            padding: 10px; cursor: pointer; border-radius: 5px; width: 100%; transition: 0.3s;
+        }
+        #close-btn:hover { background: #00f7ff; color: #000; }
+        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: rgba(0, 255, 255, 0.5); font-size: 12px; letter-spacing: 1px; }
     </style>
 </head>
 <body>
+
 <div id="hologram-ui">
     <h2 id="holo-title"></h2>
-    <div id="holo-en" style="font-style: italic; color: #88dddd;"></div>
+    <div id="holo-en"></div>
     <p id="holo-desc"></p>
-    <button id="close-btn" onclick="closeHolo()">DATA CLOSE</button>
+    <button id="close-btn" onclick="closeHolo()">CLOSE DATA</button>
 </div>
-<div id="hint">CLICK CREATURE TO ANALYZE / DRAG TO ROTATE VIEW</div>
+
+<div id="hint">CLICK: ANALYZE CREATURE / DRAG: MOVE VIEW</div>
 
 <script src="https://cdnjs.cloudflare.com"></script>
 <script>
-// --- シーン・カメラ・レンダラー ---
+// ==========================================
+// 1. シーン・カメラ・レンダラー
+// ==========================================
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000612);
 scene.fog = new THREE.FogExp2(0x000612, 0.015);
@@ -42,32 +53,39 @@ camera.position.set(0, 20, 80);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
 
-// --- ライト ---
-scene.add(new THREE.AmbientLight(0x224466, 2.0));
-const light = new THREE.DirectionalLight(0x00ffaa, 1.5);
-light.position.set(0, 100, 0);
-scene.add(light);
+// ==========================================
+// 2. 照明と環境
+// ==========================================
+scene.add(new THREE.AmbientLight(0x113355, 2.0));
+const sun = new THREE.DirectionalLight(0x00ffaa, 1.5);
+sun.position.set(0, 100, 0);
+scene.add(sun);
 
-// --- 海底 ---
+// 海底の砂場
 const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(300, 300),
-    new THREE.MeshStandardMaterial({ color: 0x051122, roughness: 0.9 })
+    new THREE.PlaneGeometry(400, 400),
+    new THREE.MeshStandardMaterial({ color: 0x051122, roughness: 1.0 })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -40;
 scene.add(ground);
 
-// --- マリンスノー ---
-const snowPos = [];
-for(let i=0; i<800; i++) snowPos.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
+// マリンスノー（浮遊物）
 const snowGeo = new THREE.BufferGeometry();
+const snowPos = [];
+for(let i=0; i<1000; i++) {
+    snowPos.push((Math.random()-0.5)*250, (Math.random()-0.5)*250, (Math.random()-0.5)*250);
+}
 snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowPos, 3));
-const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.2, transparent: true, opacity: 0.4}));
+const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true, opacity: 0.5 }));
 scene.add(snow);
 
-// --- 生物構築関数 ---
+// ==========================================
+// 3. 生物構築ロジック
+// ==========================================
 const matAnom = new THREE.MeshPhysicalMaterial({ color: 0x1a6655, transmission: 0.4, roughness: 0.3 });
 const matHallu = new THREE.MeshPhysicalMaterial({ color: 0xffaaaa, roughness: 0.6 });
 const matTrilo = new THREE.MeshPhysicalMaterial({ color: 0x554433, roughness: 0.8 });
@@ -101,7 +119,9 @@ function buildHallucigenia() {
     }
 });
 
-// --- インタラクション ---
+// ==========================================
+// 5. 入力とインタラクション
+// ==========================================
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -111,29 +131,40 @@ window.addEventListener('pointerdown', (e) => {
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(scene.children, true);
     for (let i = 0; i  {
+        // AI移動：ターゲットに近づいたら次の場所を決める
         if(ent.mesh.position.distanceTo(ent.target) < 5) {
-            ent.target.set((Math.random()-0.5)*120, ent.mesh.position.y, (Math.random()-0.5)*120);
+            ent.target.set(
+                (Math.random()-0.5)*150, 
+                ent.mesh.position.y, 
+                (Math.random()-0.5)*150
+            );
         }
+        
+        // ターゲットに向きを変えて進む
         dummy.position.copy(ent.mesh.position);
         dummy.lookAt(ent.target);
-        ent.mesh.quaternion.slerp(dummy.quaternion, 0.015);
+        ent.mesh.quaternion.slerp(dummy.quaternion, 0.02);
         ent.mesh.translateZ(ent.def.speed);
 
+        // 体のうねり（アノマロカリス用）
         if(ent.segments && ent.segments.length > 0) {
             ent.segments.forEach((seg, i) => {
                 seg.rotation.y = Math.sin(time * 3 - i * 0.5 + idx) * 0.15;
             });
         }
     });
+
     renderer.render(scene, camera);
 }
-animate();
 
+// 画面リサイズ対応
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+animate();
 </script>
 </body>
 </html>
