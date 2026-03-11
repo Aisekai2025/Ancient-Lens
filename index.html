@@ -2,84 +2,102 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D - Visualization Fixed</title>
+    <title>Cambrian 3D - Final Fix</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000b1a; font-family: sans-serif; user-select: none; color: #fff; }
-        canvas { display: block; width: 100vw; height: 100vh; }
+        body { margin: 0; overflow: hidden; background: #000b1a; font-family: sans-serif; color: #fff; }
+        canvas { display: block; }
         #hologram-ui {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0, 40, 80, 0.9); backdrop-filter: blur(10px);
-            border: 2px solid #00ffff; padding: 20px; border-radius: 12px; z-index: 100; display: none; width: 280px;
+            background: rgba(0, 40, 80, 0.9); border: 2px solid #00ffff; padding: 20px;
+            border-radius: 12px; display: none; width: 260px; z-index: 100;
         }
         #hologram-ui.active { display: block; }
-        #holo-title { margin: 0 0 10px 0; color: #00ffff; font-size: 20px; text-align: center; }
-        #holo-desc { font-size: 14px; line-height: 1.5; color: #e0f8f8; }
-        #close-btn {
-            background: #00ffff; border: none; color: #000; font-weight: bold;
-            padding: 10px; cursor: pointer; width: 100%; margin-top: 15px; border-radius: 4px;
-        }
-        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #00ffff; font-size: 12px; text-shadow: 0 0 5px #000; }
+        #close-btn { background: #00ffff; border: none; padding: 10px; width: 100%; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 <div id="hologram-ui">
-    <h2 id="holo-title">探査報告</h2>
+    <h2 id="holo-title"></h2>
     <p id="holo-desc"></p>
-    <button id="close-btn" onclick="closeHolo()">OK</button>
+    <button id="close-btn" onclick="closeHolo()">閉じる</button>
 </div>
-<div id="hint">ドラッグ：視点回転 / 生物タップ：詳細</div>
 
 <script src="https://cdnjs.cloudflare.com"></script>
 <script>
-// --- 1. シーン・カメラ・レンダラー ---
+// 1. シーン設定
 var scene = new THREE.Scene();
 scene.background = new THREE.Color(0x00060d);
-scene.fog = new THREE.Fog(0x00060d, 10, 150);
-
-var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 20, 80);
-camera.lookAt(0, 0, 0);
-
+var camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0, 30, 100);
 var renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-// --- 2. ライティング（真っ暗対策で大幅強化） ---
-var ambLight = new THREE.AmbientLight(0xffffff, 0.6); // 全体を底上げ
-scene.add(ambLight);
+// 2. ライト（真っ暗防止）
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+var pLight = new THREE.PointLight(0x00ffff, 2, 200);
+pLight.position.set(0, 50, 0);
+scene.add(pLight);
 
-var pointLight = new THREE.PointLight(0x00ffff, 2, 200);
-pointLight.position.set(0, 50, 0);
-scene.add(pointLight);
-
-// --- 3. 環境（海底とマリンスノー） ---
-var ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(500, 500),
-    new THREE.MeshPhongMaterial({ color: 0x0a1a2a })
-);
-ground.rotation.x = -Math.PI / 2;
-ground.position.y = -30;
+// 3. 地面
+var ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshPhongMaterial({color: 0x0a1a2a}));
+ground.rotation.x = -Math.PI/2; ground.position.y = -30;
 scene.add(ground);
 
-var snowGeo = new THREE.BufferGeometry();
-var snowCoords = [];
-for(var i=0; i 80) e.mesh.rotateY(Math.PI); // 境界で反転
+// 4. 生体データ定義（※ここがエラーの温床でした。最も安全な書き方に変更）
+var entities = [];
+var defs = [
+    { name: "アノマロカリス", desc: "カンブリア紀の王。", color: 0x228866, count: 3, y: 0, speed: 0.1 },
+    { name: "ハルキゲニア", desc: "トゲを持つ奇妙な姿。", color: 0xcc66aa, count: 6, y: -28, speed: 0.03 }
+];
+
+for(var i=0; i<defs.length; i++) {
+    var d = defs[i];
+    for(var j=0; j<d.count; j++) {
+        var geo = (d.name === "アノマロカリス") ? new THREE.BoxGeometry(5, 1, 2) : new THREE.CapsuleGeometry(0.5, 3, 4, 8);
+        var mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({color: d.color}));
+        mesh.position.set((Math.random()-0.5)*100, d.y, (Math.random()-0.5)*100);
+        scene.add(mesh);
         
-        // 体のくねくね
-        for(var s=0; s<e.segments.length; s++){
-            e.segments[s].rotation.y = Math.sin(Date.now()*0.005 + s*0.5) * 0.1;
-        }
+        var info = new Object();
+        info.name = d.name;
+        info.desc = d.desc;
+        mesh.userData.info = info;
+        entities.push({ mesh: mesh, speed: d.speed });
+    }
+}
+
+// 5. 操作とアニメーション
+var angle = 0;
+function animate() {
+    requestAnimationFrame(animate);
+    angle += 0.002;
+    camera.position.x = 100 * Math.sin(angle);
+    camera.position.z = 100 * Math.cos(angle);
+    camera.lookAt(0, 0, 0);
+
+    for(var k=0; k<entities.length; k++) {
+        entities[k].mesh.translateZ(entities[k].speed);
+        if(entities[k].mesh.position.length() > 80) entities[k].mesh.rotateY(Math.PI);
     }
     renderer.render(scene, camera);
 }
 animate();
 
-window.addEventListener('resize', function(){
-    camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+// クリック判定
+window.addEventListener('click', function(e) {
+    var mouse = new THREE.Vector2( (e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1 );
+    var ray = new THREE.Raycaster();
+    ray.setFromCamera(mouse, camera);
+    var hits = ray.intersectObjects(scene.children);
+    if(hits.length > 0 && hits[0].object.userData.info) {
+        var data = hits[0].object.userData.info;
+        document.getElementById('holo-title').innerText = data.name;
+        document.getElementById('holo-desc').innerText = data.desc;
+        document.getElementById('hologram-ui').classList.add('active');
+    }
 });
+function closeHolo() { document.getElementById('hologram-ui').classList.remove('active'); }
 </script>
 </body>
 </html>
