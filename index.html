@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D - Deep Sea Evolution</title>
+    <title>Cambrian 3D - Final Evolution</title>
     <style>
         body { margin: 0; overflow: hidden; background: #00050a; font-family: sans-serif; color: #fff; }
         canvas { display: block; }
@@ -18,7 +18,7 @@
         #holo-title { margin: 0; font-size: 24px; color: #00ffff; }
         #holo-desc { font-size: 14px; line-height: 1.6; color: #e0f8f8; margin: 15px 0; }
         #close-btn { background: #00ffff; border: none; color: #001a1a; padding: 10px; cursor: pointer; width: 100%; border-radius: 5px; font-weight: bold; }
-        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #00ffff; font-size: 12px; opacity: 0.6; }
+        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #00ffff; font-size: 12px; opacity: 0.6; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -32,7 +32,7 @@
 
 <script src="https://cdnjs.cloudflare.com"></script>
 <script>
-// --- シーン・カメラ・レンダラー ---
+// --- CORE SETUP ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000612);
 scene.fog = new THREE.FogExp2(0x000612, 0.012);
@@ -44,23 +44,23 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- ライト ---
+// --- LIGHTING ---
 scene.add(new THREE.AmbientLight(0x224466, 2.0));
 const light = new THREE.DirectionalLight(0x00ffaa, 1.2);
 light.position.set(0, 100, 0);
 scene.add(light);
 
-// --- マリンスノー ---
+// --- MARINE SNOW ---
 const snowGeo = new THREE.BufferGeometry();
 const snowPos = [];
 for(let i=0; i<1000; i++) {
     snowPos.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
 }
 snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowPos, 3));
-const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.2, transparent: true, opacity: 0.5}));
+const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.15, transparent: true, opacity: 0.5}));
 scene.add(snow);
 
-// --- 生物構築 ---
+// --- CREATURES ---
 const matAnom = new THREE.MeshPhysicalMaterial({ color: 0x1a6655, transmission: 0.4, roughness: 0.3 });
 const matHallu = new THREE.MeshPhysicalMaterial({ color: 0xffaaaa, roughness: 0.6 });
 
@@ -84,7 +84,7 @@ function buildAnomalocaris() {
 
 function buildHallucigenia() {
     const group = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 4, 4, 12), matHallu);
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 4, 4, 12), matHallu);
     body.rotation.x = Math.PI/2;
     group.add(body);
     for(let i=0; i {
@@ -93,7 +93,7 @@ function buildHallucigenia() {
     }
 });
 
-// --- インタラクション ---
+// --- INTERACTION ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -109,13 +109,13 @@ window.addEventListener('pointerdown', (e) => {
         }
         dummy.position.copy(ent.mesh.position);
         dummy.lookAt(ent.target);
-        ent.mesh.quaternion.slerp(dummy.quaternion, 0.02);
+        ent.mesh.quaternion.slerp(dummy.quaternion, 0.01);
         ent.mesh.translateZ(ent.def.speed);
 
-        // 体の動き
-        if(ent.segments) {
+        // うねる動き（アノマロカリスなどセグメントがある場合）
+        if(ent.segments && ent.segments.length > 0) {
             ent.segments.forEach((seg, i) => {
-                seg.rotation.y = Math.sin(time * 3 - i * 0.4 + idx) * 0.15;
+                seg.rotation.y = Math.sin(time * 3 - i * 0.5 + idx) * 0.12;
             });
         }
     });
