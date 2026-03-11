@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D Deep Sea - Final Stable</title>
+    <title>Cambrian 3D Deep Sea - Final Stable Edition</title>
     <style>
         body { margin: 0; overflow: hidden; background: #00050a; font-family: 'Helvetica Neue', Arial, sans-serif; user-select: none; color: #fff; }
         canvas { display: block; }
@@ -38,6 +38,7 @@
 
 <script src="https://cdnjs.cloudflare.com"></script>
 <script>
+// --- 初期設定 ---
 var scene = new THREE.Scene();
 scene.background = new THREE.Color(0x00040a);
 scene.fog = new THREE.FogExp2(0x00040a, 0.015);
@@ -53,22 +54,30 @@ var topLight = new THREE.DirectionalLight(0x44ffcc, 0.8);
 topLight.position.set(0, 50, 0);
 scene.add(topLight);
 
+var bottomY = -30;
+
+// --- マリンスノー ---
 var snowGeo = new THREE.BufferGeometry();
 var snowPosArr = [];
-for(var i=0; i<1200; i++) snowPosArr.push((Math.random()-0.5)*150, (Math.random()-0.5)*150, (Math.random()-0.5)*150);
+for(var i=0; i<1200; i++) {
+    snowPosArr.push((Math.random()-0.5)*150, (Math.random()-0.5)*150, (Math.random()-0.5)*150);
+}
 snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowPosArr, 3));
 var snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: 0x88ffff, size: 0.1, transparent: true, opacity: 0.4 }));
 scene.add(snow);
 
-var bottomY = -30;
+// --- 海底 ---
 var ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x050a10, roughness: 1 }));
-ground.rotation.x = -Math.PI / 2; ground.position.y = bottomY;
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = bottomY;
 scene.add(ground);
 
+// --- マテリアル ---
 var matAnom = new THREE.MeshPhysicalMaterial({ color: 0x1a6655, transmission: 0.3, roughness: 0.4 });
 var matHallu = new THREE.MeshPhysicalMaterial({ color: 0xcc66aa, roughness: 0.5 });
 var matMarrella = new THREE.MeshPhysicalMaterial({ color: 0x4477aa, transmission: 0.5, roughness: 0.2 });
 
+// --- 生物構築関数 ---
 function buildAnomalocaris() {
     var group = new THREE.Group(); var segments = []; var parent = group;
     for(var i=0; i<12; i++) {
@@ -110,18 +119,19 @@ function buildMarrella() {
     return { mesh: group, segments: [] };
 }
 
+// --- 生態系スポーン ---
+// エラー回避のため、計算済みの数値を直接入れる
+var halluY = bottomY + 1.0; 
 var entityDefs = [
-    { id: 'anomalocaris', jp: 'アノマロカリス', en: 'Anomalocaris', desc: '最大級の捕食者。複眼と付属肢を持ちます。', build: buildAnomalocaris, count: 3, speed: 0.12, yMin: -10, yMax: 10 },
-    { id: 'hallucigenia', jp: 'ハルキゲニア', en: 'Hallucigenia', desc: '背中にトゲを持つ。かつては上下逆さまに復元されていました。', build: buildHallucigenia, count: 5, speed: 0.02, yMin: -29, yMax: -28 },
-    { id: 'marrella', jp: 'マルレラ', en: 'Marrella', desc: '2対の大きな角を持つ節足動物。海底付近を浮遊します。', build: buildMarrella, count: 8, speed: 0.06, yMin: -15, yMax: 5 }
+    { id: 'anomalocaris', jp: 'アノマロカリス', en: 'Anomalocaris', desc: 'カンブリア紀最大の捕食者。', build: buildAnomalocaris, count: 3, speed: 0.12, yMin: -10, yMax: 10 },
+    { id: 'hallucigenia', jp: 'ハルキゲニア', en: 'Hallucigenia', desc: '棘を持つ奇妙な葉足動物。', build: buildHallucigenia, count: 5, speed: 0.02, yMin: halluY, yMax: halluY },
+    { id: 'marrella', jp: 'マルレラ', en: 'Marrella', desc: '美しい角を持つ節足動物。', build: buildMarrella, count: 8, speed: 0.06, yMin: -15, yMax: 5 }
 ];
 
 var entities = [];
-// 修正箇所：安全なループ構造
-for (var dIndex = 0; dIndex  0) {
+for (var d = 0; d  0) {
             for (var s = 0; s < ent.segments.length; s++) {
-                var seg = ent.segments[s];
-                seg.rotation.y = Math.sin(time * 3 - s * 0.6 + n * 10) * 0.15;
+                ent.segments[s].rotation.y = Math.sin(time * 3 - s * 0.6 + n * 10) * 0.15;
             }
         }
     }
