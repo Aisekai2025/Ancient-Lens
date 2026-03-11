@@ -2,83 +2,95 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Cambrian Abyss - Hyper-Resolution Opabinia Update</title>
+<title>Cambrian Abyss - Advanced Observation Unit v10.0</title>
 <style>
 @import url('https://fonts.googleapis.com');
-body { margin: 0; overflow: hidden; background: #000205; font-family: 'Share Tech Mono', 'Hiragino Kaku Gothic ProN', monospace; }
+body { margin: 0; overflow: hidden; background: #000205; font-family: 'Share Tech Mono', monospace; }
 canvas { display: block; }
 
-/* 調査用デジタル UI */
+/* 観測ステーション UI */
 #ui {
     position: absolute; top: 25px; right: 25px; width: 320px; padding: 25px;
-    background: rgba(0, 15, 25, 0.95); border-left: 4px solid #00f0ff; border-radius: 4px;
+    background: rgba(0, 15, 30, 0.9); border-left: 5px solid #00f0ff; border-radius: 4px;
     color: #fff; display: none; pointer-events: none; z-index: 1000;
-    box-shadow: 0 0 40px rgba(0,240,255,0.3);
-    backdrop-filter: blur(12px);
+    box-shadow: 0 0 50px rgba(0,240,255,0.2); backdrop-filter: blur(10px);
 }
 #vital-log {
-    position: absolute; bottom: 80px; left: 25px; width: 250px;
-    color: #00f0ff; font-size: 10px; opacity: 0.6; text-align: left; pointer-events: none;
+    position: absolute; bottom: 80px; left: 25px; width: 280px;
+    color: #00f0ff; font-size: 10px; opacity: 0.7; text-align: left; pointer-events: none;
     line-height: 1.6; text-shadow: 0 0 5px #00f0ff;
 }
 .hud { position: absolute; bottom: 25px; right: 25px; color: #00f0ff; font-size: 11px; opacity: 0.5; letter-spacing: 2px; }
 
-#rare-alert {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    color: #ff3d00; font-size: 24px; font-weight: bold; border: 2px solid #ff3d00;
-    padding: 20px; display: none; pointer-events: none; animation: blink 0.5s infinite;
-    letter-spacing: 5px; z-index: 2000; background: rgba(0,0,0,0.5);
+/* ターゲット追跡用バー */
+#scan-progress {
+    width: 100%; height: 4px; background: rgba(0,255,255,0.2); margin-top: 10px; position: relative; overflow: hidden;
 }
-@keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+#scan-bar {
+    width: 0%; height: 100%; background: #00f0ff; box-shadow: 0 0 10px #00f0ff;
+}
+
+#rare-alert {
+    position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
+    color: #ff3d00; font-size: 20px; font-weight: bold; border: 1px solid #ff3d00;
+    padding: 10px 30px; display: none; pointer-events: none; animation: blink 0.5s infinite;
+    z-index: 2000; background: rgba(0,0,0,0.7);
+}
+@keyframes blink { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
 </style>
 </head>
 <body>
-<div id="rare-alert">UNIDENTIFIED GIANT DETECTED</div>
+<div id="rare-alert">WARNING: MASSIVE BIO-SIGNATURE DETECTED</div>
 <div id="ui">
-    <div style="font-size: 0.7em; color: #00f0ff; margin-bottom: 5px; letter-spacing: 3px;">BIO-DATA ANALYSIS // LOG: ACTIVE</div>
-    <h2 id="name" style="margin:0;font-size:1.6em;color:#fff;border-bottom:1px solid #00f0ff;padding-bottom:5px;"></h2>
-    <div id="vital-id" style="font-size: 0.8em; color: #00f0ff; margin: 8px 0;"></div>
-    <p id="desc" style="margin-top:15px;font-size:0.95em;line-height:1.7;color:#b2dfdb;"></p>
+    <div style="font-size: 0.7em; color: #00f0ff; margin-bottom: 5px; letter-spacing: 3px;">DEEP SCANNER // ANALYZING...</div>
+    <h2 id="name" style="margin:0;font-size:1.6em;color:#fff;border-bottom:1px solid rgba(0,240,255,0.3);padding-bottom:5px;"></h2>
+    <div id="vital-id" style="font-size: 0.8em; color: #00f0ff; margin: 10px 0;"></div>
+    <p id="desc" style="margin-top:15px;font-size:0.9em;line-height:1.7;color:#b2dfdb;"></p>
+    <div id="scan-progress"><div id="scan-bar"></div></div>
 </div>
 <div id="vital-log"></div>
-<div class="hud">ABYSSAL SCANNER v9.0 // OPABINIA HI-RES PATCH</div>
+<div class="hud">EXPEDITION UNIT v10.0 // SEARCHING FOR ANCIENT RELICS</div>
 <canvas id="cvs"></canvas>
 
 <script>
 const canvas = document.getElementById('cvs');
 const ctx = canvas.getContext('2d');
 const ui = document.getElementById('ui');
+const scanBar = document.getElementById('scan-bar');
 const vitalLog = document.getElementById('vital-log');
 const rareAlert = document.getElementById('rare-alert');
 
-let w, h, creatures = [], foods = [], bubbles = [], rocks = [], particles = [], dusts = [], rareCreature = null, zoom = 1.4;
-let mx = window.innerWidth/2, my = window.innerHeight/2, target = null, lightHue = 180;
+let w, h, creatures = [], foods = [], bubbles = [], rocks = [], particles = [], dusts = [], rareCreature = null, monolith = null;
+let mx = window.innerWidth/2, my = window.innerHeight/2, target = null, zoom = 1.3, lightHue = 180;
 
 const BIO = {
-    anomalo: { name: "ANOMALOCARIS", desc: "カンブリア紀最大の王者。複眼には1万以上の個眼があり、深海のわずかな光も逃さず獲物を捉えました。" },
-    opabinia: { name: "OPABINIA", desc: "5つの複眼を持つ異形の生命。長いノズルの先で、海綿の隙間に隠れた獲物を器用に吸い取ります。節ごとの筋肉の動きが特徴です。" },
-    wiwaxia: { name: "WIWAXIA", desc: "全身を硬い鱗と鋭いトゲで武装。サーチライトを当てると、鱗の表面で虹色の構造色が鈍く輝きます。" },
-    halluci: { name: "HALLUCIGENIA", desc: "トゲで歩く不思議な姿。7対の鋭い棘は、上空から襲いかかるアノマロカリスに対する防衛手段です。" },
-    trilo: { name: "TRILOBITE", desc: "海底の掃除屋。方解石の眼がライトを捉えると宝石のように輝き、無数の脚が砂を巻き上げて進みます。" },
-    pikaia: { name: "PIKAIA", desc: "脊索動物。半透明の体躯はライトを透過し、内部の神経索が青白く発光するように見えます。" },
-    legend: { name: "ANCIENT GIANT", desc: "【超希少個体】刺胞動物の祖先。半透明の巨大な傘をゆらめかせ、深海の奥底から現れる伝説の巨龍です。" }
+    anomalo: { name: "ANOMALOCARIS", desc: "カンブリア紀最大の王者。複眼の解像度をさらに高め、サーチライトを反射して怪しく光ります。側面の鰭(ひれ)は13対の多層構造です。" },
+    opabinia: { name: "OPABINIA", desc: "5つの複眼を持つ異形の生命。長い吻(ふん)を使い、海綿の隙間に隠れた獲物を吸い取ります。節ごとの筋肉の質感を強化しました。" },
+    wiwaxia: { name: "WIWAXIA", desc: "全身を硬い鱗と鋭いトゲで武装。移動時に砂を巻き上げる様子を美しく再現。ライトを当てると虹色のハイライトが入ります。" },
+    halluci: { name: "HALLUCIGENIA", desc: "トゲで歩く不思議な姿。7対の鋭い棘は、上空から襲いかかる捕食者に対する強力な防衛手段です。" },
+    trilo: { name: "TRILOBITE", desc: "海底の掃除屋。方解石の眼がライトを捉えると宝石のように輝き、砂を巻き上げて前進します。" },
+    pikaia: { name: "PIKAIA", desc: "脊索動物。半透明の体躯の中に、私たちの背骨のルーツである一本の神経索が青白く通っています。" },
+    legend: { name: "ANCIENT GIANT", desc: "【伝説級】深海の奥底から現れる巨大な刺胞動物。画面端からゆっくりと通過する姿は圧巻です。" },
+    monument: { name: "ANCIENT MONOLITH", desc: "海底に沈む謎の石碑。カンブリア紀の生物たちがなぜかこの周りに集まる習性があるようです。" }
 };
 
 function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
 window.addEventListener('resize', resize);
 window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
 window.addEventListener('mousedown', e => {
+    if(e.button === 2) { lightHue = (lightHue + 60) % 360; return; }
     let found = null;
-    let all = [...creatures]; if(rareCreature) all.push(rareCreature);
+    let all = [...creatures]; if(rareCreature) all.push(rareCreature); if(monolith) all.push(monolith);
     all.forEach(c => { if(Math.hypot(e.clientX - c.sx, e.clientY - c.sy) < c.sr) found = c; });
-    if(found) target = (target === found) ? null : found;
-    else foods.push({x: (e.clientX - w/2)/zoom + (target ? target.x : 0), y: (e.clientY - h/2)/zoom + (target ? target.y : 0), vy: 0.9});
+    if(found) { target = (target === found) ? null : found; scanProgress = 0; }
+    else foods.push({x: (e.clientX - w/2)/zoom + (target ? target.x : 0), y: (e.clientY - h/2)/zoom + (target ? target.y : 0), vy: 0.8});
 });
+window.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('wheel', e => { zoom = Math.max(0.4, Math.min(5, zoom - e.deltaY * 0.001)); }, {passive:true});
 
 // 初期化
-for(let i=0; i<15; i++) rocks.push({ x: Math.random()*5000-2500, y: 450, z: Math.random()*1000, s: 150+Math.random()*250 });
-for(let i=0; i<120; i++) particles.push({ x: Math.random()*w, y: Math.random()*h, s: Math.random()*1.5, v: 0.1+Math.random()*0.4, p: Math.random()*10 });
+for(let i=0; i<150; i++) particles.push({ x: Math.random()*w, y: Math.random()*h, s: Math.random()*1.5, v: 0.1+Math.random()*0.3, p: Math.random()*10 });
+monolith = { x: 500, y: 400, z: 500, type: 'monument', id: "ERR_CODE_01", sizeBase: 300 }; // 古代の石碑
 
 class Creature {
     constructor(type, isLegend = false) {
@@ -89,20 +101,20 @@ class Creature {
         this.phase = Math.random() * 10;
     }
     spawn() {
-        this.z = this.isLegend ? 1200 : Math.random() * 800;
-        this.x = Math.random() * 4000 - 2000;
+        this.z = this.isLegend ? 1300 : Math.random() * 800;
+        this.x = this.isLegend ? -4000 : Math.random() * 4000 - 2000;
         this.y = this.isBenthic ? 380 + Math.random()*40 : Math.random()*600 - 300;
-        this.vx = this.isLegend ? 1.5 : (Math.random()-0.5)*0.8;
-        this.vy = (Math.random()-0.5)*0.2;
-        this.sizeBase = { anomalo:140, opabinia:110, wiwaxia:85, halluci:65, trilo:60, pikaia:80, legend:700 }[this.type];
+        this.vx = this.isLegend ? 1.2 : (Math.random()-0.5)*0.8;
+        this.vy = (Math.random()-0.5)*0.15;
+        this.sizeBase = { anomalo:140, opabinia:110, wiwaxia:85, halluci:65, trilo:60, pikaia:80, legend:800 }[this.type];
     }
     update(t) {
         if(foods.length > 0 && !this.isLegend) {
-            let f = foods[0];
+            let f = foods;
             let dx = f.x - this.x, dy = f.y - this.y;
             let dist = Math.hypot(dx, dy);
             if(!this.isBenthic || f.y > 300) {
-                if(dist < 800) { this.vx += dx * 0.001; this.vy += dy * 0.001; if(dist < 15) foods.shift(); }
+                if(dist < 800) { this.vx += dx * 0.0012; this.vy += dy * 0.0012; if(dist < 15) foods.shift(); }
             }
         }
         this.vx *= 0.99; this.vy *= 0.99;
@@ -110,7 +122,7 @@ class Creature {
         if(this.isBenthic && Math.abs(this.vx) > 0.1 && Math.random() < 0.1) {
             dusts.push({ x: this.x, y: this.y + 30, z: this.z, vx: -this.vx*0.3, vy: -0.1, life: 1, s: 15 });
         }
-        if(this.x > 3500 && !this.isLegend) this.x = -3500;
+        if(this.x > 4000 && !this.isLegend) this.x = -4000;
     }
     draw(camX, camY, t) {
         const p = 700 / (700 + this.z);
@@ -118,17 +130,27 @@ class Creature {
         this.sy = (this.y - camY) * p * zoom + h/2 + 150*zoom;
         const s = this.sizeBase * p * zoom;
         this.sr = s;
-        let light = Math.max(0, 1 - Math.hypot(this.sx - mx, this.sy - my) / (320 * zoom));
+        let dist = Math.hypot(this.sx - mx, this.sy - my);
+        let light = Math.max(0, 1 - dist / (320 * zoom));
         if(isNaN(light)) light = 0;
 
         ctx.save(); ctx.translate(this.sx, this.sy); ctx.scale(this.vx > 0 ? 1 : -1, 1);
+        
+        // ロックオン時のグリッド描画
+        if (target === this) {
+            ctx.strokeStyle = "rgba(0, 255, 255, 0.4)"; ctx.lineWidth = 1;
+            ctx.strokeRect(-s*1.2, -s*1.2, s*2.4, s*2.4);
+            ctx.beginPath(); ctx.moveTo(-s*1.2, 0); ctx.lineTo(-s*1, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(s*1.2, 0); ctx.lineTo(s*1, 0); ctx.stroke();
+        }
+
         ctx.globalAlpha = this.isLegend ? (0.2 + light * 0.4) : Math.max(0.1, p);
-        this.render(s, light, t); ctx.restore();
+        this.renderHighRes(s, light, t); ctx.restore();
     }
-    render(s, light, t) {
+    renderHighRes(s, light, t) {
         const time = t * 5 + this.phase;
         const hCol = `hsla(${lightHue}, 100%, 85%, ${light})`;
-        ctx.shadowBlur = 25 * light; ctx.shadowColor = hCol;
+        ctx.shadowBlur = 30 * light; ctx.shadowColor = hCol;
 
         if (this.type === 'anomalo') {
             let g = ctx.createLinearGradient(-s,0,s,0); g.addColorStop(0,'#4a0000'); g.addColorStop(0.5,'#c62828'); g.addColorStop(1,'#ffab91');
@@ -143,32 +165,50 @@ class Creature {
             ctx.beginPath(); ctx.arc(s*0.8, s*0.4, s*0.14, 0, 7); ctx.fill();
             if(light>0.2){ ctx.fillStyle=hCol; ctx.beginPath(); ctx.arc(s*0.82,-s*0.43,s*0.04,0,7); ctx.fill(); }
         } else if (this.type === 'opabinia') {
-            // オパビニア: 高解像度パッチ
             let og = ctx.createLinearGradient(-s,0,s,0); og.addColorStop(0,'#1b5e20'); og.addColorStop(0.5,'#2e7d32'); og.addColorStop(1,'#66bb6a');
             ctx.fillStyle = og;
-            // 胴体を節（セグメント）ごとに描画
             for(let i=0; i<10; i++) {
                 ctx.beginPath(); ctx.ellipse(-s*0.7+i*s*0.15, 0, s*0.2, s*(0.25-Math.abs(4.5-i)*0.02), 0,0,7); ctx.fill();
-                // 側面の鰭（ひれ）
                 ctx.fillStyle = `rgba(129, 199, 132, ${0.4+light*0.4})`;
                 let wave = Math.sin(time + i*0.6)*s*0.15;
                 ctx.beginPath(); ctx.ellipse(-s*0.7+i*s*0.15, s*0.2, s*0.1, s*0.15+wave, 0,0,7); ctx.fill();
                 ctx.beginPath(); ctx.ellipse(-s*0.7+i*s*0.15, -s*0.2, s*0.1, s*0.15+wave, 0,0,7); ctx.fill();
                 ctx.fillStyle = og;
             }
-            // 5つの複眼
             for(let i=0; i<5; i++) {
                 let ex = s*0.55-Math.abs(2-i)*s*0.08, ey = -s*0.25-(2-i)*s*0.05;
                 ctx.fillStyle = '#050505'; ctx.beginPath(); ctx.arc(ex, ey, s*0.06, 0, 7); ctx.fill();
                 if(light>0.2) { ctx.fillStyle=hCol; ctx.beginPath(); ctx.arc(ex+s*0.02, ey-s*0.02, s*0.02, 0, 7); ctx.fill(); }
             }
-            // 吻（長いノズル）: 節の描き込み
-            ctx.strokeStyle = `hsla(120, 40%, ${30+light*40}%, 1)`; ctx.lineWidth = s*0.1;
+            ctx.strokeStyle = hCol; ctx.lineWidth = s*0.1;
             ctx.beginPath(); ctx.moveTo(s*0.75, 0); 
             let nx = s*1.5, ny = Math.sin(time*0.5)*s*0.6;
             ctx.quadraticCurveTo(s*1.2, ny*0.2, nx, ny); ctx.stroke();
-            // 先端のハサミ
-            ctx.fillStyle = og; ctx.beginPath(); ctx.arc(nx, ny, s*0.08, 0, 7); ctx.fill();
+        } else if (this.type === 'wiwaxia') {
+            ctx.fillStyle = '#3e2723'; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.75,0,0,7); ctx.fill();
+            for(let i=0; i<24; i++){
+                let a = -Math.PI + i*0.26;
+                ctx.strokeStyle = `hsla(20, 30%, ${30+light*50}%, 1)`; ctx.lineWidth = s*0.08;
+                ctx.beginPath(); ctx.moveTo(Math.cos(a)*s*0.5, Math.sin(a)*s*0.3); ctx.lineTo(Math.cos(a)*s*0.9, Math.sin(a)*s*(i%2?1.4:1.0)); ctx.stroke();
+            }
+        } else if (this.type === 'halluci') {
+            ctx.fillStyle = '#4a148c'; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.2,0,0,7); ctx.fill();
+            ctx.strokeStyle = hCol; ctx.lineWidth = s*0.06;
+            for(let i=0; i<7; i++){
+                ctx.beginPath(); ctx.moveTo(-s*0.7+i*s*0.2, -s*0.1); ctx.lineTo(-s*0.8+i*s*0.2, -s); ctx.stroke();
+                let leg = Math.sin(time + i)*s*0.2;
+                ctx.beginPath(); ctx.moveTo(-s*0.7+i*s*0.2, s*0.1); ctx.lineTo(-s*0.7+i*s*0.2+leg, s*0.5); ctx.stroke();
+            }
+        } else if (this.type === 'trilo') {
+            for(let i=0; i<4; i++) {
+                ctx.fillStyle = `rgb(${40+i*20+light*40}, ${50+i*20+light*40}, ${60+i*20+light*40})`;
+                ctx.beginPath(); ctx.ellipse(s*0.6-i*s*0.4, 0, s*0.45, s*(0.8-i*0.1), 0,0,7); ctx.fill();
+            }
+        } else if (this.type === 'pikaia') {
+            let pg = ctx.createLinearGradient(-s,0,s,0); pg.addColorStop(0,'rgba(0,188,212,0.1)'); pg.addColorStop(1,`rgba(178,235,242,${0.3+light*0.7})`);
+            ctx.fillStyle = pg; ctx.beginPath(); ctx.moveTo(-s,0);
+            for(let i=-s; i<s; i+=s/10) ctx.lineTo(i, Math.sin(time*0.6 + i*0.1)*s*0.35);
+            ctx.lineTo(s,0); ctx.fill();
         } else if (this.type === 'legend') {
             let g = ctx.createRadialGradient(0,0,0,0,0,s);
             g.addColorStop(0, `rgba(0, 255, 255, ${0.4 + light*0.5})`); g.addColorStop(1, 'rgba(0, 10, 30, 0)');
@@ -178,33 +218,43 @@ class Creature {
                 ctx.beginPath(); ctx.moveTo(0,0);
                 ctx.quadraticCurveTo(Math.sin(t+i)*s, s*0.8, -s*0.5+i*s*0.1, s*2 + Math.cos(t+i)*s*0.5); ctx.stroke();
             }
-        } else if (this.type === 'pikaia') {
-            let pg = ctx.createLinearGradient(-s,0,s,0); pg.addColorStop(0,'rgba(0,188,212,0.1)'); pg.addColorStop(1,`rgba(178,235,242,${0.3+light*0.7})`);
-            ctx.fillStyle = pg; ctx.beginPath(); ctx.moveTo(-s,0);
-            for(let i=-s; i<s; i+=s/10) ctx.lineTo(i, Math.sin(time*0.6 + i*0.1)*s*0.35);
-            ctx.lineTo(s,0); ctx.fill();
-        } else if (this.type === 'trilo') {
-            for(let i=0; i<4; i++) {
-                ctx.fillStyle = `rgb(${40+i*20+light*40}, ${50+i*20+light*40}, ${60+i*20+light*40})`;
-                ctx.beginPath(); ctx.ellipse(s*0.6-i*s*0.4, 0, s*0.45, s*(0.8-i*0.1), 0,0,7); ctx.fill();
-            }
         }
     }
 }
 
+// 初期化
 ['anomalo','opabinia','wiwaxia','halluci','trilo','pikaia'].forEach(t => { for(let i=0; i<4; i++) creatures.push(new Creature(t)); });
+resize();
 
+let scanProgress = 0;
 function loop() {
-    ctx.fillStyle = '#00060c'; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle = '#00080f'; ctx.fillRect(0,0,w,h);
     const t = performance.now() * 0.001;
     const camX = target ? target.x : 0, camY = target ? target.y : 0;
 
     // マリンスノー
-    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
     particles.forEach(p => {
         p.y += p.v; p.x += Math.sin(t + p.p)*0.3; if(p.y > h) p.y = -10;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 7); ctx.fill();
     });
+
+    // モノリス描画
+    if (monolith) {
+        const pr = 700 / (700 + monolith.z);
+        monolith.sx = (monolith.x - camX) * pr * zoom + w/2;
+        monolith.sy = (monolith.y - camY) * pr * zoom + h/2 + 150*zoom;
+        monolith.sr = monolith.sizeBase * pr * zoom;
+        let l = Math.max(0, 1 - Math.hypot(monolith.sx - mx, monolith.sy - my) / (320 * zoom));
+        ctx.save(); ctx.translate(monolith.sx, monolith.sy);
+        ctx.fillStyle = `rgba(5, 15, 25, ${pr})`; ctx.fillRect(-monolith.sr*0.3, -monolith.sr*0.8, monolith.sr*0.6, monolith.sr*0.8);
+        if (l > 0.1) {
+            ctx.strokeStyle = `hsla(180, 100%, 70%, ${l*0.5})`; ctx.strokeRect(-monolith.sr*0.3, -monolith.sr*0.8, monolith.sr*0.6, monolith.sr*0.8);
+            ctx.fillStyle = `hsla(180, 100%, 70%, ${l})`; ctx.font = `${10*zoom}px serif`;
+            ctx.fillText("ANCIENT_RELIC", -monolith.sr*0.2, -monolith.sr*0.4);
+        }
+        ctx.restore();
+    }
 
     if(!rareCreature && Math.random() < 0.0005) {
         rareCreature = new Creature('legend', true);
@@ -212,7 +262,7 @@ function loop() {
     }
     if(rareCreature) { rareCreature.update(t); rareCreature.draw(camX, camY, t); if(rareCreature.x > 4500) rareCreature = null; }
 
-    rocks.sort((a,b)=>b.z-a.z).forEach(r => {
+    rocks.forEach(r => {
         const pr = 700 / (700 + r.z);
         const rx = (r.x - camX)*pr*zoom + w/2, ry = (r.y - camY)*pr*zoom + h/2 + 150*zoom;
         ctx.fillStyle = `rgba(10, 30, 45, ${pr})`; ctx.beginPath(); ctx.moveTo(rx-r.s*pr, ry); ctx.lineTo(rx, ry-r.s*pr); ctx.lineTo(rx+r.s*pr, ry); ctx.fill();
@@ -235,7 +285,7 @@ function loop() {
     });
 
     const grad = ctx.createRadialGradient(mx, my, 0, mx, my, 350 * zoom);
-    grad.addColorStop(0, `rgba(0, 255, 255, 0.12)`); grad.addColorStop(1, 'transparent');
+    grad.addColorStop(0, `hsla(${lightHue}, 100%, 75%, 0.12)`); grad.addColorStop(1, 'transparent');
     ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
 
     let hover = null;
@@ -253,7 +303,11 @@ function loop() {
         ui.style.display = 'block'; const c = hover || target;
         document.getElementById('name').innerText = BIO[c.type].name;
         document.getElementById('desc').innerText = BIO[c.type].desc;
-        document.getElementById('vital-id').innerText = `ID: ${c.id} / STATUS: STABLE / DEPTH: ${Math.floor(c.z)}m`;
+        document.getElementById('vital-id').innerText = `ID: ${c.id} / STATUS: ${target?'LOCKED':'SCANNING'} / DEPTH: ${Math.floor(c.z)}m`;
+        if (target) {
+            scanProgress = Math.min(100, scanProgress + 0.5);
+            scanBar.style.width = scanProgress + "%";
+        }
     } else ui.style.display = 'none';
 
     if(t % 0.8 < 0.02) {
@@ -261,7 +315,7 @@ function loop() {
     }
     requestAnimationFrame(loop);
 }
-resize(); loop();
+loop();
 </script>
 </body>
 </html>
