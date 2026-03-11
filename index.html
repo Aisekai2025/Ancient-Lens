@@ -1,300 +1,109 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>Cambrian Abyss - Living Ecosystem v11.0</title>
-<style>
-@import url('https://fonts.googleapis.com');
-body { margin: 0; overflow: hidden; background: #000205; font-family: 'Share Tech Mono', monospace; }
-canvas { display: block; }
-
-/* 観測ステーション UI */
-#ui {
-    position: absolute; top: 25px; right: 25px; width: 320px; padding: 25px;
-    background: rgba(0, 10, 20, 0.92); border-left: 5px solid #00f0ff; border-radius: 4px;
-    color: #fff; display: none; pointer-events: none; z-index: 1000;
-    box-shadow: 0 0 50px rgba(0,240,255,0.2); backdrop-filter: blur(10px);
-}
-#vital-log {
-    position: absolute; bottom: 80px; left: 25px; width: 280px;
-    color: #00f0ff; font-size: 10px; opacity: 0.7; text-align: left; pointer-events: none;
-    line-height: 1.6; text-shadow: 0 0 5px #00f0ff;
-}
-.hud { position: absolute; bottom: 25px; right: 25px; color: #00f0ff; font-size: 11px; opacity: 0.5; letter-spacing: 2px; }
-
-#scan-progress { width: 100%; height: 4px; background: rgba(0,255,255,0.2); margin-top: 10px; position: relative; overflow: hidden; }
-#scan-bar { width: 0%; height: 100%; background: #00f0ff; box-shadow: 0 0 10px #00f0ff; transition: width 0.3s; }
-
-#rare-alert {
-    position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
-    color: #ff3d00; font-size: 20px; font-weight: bold; border: 1px solid #ff3d00;
-    padding: 10px 30px; display: none; pointer-events: none; animation: blink 0.5s infinite;
-    z-index: 2000; background: rgba(0,0,0,0.7);
-}
-@keyframes blink { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambrian 3D Deep Sea - Evolution Edition</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #00050a; font-family: 'Segoe UI', sans-serif; color: #fff; }
+        canvas { display: block; }
+        #hologram-ui {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%);
+            background: rgba(0, 40, 80, 0.6); backdrop-filter: blur(12px);
+            border: 2px solid #00f7ff; box-shadow: 0 0 40px rgba(0, 247, 255, 0.4);
+            padding: 30px; border-radius: 20px; z-index: 10; display: none; width: 350px; opacity: 0;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #hologram-ui.active { display: block; opacity: 1; transform: translate(-50%, -50%); }
+        #holo-title { margin: 0; font-size: 26px; color: #00f7ff; text-shadow: 0 0 15px #00f7ff; }
+        #holo-desc { font-size: 15px; line-height: 1.7; color: #d0ffff; margin-top: 15px; }
+        #close-btn {
+            background: #00f7ff; border: none; color: #002222; padding: 10px; 
+            cursor: pointer; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 20px;
+        }
+        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #00f7ff; font-size: 12px; letter-spacing: 2px; text-shadow: 0 0 10px #000; pointer-events: none; }
+    </style>
 </head>
 <body>
-<div id="rare-alert">WARNING: UNUSUAL TURBULENCE DETECTED</div>
-<div id="ui">
-    <div style="font-size: 0.7em; color: #00f0ff; margin-bottom: 5px; letter-spacing: 3px;">BIOMETRIC SCAN // FLUID ANALYSIS</div>
-    <h2 id="name" style="margin:0;font-size:1.6em;color:#fff;border-bottom:1px solid rgba(0,240,255,0.3);padding-bottom:5px;"></h2>
-    <div id="vital-id" style="font-size: 0.8em; color: #00f0ff; margin: 10px 0;"></div>
-    <p id="desc" style="margin-top:15px;font-size:0.9em;line-height:1.7;color:#b2dfdb;"></p>
-    <div id="scan-progress"><div id="scan-bar"></div></div>
+<div id="canvas-container"></div>
+<div id="hologram-ui">
+    <h2 id="holo-title"></h2>
+    <div id="holo-en" style="font-style: italic; color: #88dddd;"></div>
+    <p id="holo-desc"></p>
+    <button id="close-btn" onclick="closeHolo()">SYSTEM CLOSE</button>
 </div>
-<div id="vital-log"></div>
-<div class="hud">ABYSSAL RESEARCH UNIT v11.0 // DYNAMIC WATER FLOW ACTIVE</div>
-<canvas id="cvs"></canvas>
+<div id="hint">DRAG: ROTATE / CLICK WATER: FEED / CLICK CREATURE: ANALYZE</div>
 
+<script src="https://cdnjs.cloudflare.com"></script>
 <script>
-const canvas = document.getElementById('cvs');
-const ctx = canvas.getContext('2d');
-const ui = document.getElementById('ui');
-const scanBar = document.getElementById('scan-bar');
-const vitalLog = document.getElementById('vital-log');
-const rareAlert = document.getElementById('rare-alert');
+// --- CORE SETUP ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000816);
+scene.fog = new THREE.FogExp2(0x000816, 0.015);
 
-let w, h, creatures = [], foods = [], bubbles = [], rocks = [], particles = [], dusts = [], rareCreature = null;
-let mx = window.innerWidth/2, my = window.innerHeight/2, target = null, zoom = 1.3, lightHue = 180;
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-const BIO = {
-    anomalo: { name: "ANOMALOCARIS", desc: "王者の泳ぎ。13対の鰭を前から後ろへ順に波打たせることで、驚くほど滑らかに加速します。獲物を見つけると鋭い旋回を見せます。" },
-    opabinia: { name: "OPABINIA", desc: "長い吻（ふん）が海底の砂をダイナミックに探ります。5つの目は常に別々の方向を向き、周囲のわずかな動きを逃しません。" },
-    wiwaxia: { name: "WIWAXIA", desc: "ゆっくりとした移動。鱗が擦れ合う微細な震えまで再現。移動した跡には、海底のデトリタスが舞い上がります。" },
-    halluci: { name: "HALLUCIGENIA", desc: "7対の棘を揺らしながら、細い脚で一歩ずつ確実に進みます。その歩行リズムは、深海の静寂を刻むメトロノームのようです。" },
-    trilo: { name: "TRILOBITE", desc: "多数の脚を波打たせる「多脚歩行」。障害物を避ける際、脚の動きが複雑に変化し、砂埃を大きく巻き上げます。" },
-    pikaia: { name: "PIKAIA", desc: "全身をS字に躍動させる高速遊泳。急停止や急発進が得意で、最も生命力に満ちた動きを見せます。" },
-    legend: { name: "ANCIENT GIANT", desc: "【超希少個体】深海の激しい水流と共に現れる巨大生物。その巨大な鰭の一振りが、周囲のマリンスノーを大きく撹乱します。" }
-};
+// --- LIGHTING & ENVIRONMENT ---
+scene.add(new THREE.AmbientLight(0x112244, 2));
+const sunLight = new THREE.DirectionalLight(0x00ffff, 1.5);
+sunLight.position.set(0, 100, 0);
+scene.add(sunLight);
 
-function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
-window.addEventListener('resize', resize);
-window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-window.addEventListener('mousedown', e => {
-    if(e.button === 2) { lightHue = (lightHue + 60) % 360; return; }
-    let found = null;
-    let all = [...creatures]; if(rareCreature) all.push(rareCreature);
-    all.forEach(c => { if(Math.hypot(e.clientX - c.sx, e.clientY - c.sy) < c.sr) found = c; });
-    if(found) { target = (target === found) ? null : found; scanProgress = 0; }
-    else foods.push({x: (e.clientX - w/2)/zoom + (target ? target.x : 0), y: (e.clientY - h/2)/zoom + (target ? target.y : 0), vy: 0.8});
+// 海底の砂紋
+const groundGeo = new THREE.PlaneGeometry(300, 300, 50, 50);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x051122, roughness: 0.8 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2; ground.position.y = -40;
+scene.add(ground);
+
+// --- CREATURE BUILDERS ---
+const commonMat = (col) => new THREE.MeshPhysicalMaterial({ color: col, transmission: 0.3, roughness: 0.4 });
+
+function buildHallucigenia() {
+    const group = new THREE.Group();
+    const segments = [];
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 6, 4, 8), commonMat(0xff88aa));
+    body.rotation.x = Math.PI/2;
+    group.add(body);
+    // トゲと脚
+    for(let i=0; i ({mesh: new THREE.Group(), segments: []}) /* 簡易化 */ },
+    { id: 'hallucigenia', jp: 'ハルキゲニア', en: 'Hallucigenia', desc: '「夢のような」姿をした生物。どっちが頭か長年謎でした。', count: 10, speed: 0.02, yRange: [-39, -38], build: buildHallucigenia }
+];
+
+const entities = [];
+entityDefs.forEach(def => {
+    for(let i=0; i<def.count; i++) {
+        const { mesh, segments } = def.build();
+        mesh.position.set((Math.random()-0.5)*100, def.yRange[0], (Math.random()-0.5)*100);
+        scene.add(mesh);
+        entities.push({ def, mesh, segments, target: new THREE.Vector3() });
+    }
 });
-window.addEventListener('contextmenu', e => e.preventDefault());
-window.addEventListener('wheel', e => { zoom = Math.max(0.4, Math.min(5, zoom - e.deltaY * 0.001)); }, {passive:true});
 
-// 初期化
-for(let i=0; i<180; i++) particles.push({ x: Math.random()*w, y: Math.random()*h, s: Math.random()*1.5, v: 0.1+Math.random()*0.3, p: Math.random()*10, vx: 0 });
-for(let i=0; i<15; i++) rocks.push({ x: Math.random()*5000-2500, y: 450, z: Math.random()*1000, s: 150+Math.random()*250 });
-
-class Creature {
-    constructor(type, isLegend = false) {
-        this.type = type; this.isLegend = isLegend;
-        this.isBenthic = ['wiwaxia', 'halluci', 'trilo'].includes(type);
-        this.spawn();
-        this.id = Math.random().toString(16).slice(2, 8).toUpperCase();
-        this.phase = Math.random() * 10;
-        this.angle = 0;
-    }
-    spawn() {
-        this.z = this.isLegend ? 1300 : Math.random() * 800;
-        this.x = this.isLegend ? -5000 : Math.random() * 4000 - 2000;
-        this.y = this.isBenthic ? 380 + Math.random()*40 : Math.random()*600 - 300;
-        this.vx = this.isLegend ? 1.4 : (Math.random()-0.5)*0.8;
-        this.vy = (Math.random()-0.5)*0.15;
-        this.sizeBase = { anomalo:140, opabinia:110, wiwaxia:85, halluci:65, trilo:60, pikaia:80, legend:800 }[this.type];
-    }
-    update(t) {
-        // 自然な集餌AIと慣性
-        if(foods.length > 0 && !this.isLegend) {
-            let f = foods[0];
-            let dx = f.x - this.x, dy = f.y - this.y;
-            let dist = Math.hypot(dx, dy);
-            if(!this.isBenthic || f.y > 300) {
-                if(dist < 800) { 
-                    this.vx += dx * 0.002; this.vy += dy * 0.002; 
-                    if(dist < 15) foods.shift(); 
-                }
-            }
-        }
-        this.vx *= 0.985; this.vy *= 0.985;
-        this.x += this.vx; this.y += this.vy;
+// --- INTERACTION & ANIMATION ---
+function animate() {
+    requestAnimationFrame(animate);
+    const time = Date.now() * 0.001;
+    
+    entities.forEach(ent => {
+        // 浮遊アニメーション
+        ent.mesh.position.y += Math.sin(time + ent.mesh.position.x) * 0.01;
+        ent.mesh.translateZ(ent.def.speed);
         
-        // 砂ぼこり発生
-        if(this.isBenthic && Math.abs(this.vx) > 0.12 && Math.random() < 0.12) {
-            dusts.push({ x: this.x, y: this.y + 30, z: this.z, vx: -this.vx*0.5, vy: -0.1, life: 1, s: 12+Math.random()*8 });
-        }
-        
-        if(this.x > 5000 && !this.isLegend) this.x = -5000;
-        this.angle = this.vx * 0.1; // 進行方向への傾き
-    }
-    draw(camX, camY, t) {
-        const p = 700 / (700 + this.z);
-        this.sx = (this.x - camX) * p * zoom + w/2;
-        this.sy = (this.y - camY) * p * zoom + h/2 + 150*zoom;
-        const s = this.sizeBase * p * zoom;
-        this.sr = s;
-        let dist = Math.hypot(this.sx - mx, this.sy - my);
-        let light = Math.max(0, 1 - dist / (320 * zoom));
+        // 境界チェック
+        if(ent.mesh.position.length() > 150) ent.mesh.lookAt(0,0,0);
+    });
 
-        ctx.save(); ctx.translate(this.sx, this.sy); 
-        ctx.rotate(this.angle);
-        ctx.scale(this.vx > 0 ? 1 : -1, 1);
-        
-        // ロックオンUI
-        if (target === this) {
-            ctx.strokeStyle = `rgba(0, 255, 255, ${0.3 + Math.sin(t*10)*0.2})`; ctx.lineWidth = 1;
-            ctx.strokeRect(-s*1.2, -s*1.2, s*2.4, s*2.4);
-        }
-
-        ctx.globalAlpha = this.isLegend ? (0.2 + light * 0.4) : Math.max(0.1, p);
-        this.renderHighRes(s, light, t); ctx.restore();
-    }
-    renderHighRes(s, light, t) {
-        const time = t * 5 + this.phase;
-        const hCol = `hsla(${lightHue}, 100%, 85%, ${light})`;
-        ctx.shadowBlur = 25 * light; ctx.shadowColor = hCol;
-
-        if (this.type === 'anomalo') {
-            let g = ctx.createLinearGradient(-s,0,s,0); g.addColorStop(0,'#4a0000'); g.addColorStop(0.5,'#d32f2f'); g.addColorStop(1,'#ffab91');
-            ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0,0,s,s*0.35,0,0,7); ctx.fill();
-            for(let i=0; i<13; i++){
-                ctx.fillStyle = `rgba(255, 112, 67, ${0.4+light*0.5})`;
-                let fh = s*0.45 + Math.sin(time + i*0.8)*s*0.25;
-                ctx.beginPath(); ctx.ellipse(-s*0.85+i*s*0.14, s*0.25, s*0.12, fh, 0.2,0,7); ctx.fill();
-                ctx.beginPath(); ctx.ellipse(-s*0.85+i*s*0.14, -s*0.25, s*0.12, fh, -0.2,0,7); ctx.fill();
-            }
-            ctx.fillStyle = '#050505'; ctx.beginPath(); ctx.arc(s*0.8, -s*0.4, s*0.14, 0, 7); ctx.fill();
-            ctx.beginPath(); ctx.arc(s*0.8, s*0.4, s*0.14, 0, 7); ctx.fill();
-            if(light>0.2){ ctx.fillStyle=hCol; ctx.beginPath(); ctx.arc(s*0.82,-s*0.43,s*0.04,0,7); ctx.fill(); }
-        } else if (this.type === 'opabinia') {
-            let og = ctx.createLinearGradient(-s,0,s,0); og.addColorStop(0,'#1b5e20'); og.addColorStop(0.5,'#2e7d32'); og.addColorStop(1,'#66bb6a');
-            ctx.fillStyle = og;
-            for(let i=0; i<10; i++) {
-                ctx.beginPath(); ctx.ellipse(-s*0.7+i*s*0.15, 0, s*0.2, s*(0.25-Math.abs(4.5-i)*0.02), 0,0,7); ctx.fill();
-                ctx.fillStyle = `rgba(129, 199, 132, ${0.4+light*0.4})`;
-                let wave = Math.sin(time + i*0.6)*s*0.15;
-                ctx.beginPath(); ctx.ellipse(-s*0.7+i*s*0.15, s*0.2, s*0.1, s*0.15+wave, 0,0,7); ctx.fill();
-                ctx.beginPath(); ctx.ellipse(-s*0.7+i*s*0.15, -s*0.2, s*0.1, s*0.15+wave, 0,0,7); ctx.fill();
-                ctx.fillStyle = og;
-            }
-            for(let i=0; i<5; i++) {
-                let ex = s*0.55-Math.abs(2-i)*s*0.08, ey = -s*0.25-(2-i)*s*0.05;
-                ctx.fillStyle = '#050505'; ctx.beginPath(); ctx.arc(ex, ey, s*0.06, 0, 7); ctx.fill();
-                if(light>0.2) { ctx.fillStyle=hCol; ctx.beginPath(); ctx.arc(ex+s*0.02, ey-s*0.02, s*0.02, 0, 7); ctx.fill(); }
-            }
-            ctx.strokeStyle = hCol; ctx.lineWidth = s*0.1;
-            ctx.beginPath(); ctx.moveTo(s*0.75, 0); 
-            let nx = s*1.5, ny = Math.sin(time*0.4 + Math.sin(t))*s*0.6; // 探る動き
-            ctx.quadraticCurveTo(s*1.2, ny*0.2, nx, ny); ctx.stroke();
-        } else if (this.type === 'trilo') {
-            for(let i=0; i<4; i++) {
-                ctx.fillStyle = `rgb(${40+i*20+light*40}, ${50+i*20+light*40}, ${60+i*20+light*40})`;
-                ctx.beginPath(); ctx.ellipse(s*0.6-i*s*0.4, 0, s*0.45, s*(0.8-i*0.1), 0,0,7); ctx.fill();
-            }
-            ctx.strokeStyle = hCol; ctx.lineWidth = 1;
-            for(let i=0; i<8; i++) {
-                let legX = -s*0.4+i*s*0.12, legY = Math.sin(time*2 + i)*s*0.1;
-                ctx.beginPath(); ctx.moveTo(legX, s*0.3); ctx.lineTo(legX, s*0.5 + legY); ctx.stroke();
-            }
-        } else if (this.type === 'pikaia') {
-            let pg = ctx.createLinearGradient(-s,0,s,0); pg.addColorStop(0,'rgba(0,188,212,0.1)'); pg.addColorStop(1,`rgba(178,235,242,${0.3+light*0.7})`);
-            ctx.fillStyle = pg; ctx.beginPath(); ctx.moveTo(-s,0);
-            for(let i=-s; i<s; i+=s/10) ctx.lineTo(i, Math.sin(time*1.2 + i*0.1)*s*0.45);
-            ctx.lineTo(s,0); ctx.fill();
-        } else if (this.type === 'legend') {
-            let g = ctx.createRadialGradient(0,0,0,0,0,s);
-            g.addColorStop(0, `rgba(0, 255, 255, ${0.4 + light*0.5})`); g.addColorStop(1, 'rgba(0, 10, 30, 0)');
-            ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0,0,s, s*0.6, Math.sin(t)*0.2,0,7); ctx.fill();
-            for(let i=0; i<12; i++) {
-                ctx.strokeStyle = `rgba(0, 255, 255, ${0.2 + light*0.3})`; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.moveTo(0,0);
-                ctx.quadraticCurveTo(Math.sin(t+i)*s, s*0.8, -s*0.5+i*s*0.1, s*2 + Math.cos(t+i)*s*0.5); ctx.stroke();
-            }
-        }
-    }
+    renderer.render(scene, camera);
 }
 
-// 生成
-['anomalo','opabinia','wiwaxia','halluci','trilo','pikaia'].forEach(t => { for(let i=0; i<4; i++) creatures.push(new Creature(t)); });
-resize();
+function closeHolo() { document.getElementById('hologram-ui').classList.remove('active'); }
 
-let scanProgress = 0;
-function loop() {
-    ctx.fillStyle = '#00060c'; ctx.fillRect(0,0,w,h);
-    const t = performance.now() * 0.001;
-    const camX = target ? target.x : 0, camY = target ? target.y : 0;
-
-    // マリンスノー（流体シミュレーション風）
-    ctx.fillStyle = "rgba(255,255,255,0.15)";
-    particles.forEach(p => {
-        // 生物との干渉（簡易水流）
-        creatures.forEach(c => {
-            let dx = p.x - c.sx, dy = p.y - c.sy;
-            if (Math.hypot(dx, dy) < 100) { p.vx += c.vx * 0.05; }
-        });
-        p.vx *= 0.95; p.y += p.v; p.x += Math.sin(t + p.p)*0.3 + p.vx;
-        if(p.y > h) { p.y = -10; p.x = Math.random()*w; }
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 7); ctx.fill();
-    });
-
-    if(!rareCreature && Math.random() < 0.0004) {
-        rareCreature = new Creature('legend', true);
-        rareAlert.style.display = 'block'; setTimeout(() => rareAlert.style.display = 'none', 4000);
-    }
-    if(rareCreature) { rareCreature.update(t); rareCreature.draw(camX, camY, t); if(rareCreature.x > 5000) rareCreature = null; }
-
-    rocks.forEach(r => {
-        const pr = 700 / (700 + r.z);
-        const rx = (r.x - camX)*pr*zoom + w/2, ry = (r.y - camY)*pr*zoom + h/2 + 150*zoom;
-        ctx.fillStyle = `rgba(10, 30, 45, ${pr})`; ctx.beginPath(); ctx.moveTo(rx-r.s*pr, ry); ctx.lineTo(rx, ry-r.s*pr); ctx.lineTo(rx+r.s*pr, ry); ctx.fill();
-        if(Math.random()<0.005) bubbles.push({x: r.x, y: r.y, z: r.z, s: 2+Math.random()*5, life: 1});
-    });
-
-    bubbles = bubbles.filter(b => b.life > 0);
-    bubbles.forEach(b => {
-        b.y -= 1.0; b.life -= 0.001; const bp = 700 / (700 + b.z);
-        ctx.fillStyle = `rgba(255,255,255,${b.life*0.4})`;
-        ctx.beginPath(); ctx.arc((b.x-camX)*bp*zoom+w/2, (b.y-camY)*bp*zoom+h/2+150*zoom, b.s*bp*zoom, 0, 7); ctx.fill();
-    });
-
-    dusts = dusts.filter(d => d.life > 0);
-    dusts.forEach(d => {
-        d.x += d.vx; d.y += d.vy; d.life -= 0.005; const dp = 700 / (700 + d.z);
-        const dsx = (d.x-camX)*dp*zoom+w/2, dsy = (d.y-camY)*dp*zoom+h/2+150*zoom;
-        const l = Math.max(0, 1 - Math.hypot(dsx-mx, dsy-my)/(300*zoom));
-        ctx.fillStyle = `rgba(${120+l*100}, ${120+l*100}, ${100+l*50}, ${d.life*0.15})`;
-        ctx.beginPath(); ctx.arc(dsx, dsy, d.s*dp*zoom*(2-d.life), 0, 7); ctx.fill();
-    });
-
-    const grad = ctx.createRadialGradient(mx, my, 0, mx, my, 350 * zoom);
-    grad.addColorStop(0, `rgba(0, 255, 255, ${0.12 + Math.sin(t)*0.03})`); grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
-
-    let hover = null;
-    creatures.sort((a,b) => b.z - a.z).forEach(c => {
-        c.update(t); c.draw(camX, camY, t);
-        if(Math.hypot(mx-c.sx, my-c.sy) < c.sr) hover = c;
-    });
-
-    foods.forEach(f => {
-        f.y += 0.8; const fx = (f.x-camX)*zoom+w/2, fy = (f.y-camY)*zoom+h/2+150*zoom;
-        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(fx, fy, 5*zoom, 0, 7); ctx.fill();
-    });
-
-    if(hover || target) {
-        ui.style.display = 'block'; const c = hover || target;
-        document.getElementById('name').innerText = BIO[c.type].name;
-        document.getElementById('desc').innerText = BIO[c.type].desc;
-        document.getElementById('vital-id').innerText = `ID: ${c.id} / STATUS: ${target?'LOCKED':'TRACKING'} / DEPTH: ${Math.floor(c.z)}m`;
-        if (target) { scanProgress = Math.min(100, scanProgress + 0.3); scanBar.style.width = scanProgress + "%"; }
-    } else ui.style.display = 'none';
-
-    if(t % 0.5 < 0.02) {
-        vitalLog.innerHTML = [`SCANNING SECTOR: ${Math.floor(mx)}:${Math.floor(my)}`, `THERMAL: 4.2°C`, `FLOW_VELOCITY: ${Math.abs(camX).toFixed(1)}m/s`, `O2: STABLE`].join("<br>");
-    }
-    requestAnimationFrame(loop);
-}
-loop();
+// 初期化実行
+animate();
 </script>
 </body>
 </html>
