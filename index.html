@@ -3,115 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambrian 3D - Error Free Edition</title>
+    <title>Cambrian 3D - Visualization Fixed</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #00050a; font-family: sans-serif; user-select: none; color: #fff; }
-        canvas { display: block; }
+        body { margin: 0; overflow: hidden; background: #000b1a; font-family: sans-serif; user-select: none; color: #fff; }
+        canvas { display: block; width: 100vw; height: 100vh; }
         #hologram-ui {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0, 20, 40, 0.85); backdrop-filter: blur(10px);
-            border: 1px solid #00ffff; padding: 25px; border-radius: 12px; z-index: 10; display: none; width: 320px;
+            background: rgba(0, 40, 80, 0.9); backdrop-filter: blur(10px);
+            border: 2px solid #00ffff; padding: 20px; border-radius: 12px; z-index: 100; display: none; width: 280px;
         }
         #hologram-ui.active { display: block; }
-        #holo-title { margin: 0; color: #00ffff; font-size: 22px; }
-        #holo-desc { font-size: 14px; line-height: 1.6; color: #e0f8f8; }
+        #holo-title { margin: 0 0 10px 0; color: #00ffff; font-size: 20px; text-align: center; }
+        #holo-desc { font-size: 14px; line-height: 1.5; color: #e0f8f8; }
         #close-btn {
-            background: rgba(0, 255, 255, 0.2); border: 1px solid #00ffff; color: #00ffff;
-            padding: 10px; cursor: pointer; width: 100%; margin-top: 15px;
+            background: #00ffff; border: none; color: #000; font-weight: bold;
+            padding: 10px; cursor: pointer; width: 100%; margin-top: 15px; border-radius: 4px;
         }
-        #hint { position: absolute; bottom: 15px; width: 100%; text-align: center; color: #00ffff; font-size: 12px; opacity: 0.6; }
+        #hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #00ffff; font-size: 12px; text-shadow: 0 0 5px #000; }
     </style>
 </head>
 <body>
-<div id="canvas-container"></div>
 <div id="hologram-ui">
-    <h2 id="holo-title"></h2>
+    <h2 id="holo-title">探査報告</h2>
     <p id="holo-desc"></p>
-    <button id="close-btn" onclick="closeHolo()">探査再開</button>
+    <button id="close-btn" onclick="closeHolo()">OK</button>
 </div>
-<div id="hint">ドラッグで移動 / 生物をタップで詳細表示</div>
+<div id="hint">ドラッグ：視点回転 / 生物タップ：詳細</div>
 
 <script src="https://cdnjs.cloudflare.com"></script>
 <script>
-// 1. 基本設定
+// --- 1. シーン・カメラ・レンダラー ---
 var scene = new THREE.Scene();
-scene.background = new THREE.Color(0x00040a);
-scene.fog = new THREE.FogExp2(0x00040a, 0.015);
+scene.background = new THREE.Color(0x00060d);
+scene.fog = new THREE.Fog(0x00060d, 10, 150);
 
-var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 20, 80);
+camera.lookAt(0, 0, 0);
+
 var renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.AmbientLight(0x002244, 1.5));
-var light = new THREE.DirectionalLight(0x44ffcc, 1.0);
-light.position.set(0, 50, 0);
-scene.add(light);
+// --- 2. ライティング（真っ暗対策で大幅強化） ---
+var ambLight = new THREE.AmbientLight(0xffffff, 0.6); // 全体を底上げ
+scene.add(ambLight);
 
-var bottomY = -30;
+var pointLight = new THREE.PointLight(0x00ffff, 2, 200);
+pointLight.position.set(0, 50, 0);
+scene.add(pointLight);
 
-// 2. マリンスノー
+// --- 3. 環境（海底とマリンスノー） ---
+var ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(500, 500),
+    new THREE.MeshPhongMaterial({ color: 0x0a1a2a })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -30;
+scene.add(ground);
+
 var snowGeo = new THREE.BufferGeometry();
-var snowPositions = [];
-for(var i=0; i<1000; i++) {
-    snowPositions.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
-}
-snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowPositions, 3));
-var snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: 0x88ffff, size: 0.15 }));
-scene.add(snow);
-
-// 3. 生物構築
-var matAnom = new THREE.MeshPhysicalMaterial({ color: 0x1a6655, roughness: 0.4 });
-var matHallu = new THREE.MeshPhysicalMaterial({ color: 0xcc66aa, roughness: 0.5 });
-
-function buildAnom() {
-    var g = new THREE.Group(); var segs = []; var p = g;
-    for(var i=0; i<10; i++){
-        var s = 1.0 - (i/12.0);
-        var sg = new THREE.Group(); if(i>0) sg.position.z = -1.2;
-        var b = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 8), matAnom);
-        b.scale.set(1.5*s, 0.6*s, 1.2*s); sg.add(b);
-        p.add(sg); segs.push(sg); p = sg;
+var snowCoords = [];
+for(var i=0; i 80) e.mesh.rotateY(Math.PI); // 境界で反転
+        
+        // 体のくねくね
+        for(var s=0; s<e.segments.length; s++){
+            e.segments[s].rotation.y = Math.sin(Date.now()*0.005 + s*0.5) * 0.1;
+        }
     }
-    return { mesh: g, segments: segs };
+    renderer.render(scene, camera);
 }
+animate();
 
-function buildHallu() {
-    var g = new THREE.Group(); var segs = []; var p = g;
-    for(var i=0; i<8; i++){
-        var sg = new THREE.Group(); if(i>0) sg.position.z = -0.8;
-        var b = new THREE.Mesh(new THREE.SphereGeometry(0.4, 6, 6), matHallu); sg.add(b);
-        var spike = new THREE.Mesh(new THREE.CylinderGeometry(0, 0.1, 1.2), matHallu);
-        spike.position.y = 0.6; sg.add(spike);
-        p.add(sg); segs.push(sg); p = sg;
-    }
-    return { mesh: g, segments: segs };
-}
-
-// 4. 生態系データの定義 (エラー回避のため一歩ずつ作成)
-var entityDefs = [];
-
-var def1 = new Object();
-def1.name = "アノマロカリス";
-def1.desc = "カンブリア紀最大の捕食者。長い触手で獲物を捕らえます。";
-def1.build = buildAnom;
-def1.count = 3;
-def1.speed = 0.12;
-def1.yMin = -10;
-def1.yMax = 10;
-entityDefs.push(def1);
-
-var def2 = new Object();
-def2.name = "ハルキゲニア";
-def2.desc = "背中に鋭い棘を持つ奇妙な生物。長年、上下逆さまに復元されていました。";
-def2.build = buildHallu;
-def2.count = 6;
-def2.speed = 0.02;
-def2.yMin = -29;
-def2.yMax = -29;
-entityDefs.push(def2);
-
-var entities = [];
-for(var d=0; d 
+window.addEventListener('resize', function(){
+    camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
 </body>
 </html>
