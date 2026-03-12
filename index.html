@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ancient Lens: Paleozoic Odyssey - Complete Edition</title>
+    <title>Ancient Lens: Paleozoic Odyssey - Fixed Edition</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000205; font-family: 'Segoe UI', sans-serif; user-select: none; color: #fff; }
         canvas { display: block; }
@@ -16,41 +16,34 @@
             background: rgba(0,255,255,0.1); border: 1px solid rgba(0,255,255,0.3); color: #88eeff;
             padding: 10px 20px; border-radius: 25px; cursor: pointer; transition: 0.3s; font-size: 12px; font-weight: bold;
         }
-        .era-btn.active { background: #00f2ff; color: #000; box-shadow: 0 0 20px #0ff; }
-        #info-panel {
-            position: absolute; bottom: 30px; left: 30px; width: 300px;
-            background: rgba(0, 10, 25, 0.9); border-left: 4px solid #0ff; padding: 20px;
-            display: none; z-index: 100; pointer-events: none;
-        }
-        #hud { position: absolute; bottom: 20px; right: 30px; color: rgba(0,255,255,0.5); font-size: 12px; text-align: right; }
+        .era-btn.active { background: #00f2ff; color: #000; box-shadow: 0 0 20px #0ff; border-color: #0ff; }
         #rare-alert {
-            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
-            color: #ff0055; font-weight: bold; font-size: 18px; display: none; text-shadow: 0 0 10px #ff0055;
+            position: absolute; top: 85px; left: 50%; transform: translateX(-50%);
+            color: #ff0055; font-weight: bold; font-size: 16px; display: none; text-shadow: 0 0 10px #ff0055; z-index: 100;
         }
+        #hud { position: absolute; bottom: 20px; width: 100%; text-align: center; color: rgba(0,255,255,0.5); font-size: 12px; pointer-events: none; }
     </style>
 </head>
 <body>
 
 <div id="era-nav">
-    <button class="era-btn" onclick="switchEra('ediacaran')">EDIACARAN</button>
-    <button class="era-btn active" onclick="switchEra('cambrian')">CAMBRIAN</button>
-    <button class="era-btn" onclick="switchEra('ordovician')">ORDOVICIAN</button>
-    <button class="era-btn" onclick="switchEra('devonian')">DEVONIAN</button>
+    <button id="btn-ediacaran" class="era-btn" onclick="switchEra('ediacaran')">EDIACARAN</button>
+    <button id="btn-cambrian" class="era-btn" onclick="switchEra('cambrian')">CAMBRIAN</button>
+    <button id="btn-ordovician" class="era-btn" onclick="switchEra('ordovician')">ORDOVICIAN</button>
+    <button id="btn-devonian" class="era-btn" onclick="switchEra('devonian')">DEVONIAN</button>
 </div>
 
 <div id="rare-alert">⚠️ RARE CREATURE DETECTED ⚠️</div>
-<div id="info-panel"><h2 id="info-title" style="margin:0;color:#0ff;"></h2><p id="info-desc" style="font-size:14px;line-height:1.6;"></p></div>
-<div id="hud">CLICK: FEEDING | DRAG: ROTATE | WHEEL: ZOOM<br>Ancient Lens Project v2.0</div>
+<div id="hud">CLICK: FEEDING | DRAG: ROTATE | WHEEL: ZOOM<br>Ancient Lens Project v2.1 (Bug Fixed)</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 
 <script>
 /**
  * Ancient Lens: Paleozoic Odyssey
- * シニアThree.jsエンジニア & 古生物学アドバイザーによる完全実装版
+ * 修正版: エラー回避 & 互換性向上
  */
 
-// --- 1. 定数とグローバル変数の初期化 ---
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -59,186 +52,157 @@ renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
 const bottomY = -40;
-const aquariumRadius = 150;
+const aquariumRadius = 160;
 let currentEra = '';
 let entities = [];
 let foodParticles = [];
-let camAngle = { x: 0, y: 0.3, dist: 100 };
-let targetCamDist = 100;
+let camAngle = { x: 0, y: 0.3, dist: 110 };
+let targetCamDist = 110;
 
 // 光源
-const ambLight = new THREE.AmbientLight(0x224466, 2); scene.add(ambLight);
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); dirLight.position.set(0, 100, 50); scene.add(dirLight);
+scene.add(new THREE.AmbientLight(0x224466, 2.5));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.2); 
+dirLight.position.set(0, 100, 50); 
+scene.add(dirLight);
 
-// マテリアル生成用関数
 const paleoMat = (color, glow=0, trans=0) => new THREE.MeshStandardMaterial({
     color: color,
     transparent: trans > 0,
     opacity: 1 - trans,
     emissive: color,
     emissiveIntensity: glow,
-    roughness: 0.4
+    roughness: 0.5
 });
 
-// --- 2. 生物造形エンジン (Procedural Modeling) ---
-
+// --- ジオメトリ生成ヘルパー (互換性重視) ---
 const Models = {
-    // 【エディアカラ紀】
+    // ディッキンソニア (スライド移動)
     dickinsonia: () => {
         const g = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(4, 0.2, 6), paleoMat(0xaa88ff, 0.3, 0.2));
-        body.scale.set(1, 1, 1.2); g.add(body);
+        const body = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 24), paleoMat(0xaa88ff, 0.2, 0.2));
+        body.scale.set(3, 0.1, 4);
+        g.add(body);
         return { mesh: g, segments: [], type: 'crawler' };
     },
+    // チャルニア (固定)
     charnia: () => {
         const g = new THREE.Group();
-        const leaf = new THREE.Mesh(new THREE.BoxGeometry(1.5, 8, 0.2), paleoMat(0x66ffaa, 0.4, 0.3));
+        const leaf = new THREE.Mesh(new THREE.BoxGeometry(1.2, 8, 0.1), paleoMat(0x66ffaa, 0.4, 0.3));
         leaf.position.y = 4; g.add(leaf);
         return { mesh: g, segments: [leaf], type: 'static' };
     },
-    // 【カンブリア紀】
+    // アノマロカリス
     anomalocaris: () => {
         const g = new THREE.Group(); const segs = [];
-        const head = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 2), paleoMat(0x33aa88)); g.add(head);
-        const tail = new THREE.Group(); tail.position.z = -1; g.add(tail);
-        for(let i=0; i<6; i++) {
-            const s = new THREE.Mesh(new THREE.BoxGeometry(2.5 - i*0.2, 0.5, 1), paleoMat(0x33aa88));
-            s.position.z = -i * 1.2; tail.add(s); segs.push(s);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(2, 1.2, 2.5), paleoMat(0x33aa88)); g.add(head);
+        const tail = new THREE.Group(); tail.position.z = -1.2; g.add(tail);
+        for(let i=0; i<8; i++) {
+            const s = new THREE.Mesh(new THREE.BoxGeometry(3 - i*0.2, 0.3, 1), paleoMat(0x33aa88));
+            s.position.z = -i * 1.0; tail.add(s); segs.push(s);
         }
         return { mesh: g, segments: segs, type: 'swimmer' };
     },
+    // ハルキゲニア (歩行)
     hallucigenia: () => {
         const g = new THREE.Group(); const legs = [];
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 5), paleoMat(0xff77aa));
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 6, 8), paleoMat(0xff77aa));
         body.rotation.x = Math.PI/2; g.add(body);
         for(let i=0; i<7; i++) {
-            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.5), paleoMat(0xff77aa));
-            leg.position.set(0, -0.8, -2 + i*0.7); g.add(leg); legs.push(leg);
-            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.5), paleoMat(0xffffff));
-            spike.position.set(0, 0.8, -2 + i*0.7); g.add(spike);
+            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), paleoMat(0xff77aa));
+            leg.position.set(0, -0.6, -2.5 + i*0.8); g.add(leg); legs.push(leg);
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.8, 8), paleoMat(0xffffff));
+            spike.position.set(0, 0.8, -2.5 + i*0.8); g.add(spike);
         }
         return { mesh: g, segments: legs, type: 'crawler' };
     },
-    // 【オルドビス紀】
+    // サカバンバスピス
     sacabambaspis: () => {
         const g = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), paleoMat(0xbbbbaa));
-        body.scale.set(0.8, 0.6, 2); g.add(body);
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.2), paleoMat(0x000000));
-        eye.position.set(0.4, 0.1, 1.8); body.add(eye);
+        const body = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 24), paleoMat(0xbbbbaa));
+        body.scale.set(0.8, 0.7, 2.2); g.add(body);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), paleoMat(0x000000));
+        eye.position.set(0.4, 0.15, 2.0); body.add(eye);
         const eye2 = eye.clone(); eye2.position.x = -0.4; body.add(eye2);
         return { mesh: g, segments: [body], type: 'swimmer' };
     },
+    // エギロカシス (カプセルジオメトリを球体スケールで代用)
     aegirocassis: () => {
         const g = new THREE.Group(); const segs = [];
-        const body = new THREE.Mesh(new THREE.CapsuleGeometry(3, 10, 4, 16), paleoMat(0x4466aa, 0.1));
+        const body = new THREE.Mesh(new THREE.SphereGeometry(3, 32, 32), paleoMat(0x4466aa, 0.1, 0.1));
+        body.scale.set(1, 0.6, 2.5); // カプセル風に引き伸ばし
         body.rotation.x = Math.PI/2; g.add(body);
-        for(let i=0; i<10; i++) {
-            const fin = new THREE.Mesh(new THREE.BoxGeometry(6, 0.1, 2), paleoMat(0x4466aa, 0.2, 0.2));
-            fin.position.z = -5 + i*1.2; g.add(fin); segs.push(fin);
+        for(let i=0; i<12; i++) {
+            const fin = new THREE.Mesh(new THREE.BoxGeometry(8, 0.05, 2.5), paleoMat(0x4466aa, 0.2, 0.2));
+            fin.position.z = -6 + i*1.2; g.add(fin); segs.push(fin);
         }
         g.scale.set(2, 2, 2);
         return { mesh: g, segments: segs, type: 'swimmer' };
     },
-    // 【デボン紀】
+    // ダンクルオステウス
     dunkleosteus: () => {
         const g = new THREE.Group(); const segs = [];
-        const head = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 5), paleoMat(0x444444)); g.add(head);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(4.5, 4.5, 5.5), paleoMat(0x444444)); g.add(head);
         let parent = g;
-        for(let i=0; i<6; i++) {
-            const s = new THREE.Group(); s.position.z = -2.5;
-            const b = new THREE.Mesh(new THREE.SphereGeometry(2 - i*0.2, 12, 12), paleoMat(0x555555));
+        for(let i=0; i<8; i++) {
+            const s = new THREE.Group(); s.position.z = -2.8;
+            const b = new THREE.Mesh(new THREE.SphereGeometry(2.2 - i*0.2, 16, 16), paleoMat(0x555555));
             s.add(b); parent.add(s); segs.push(s); parent = s;
         }
         return { mesh: g, segments: segs, type: 'swimmer' };
     }
 };
 
-// --- 3. 生態系データベース ---
 const DB = {
-    ediacaran: {
-        bg: 0x00050a, fog: 0.012,
-        list: [
-            { name: 'ディッキンソニア', build: Models.dickinsonia, count: 10, rare: false },
-            { name: 'チャルニア', build: Models.charnia, count: 8, rare: false },
-            { name: 'スプリギナ', build: Models.sacabambaspis, count: 1, rare: true }
-        ]
-    },
-    cambrian: {
-        bg: 0x000a15, fog: 0.01,
-        list: [
-            { name: 'アノマロカリス', build: Models.anomalocaris, count: 5, rare: false },
-            { name: 'ハルキゲニア', build: Models.hallucigenia, count: 12, rare: false },
-            { name: '三葉虫', build: Models.dickinsonia, count: 15, rare: false },
-            { name: 'ネクトカリス', build: Models.sacabambaspis, count: 1, rare: true }
-        ]
-    },
-    ordovician: {
-        bg: 0x001020, fog: 0.008,
-        list: [
-            { name: 'サカバンバスピス', build: Models.sacabambaspis, count: 10, rare: false },
-            { name: 'エギロカシス', build: Models.aegirocassis, count: 2, rare: false },
-            { name: 'チョッカクガイ', build: Models.anomalocaris, count: 6, rare: false }
-        ]
-    },
-    devonian: {
-        bg: 0x051a25, fog: 0.007,
-        list: [
-            { name: 'ダンクルオステウス', build: Models.dunkleosteus, count: 3, rare: false },
-            { name: 'ボトリオレピス', build: Models.dickinsonia, count: 10, rare: false },
-            { name: 'ステタカントゥス', build: Models.sacabambaspis, count: 2, rare: true }
-        ]
-    }
+    ediacaran: { bg: 0x00050a, fog: 0.015, list: [
+        { name: 'Dickinsonia', build: Models.dickinsonia, count: 12 },
+        { name: 'Charnia', build: Models.charnia, count: 8 },
+        { name: 'Spriggina', build: Models.sacabambaspis, count: 1, rare: true }
+    ]},
+    cambrian: { bg: 0x000a18, fog: 0.012, list: [
+        { name: 'Anomalocaris', build: Models.anomalocaris, count: 6 },
+        { name: 'Hallucigenia', build: Models.hallucigenia, count: 14 },
+        { name: 'Trilobite', build: Models.dickinsonia, count: 15 },
+        { name: 'Nectocaris', build: Models.sacabambaspis, count: 1, rare: true }
+    ]},
+    ordovician: { bg: 0x001025, fog: 0.01, list: [
+        { name: 'Sacabambaspis', build: Models.sacabambaspis, count: 12 },
+        { name: 'Aegirocassis', build: Models.aegirocassis, count: 2 },
+        { name: 'Orthoceras', build: Models.anomalocaris, count: 6 }
+    ]},
+    devonian: { bg: 0x051a30, fog: 0.008, list: [
+        { name: 'Dunkleosteus', build: Models.dunkleosteus, count: 4 },
+        { name: 'Bothriolepis', build: Models.dickinsonia, count: 12 },
+        { name: 'Stethacanthus', build: Models.sacabambaspis, count: 2, rare: true }
+    ]}
 };
-
-// --- 4. クラス定義: 生物ロジック ---
 
 class Entity {
     constructor(def) {
-        this.def = def;
-        const b = def.build();
-        this.mesh = b.mesh;
-        this.segments = b.segments;
-        this.type = b.type;
-        this.velocity = new THREE.Vector3(0,0,0);
-        this.target = null;
-        this.state = 'wander';
-        this.speed = (Math.random() * 0.05 + 0.05) * (this.def.rare ? 2.5 : 1);
-        
-        // 初期位置
-        const angle = Math.random() * Math.PI * 2;
-        const dist = Math.random() * aquariumRadius * 0.8;
-        this.mesh.position.set(
-            Math.cos(angle) * dist,
-            this.type === 'crawler' ? bottomY + 0.5 : bottomY + 10 + Math.random() * 50,
-            Math.sin(angle) * dist
-        );
+        this.def = def; const b = def.build();
+        this.mesh = b.mesh; this.segments = b.segments; this.type = b.type;
+        this.velocity = new THREE.Vector3(); this.target = null;
+        this.speed = (Math.random() * 0.04 + 0.04) * (this.def.rare ? 3 : 1);
+        const ang = Math.random() * Math.PI * 2; const d = Math.random() * aquariumRadius * 0.7;
+        this.mesh.position.set(Math.cos(ang)*d, this.type==='crawler'?bottomY+0.6 : bottomY+10+Math.random()*50, Math.sin(ang)*d);
         scene.add(this.mesh);
     }
-
     update(time) {
-        // 1. エサの探索
         if (foodParticles.length > 0) {
             this.target = foodParticles[0].position;
-            this.state = 'feed';
-        } else if (!this.target || this.mesh.position.distanceTo(this.target) < 5) {
-            this.state = 'wander';
-            const angle = Math.random() * Math.PI * 2;
-            this.target = new THREE.Vector3(Math.cos(angle)*100, this.type==='crawler'?bottomY+0.5 : bottomY+10+Math.random()*40, Math.sin(angle)*100);
+        } else if (!this.target || this.mesh.position.distanceTo(this.target) < 6) {
+            const ang = Math.random() * Math.PI * 2;
+            this.target = new THREE.Vector3(Math.cos(ang)*110, this.type==='crawler'?bottomY+0.6 : bottomY+15+Math.random()*45, Math.sin(ang)*110);
         }
-
-        // 2. 移動ロジック
         const desired = new THREE.Vector3().subVectors(this.target, this.mesh.position).normalize();
-        if (this.type === 'crawler') desired.y = 0; // 底生生物は上下移動制限
-        
+        if (this.type === 'crawler') desired.y = 0;
         this.velocity.lerp(desired.multiplyScalar(this.speed), 0.03);
-        
-        // 3. 衝突回避 (Flocking behavior simplified)
+
+        // 衝突回避
         entities.forEach(other => {
             if (other === this) return;
             const dist = this.mesh.position.distanceTo(other.mesh.position);
-            if (dist < 8) {
-                const repel = new THREE.Vector3().subVectors(this.mesh.position, other.mesh.position).normalize().multiplyScalar(0.01);
+            if (dist < 10) {
+                const repel = new THREE.Vector3().subVectors(this.mesh.position, other.mesh.position).normalize().multiplyScalar(0.015);
                 this.velocity.add(repel);
             }
         });
@@ -249,109 +213,80 @@ class Entity {
             this.mesh.lookAt(lookTarget);
         }
 
-        // 4. アニメーション
         this.segments.forEach((seg, i) => {
-            if (this.type === 'swimmer') {
-                seg.rotation.y = Math.sin(time * 3 - i * 0.5) * 0.2;
-            } else if (this.type === 'crawler') {
-                seg.rotation.z = Math.sin(time * 5 - i * 0.8) * 0.3; // ハルキゲニアの脚
-            } else if (this.type === 'static') {
-                seg.rotation.z = Math.sin(time * 1) * 0.05; // チャルニアの揺らぎ
-            }
+            if (this.type === 'swimmer') seg.rotation.y = Math.sin(time*3.5 - i*0.4)*0.25;
+            else if (this.type === 'crawler') seg.rotation.z = Math.sin(time*6 - i*0.7)*0.35;
+            else if (this.type === 'static') seg.rotation.z = Math.sin(time)*0.08;
         });
     }
 }
-
-// --- 5. システム制御 ---
 
 function switchEra(eraKey) {
     currentEra = eraKey;
     const data = DB[eraKey];
     
-    // UI更新
+    // UIボタンの更新 (修正済み)
     document.querySelectorAll('.era-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    const targetBtn = document.getElementById('btn-' + eraKey);
+    if(targetBtn) targetBtn.classList.add('active');
     
-    // 背景・フォグ
     scene.background = new THREE.Color(data.bg);
     scene.fog = new THREE.FogExp2(data.bg, data.fog);
     
-    // 生物入れ替え
     entities.forEach(e => scene.remove(e.mesh));
     entities = [];
-    
-    data.list.forEach(def => {
-        for(let i=0; i<def.count; i++) {
-            entities.push(new Entity(def));
-        }
-    });
+    data.list.forEach(def => { for(let i=0; i<def.count; i++) entities.push(new Entity(def)); });
 
-    // レア演出
     const hasRare = data.list.some(d => d.rare);
-    document.getElementById('rare-alert').style.display = hasRare ? 'block' : 'none';
-    if(hasRare) setTimeout(() => document.getElementById('rare-alert').style.display = 'none', 3000);
+    const alert = document.getElementById('rare-alert');
+    alert.style.display = hasRare ? 'block' : 'none';
+    if(hasRare) setTimeout(() => alert.style.display = 'none', 3500);
 }
 
-// エサ撒き機能
+// エサ撒き
 window.addEventListener('mousedown', (e) => {
-    if (e.target.tagName === 'BUTTON') return;
+    if (e.target.closest('#era-nav')) return;
     const mouse = new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
-    
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -bottomY);
-    const intersectPoint = new THREE.Vector3();
-    raycaster.ray.intersectPlane(plane, intersectPoint);
-    
-    if (intersectPoint) {
-        const food = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({color: 0xffff00}));
-        food.position.copy(intersectPoint);
-        scene.add(food);
-        foodParticles.push(food);
-        setTimeout(() => {
-            scene.remove(food);
-            foodParticles.shift();
-        }, 4000);
+    const point = new THREE.Vector3();
+    if(raycaster.ray.intersectPlane(plane, point)) {
+        const food = new THREE.Mesh(new THREE.SphereGeometry(0.6), new THREE.MeshBasicMaterial({color: 0xffff00}));
+        food.position.copy(point); scene.add(food); foodParticles.push(food);
+        setTimeout(() => { scene.remove(food); foodParticles.shift(); }, 4000);
     }
 });
 
-// カメラ制御
-window.addEventListener('wheel', (e) => {
-    targetCamDist = Math.max(30, Math.min(250, targetCamDist + e.deltaY * 0.1));
-});
-
-let isDragging = false;
-window.addEventListener('pointerdown', () => isDragging = true);
-window.addEventListener('pointerup', () => isDragging = false);
+// カメラ
+window.addEventListener('wheel', (e) => targetCamDist = Math.max(40, Math.min(280, targetCamDist + e.deltaY * 0.1)));
+let dragging = false;
+window.addEventListener('pointerdown', () => dragging = true);
+window.addEventListener('pointerup', () => dragging = false);
 window.addEventListener('pointermove', (e) => {
-    if(isDragging) {
+    if(dragging) {
         camAngle.x -= e.movementX * 0.005;
-        camAngle.y = Math.max(0.1, Math.min(Math.PI/2 - 0.1, camAngle.y + e.movementY * 0.005));
+        camAngle.y = Math.max(0.05, Math.min(Math.PI/2 - 0.1, camAngle.y + e.movementY * 0.005));
     }
 });
 
-// --- 6. メインループ ---
 function animate() {
     requestAnimationFrame(animate);
     const time = performance.now() * 0.001;
-    
-    // カメラの更新 (円柱の内側を意識)
     camAngle.dist += (targetCamDist - camAngle.dist) * 0.1;
     camera.position.set(
         Math.cos(camAngle.x) * camAngle.dist,
-        bottomY + 15 + Math.sin(camAngle.y) * camAngle.dist,
+        bottomY + 18 + Math.sin(camAngle.y) * camAngle.dist,
         Math.sin(camAngle.x) * camAngle.dist
     );
-    // カメラが下がるほど、地面を水平に見るように調整
-    const lookAtY = THREE.MathUtils.lerp(bottomY + 10, 0, camAngle.dist/200);
+    const lookAtY = THREE.MathUtils.lerp(bottomY + 5, 0, camAngle.dist/250);
     camera.lookAt(0, lookAtY, 0);
 
     entities.forEach(e => e.update(time));
-    
     renderer.render(scene, camera);
 }
 
-// 初期起動
+// 起動
 switchEra('cambrian');
 animate();
 
@@ -360,7 +295,6 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
 </script>
 </body>
 </html>
