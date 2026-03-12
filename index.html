@@ -284,19 +284,12 @@ function buildEurypterid() {
     group.scale.set(1.3, 1.3, 1.3); // 頂点捕食者サイズ
     return { mesh: group, segments, type: 'eurypterid', offset: 0 };
 }
-// 新規：マクルリテス
+// 新規：マクルリテス(海底接地版)
 function buildMaclurites() {
-    const group = new THREE.Group(); const segments = [];
-    const shellGroup = new THREE.Group();
-    for(let i=0; i<4; i++) {
-        const torus = new THREE.Mesh(new THREE.TorusGeometry(0.8 - i*0.18, 0.35 - i*0.06, 12, 24), mats.macl);
-        torus.rotation.x = Math.PI/2; torus.position.y = -i*0.15; // 片面が平らになるように巻く
-        shellGroup.add(torus);
-    }
-    shellGroup.position.y = 0.4; group.add(shellGroup);
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 1.6), mats.asaphus); foot.position.y = 0.05; group.add(foot);
-    segments.push(group);
-    return { mesh: group, segments, type: 'snail', offset: 0 };
+    const g = new THREE.Group();
+    const shell = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.3, 12, 24), mats.shell(0x887766));
+    shell.rotation.x = Math.PI/2; g.add(shell);
+    return { mesh: g, type: 'floor', speed: 0.01 };
 }
 
 // ==========================================
