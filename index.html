@@ -58,7 +58,7 @@
     <button class="era-btn" onclick="switchEra('devonian')">DEVONIAN<span>デボン紀</span></button>
 </div>
 
-<div id="alert" id="rare-alert">⚠️ RARE CREATURE DETECTED / 希少生物接近 ⚠️</div>
+<div id="alert">⚠️ RARE CREATURE DETECTED / 希少生物接近 ⚠️</div>
 
 <div id="hologram-ui">
     <h2 id="holo-title"></h2>
@@ -75,6 +75,9 @@
 // 1. 基本システムとシーン設定
 // ==========================================
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000205);
+scene.fog = new THREE.FogExp2(0x000205, 0.012); // ← 修正：ここで初期化
+
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -99,7 +102,7 @@ const mat = (color, transmission=0, roughness=0.6) => {
 };
 
 // ==========================================
-// 2. 生物造形 (リアリティと動きの最適化)
+// 2. 生物造形
 // ==========================================
 
 // --- エディアカラ紀 ---
@@ -111,9 +114,11 @@ function buildDickinsonia() {
 }
 function buildKimberella() {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.8, 1.5, 4, 16) || new THREE.CylinderGeometry(0.8, 0.8, 2), mat(0xaa7755, 0.1));
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 3, 16), mat(0xaa7755, 0.1));
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), mat(0xaa7755, 0.1)); head.position.y = 1.5; body.add(head);
+    const tail = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), mat(0xaa7755, 0.1)); tail.position.y = -1.5; body.add(tail);
     body.rotation.z = Math.PI/2; g.add(body);
-    const frill = new THREE.Mesh(new THREE.BoxGeometry(3, 0.1, 2), mat(0xcc9977, 0.4)); g.add(frill);
+    const frill = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.1, 2.2), mat(0xcc9977, 0.4)); g.add(frill);
     return { mesh: g, segments: [body, frill], type: 'slide' };
 }
 
@@ -123,7 +128,7 @@ function buildAnomalocaris() {
     const head = new THREE.Mesh(new THREE.SphereGeometry(1.4, 16, 12), mat(0x1a6655, 0.3)); head.scale.set(1.2, 0.6, 1); g.add(head);
     for(let side of [-1, 1]) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.35), new THREE.MeshBasicMaterial({color:0})); eye.position.set(1.4*side, 0.6, 0.5); head.add(eye);
-        // 前肢（多関節でうねるように修正）
+        // 前肢（多関節）
         const armBase = new THREE.Group(); armBase.position.set(0.6*side, -0.3, 1.2); head.add(armBase);
         let curr = armBase;
         for(let k=0; k<6; k++) {
@@ -219,11 +224,16 @@ function buildDunkleosteus() {
     g.scale.set(1.5, 1.5, 1.5);
     return { mesh: g, segments: segs, type: 'swim' };
 }
-function buildEurypterid() { // カクカクを滑らかに修正
+function buildEurypterid() { 
+    // 古いr134でエラーになるCapsuleGeometryを避け、SphereとCylinderで滑らかに構築
     const g = new THREE.Group(); const segs = []; let parent = g;
-    // 丸みを帯びた頭部
-    const headCyl = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.6, 16), mat(0x663322)); headCyl.rotation.x = Math.PI/2; g.add(headCyl);
-    const headSph = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x663322)); headSph.position.z = 0.3; headSph.scale.set(1, 1, 0.5); g.add(headSph);
+    
+    // 頭部（丸みを帯びさせる）
+    const head = new THREE.Group();
+    const headCyl = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.6, 16), mat(0x663322)); headCyl.rotation.x = Math.PI/2; head.add(headCyl);
+    const headSph = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x663322)); headSph.position.z = 0.3; headSph.scale.set(1, 1, 0.5); head.add(headSph);
+    g.add(head);
+
     // 滑らかなハサミ
     for(let side of [-1, 1]) {
         const arm = new THREE.Group(); arm.position.set(0.8*side, 0, 0.6); g.add(arm);
@@ -231,6 +241,8 @@ function buildEurypterid() { // カクカクを滑らかに修正
         const claw = new THREE.Mesh(new THREE.ConeGeometry(0.15, 1.0, 8), mat(0x663322)); claw.position.set(side*0.2, 0, 1.5); claw.rotation.x = Math.PI/2; claw.rotation.z = side * -0.2; arm.add(claw);
         arm.userData.isArm = true; segs.push(arm);
     }
+
+    // 胴体
     for(let i=0; i<8; i++) {
         const s = 1 - (i/8)*0.5; const seg = new THREE.Group(); seg.position.z = i===0 ? -0.6 : -0.6;
         const body = new THREE.Mesh(new THREE.BoxGeometry(2.0*s, 0.3, 0.6), mat(0x663322)); seg.add(body);
@@ -276,7 +288,7 @@ const DB = {
         bg: 0x051a25,
         creatures: [
             { id: 'dunk', jp: 'ダンクルオステウス', en: 'Dunkleosteus', latin: 'Dunkleosteus terrelli', desc: '【遊泳】強力な装甲と凄まじい咬合力を持つ巨大魚。デボン紀の海の支配者です。', build: buildDunkleosteus, count: 3, speed: 0.18, yRange: [-10, 20] },
-            { id: 'eury', jp: 'ウミサソリ', en: 'Eurypterid', latin: 'Pterygotus anglicus', desc: '【遊泳】巨大なハサミとパドル状の脚で海を泳ぐ、史上最大級の節足動物。', build: buildEurypterid, count: 4, speed: 0.12, yRange: [-15, 10] }
+            { id: 'eury', jp: 'ウミサソリ', en: 'Eurypterid', latin: 'Pterygotus anglicus', desc: '【遊泳】巨大なハサミを持つ節足動物。デボン紀には2メートルを超える種もいました。', build: buildEurypterid, count: 4, speed: 0.12, yRange: [-15, 10] }
         ],
         rare: { jp: 'ハイネリア', en: 'Hyneria', latin: 'Hyneria lindae', desc: '【遊泳・希少】巨大な肉鰭類（シーラカンスに近い仲間）。非常に獰猛です。', build: buildDunkleosteus, speed: 0.2, yRange: [-5, 15] } // 代用モデル
     }
@@ -306,18 +318,19 @@ class CreatureObj {
                 const dist = this.mesh.position.distanceTo(other.mesh.position);
                 if (dist > 0 && dist < 4) {
                     const dir = new THREE.Vector3().subVectors(this.mesh.position, other.mesh.position).normalize();
-                    this.mesh.position.addScaledVector(dir, 0.05); // 押し出し
+                    this.mesh.position.addScaledVector(dir, 0.05); // 少し押し出す
                 }
             }
         });
 
+        // チョッカクガイ ジェット噴射
         if(this.type === 'jet') {
             this.jetPhase += 0.01;
-            if(this.jetPhase > 1.0 && Math.random() > 0.98) { this.jetPhase = 0; this.speed = -0.6; } // 後方噴射
+            if(this.jetPhase > 1.0 && Math.random() > 0.98) { this.jetPhase = 0; this.speed = -0.6; } 
             this.speed += (this.def.speed - this.speed) * 0.05;
         }
 
-        // 行動限界（迷子防止）
+        // 行動限界（遠くに行き過ぎたら中央を向く）
         if(this.mesh.position.length() > 140) {
             this.target = new THREE.Vector3(0, this.mesh.position.y, 0);
         } else if(!this.target || this.mesh.position.distanceTo(this.target) < 5) {
@@ -330,13 +343,14 @@ class CreatureObj {
         this.mesh.translateZ(this.speed);
         if(['crawl', 'walk', 'floor', 'slide'].includes(this.type)) this.mesh.position.y = bottomY + this.offset;
 
-        // アニメーション
+        // アニメーション計算
         if(this.type === 'swim') {
             this.segments.forEach((seg, i) => {
                 seg.rotation.x = Math.sin(time * 3 - i * 0.4 + this.phase) * 0.12;
                 seg.rotation.y = Math.sin(time * 1.5 - i * 0.2 + this.phase) * 0.08;
                 if(seg.userData.fL) { const flap = Math.sin(time*4 - i*0.4 + this.phase)*0.4; seg.userData.fL.rotation.z = flap; seg.userData.fR.rotation.z = -flap; }
             });
+            // アノマロカリスの触手関節アニメーション
             if(this.mesh.userData.arms) {
                 this.mesh.userData.arms.forEach((a, i) => { a.rotation.x = Math.sin(time*5 - i*0.5 + this.phase) * 0.2; });
             }
@@ -369,12 +383,19 @@ class CreatureObj {
 
 function switchEra(era) {
     currentEra = era;
+    
+    // UIの切り替え (querySelectorでエラーを回避)
     document.querySelectorAll('.era-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`[onclick="switchEra('${era}')"]`).classList.add('active');
+    document.querySelector(`.era-btn[onclick="switchEra('${era}')"]`).classList.add('active');
+    
     closeHolo();
     document.getElementById('alert').style.display = 'none';
 
-    scene.background.setHex(DB[era].bg); scene.fog.color.setHex(DB[era].bg);
+    // 背景とフォグの色変更
+    scene.background.setHex(DB[era].bg); 
+    scene.fog.color.setHex(DB[era].bg);
+    
+    // シーンのリセット
     entities.forEach(e => scene.remove(e.mesh)); entities = []; rareEntity = null;
     while(envGroup.children.length > 0) envGroup.remove(envGroup.children[0]);
 
@@ -386,17 +407,18 @@ function switchEra(era) {
     const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(200, 200, 300, 32, 1, true), new THREE.MeshBasicMaterial({ color: DB[era].bg, side: THREE.BackSide, transparent: true, opacity: 0.8 }));
     cylinder.position.y = 50; envGroup.add(cylinder);
 
-    // スポンジ（カンブリア紀のみ）
+    // カンブリア紀のカイメン
     if(era === 'cambrian') {
         for(let i=0; i<30; i++) {
             const h = 2 + Math.random()*5;
             const sponge = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, h, 8), mat(0x778855));
             sponge.position.set((Math.random()-0.5)*200, bottomY + h/2, (Math.random()-0.5)*200);
-            sponge.traverse(c => { if(c.isMesh) c.userData.entityData = { def: { jp:'カイメン', en:'Sponge', latin:'Porifera', desc:'海水を濾過して生きる原始的な動物。' } }; });
+            sponge.traverse(c => { if(c.isMesh) c.userData.entityData = { def: { jp:'カイメン', en:'Sponge', latin:'Porifera', desc:'海水を濾過して生きる原始的な動物。海底に生息しています。' } }; });
             envGroup.add(sponge);
         }
     }
 
+    // 生物のスポーン
     DB[era].creatures.forEach(def => {
         for(let i=0; i<def.count; i++) {
             const c = new CreatureObj(def); scene.add(c.mesh); entities.push(c);
@@ -406,7 +428,7 @@ function switchEra(era) {
 
 // 希少生物のランダム出現
 function checkRareSpawn() {
-    if(!rareEntity && Math.random() < 0.0005) { // 約0.05%の確率で毎フレーム判定
+    if(!rareEntity && Math.random() < 0.0005) { // 約0.05%の確率
         const def = DB[currentEra].rare;
         rareEntity = new CreatureObj(def, true);
         rareEntity.mesh.position.set(-140, def.yRange[0], (Math.random()-0.5)*50);
@@ -425,7 +447,10 @@ const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
 let isDragging = false, pointerDownTime = 0, previousMouse = { x: 0, y: 0 };
 
 window.addEventListener('wheel', (e) => { targetCamRadius = Math.max(15, Math.min(180, targetCamRadius + e.deltaY * 0.05)); });
-window.addEventListener('pointerdown', (e) => { if(e.target.closest('button') || e.target.closest('#hologram-ui')) return; isDragging = true; pointerDownTime = Date.now(); previousMouse = { x: e.clientX, y: e.clientY }; });
+window.addEventListener('pointerdown', (e) => { 
+    if(e.target.closest('button') || e.target.closest('#hologram-ui')) return; 
+    isDragging = true; pointerDownTime = Date.now(); previousMouse = { x: e.clientX, y: e.clientY }; 
+});
 window.addEventListener('pointermove', (e) => {
     if(isDragging) { camAngleX -= (e.clientX - previousMouse.x) * 0.005; camAngleY -= (e.clientY - previousMouse.y) * 0.005; camAngleY = Math.max(-0.2, Math.min(Math.PI/2.1, camAngleY)); }
     previousMouse = { x: e.clientX, y: e.clientY };
@@ -433,9 +458,11 @@ window.addEventListener('pointermove', (e) => {
 window.addEventListener('pointerup', (e) => {
     if(!isDragging) return; isDragging = false;
     if(Date.now() - pointerDownTime < 250) {
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+        // ← 修正：clientY ではなく e.clientY
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(mouse, camera); const hits = raycaster.intersectObjects(scene.children, true);
         let hit = null; for(let i=0; i<hits.length; i++) { if(hits[i].object.userData.entityData) { hit = hits[i].object.userData.entityData; break; } }
+        
         if (hit) {
             document.getElementById('holo-title').innerText = `${hit.def.jp} / ${hit.def.en}`;
             document.getElementById('holo-latin').innerText = `学名: ${hit.def.latin || 'Unknown'}`;
