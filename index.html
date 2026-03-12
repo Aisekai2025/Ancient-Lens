@@ -119,26 +119,34 @@ const mats = {
 // ==========================================
 // 4. 生物ビルダー
 // ==========================================
-// --- カンブリア紀 ---
+// --- カンブリア紀 ---(アノマロカリス前肢強化版)
 function buildAnomalocaris() {
-    const group = new THREE.Group(); const segments = []; let parent = group;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(1.4, 16, 12), mats.anom); head.scale.set(1.2, 0.6, 1); group.add(head);
+    const g = new THREE.Group();
+    const head = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 2), mats.flesh(0x336655)); g.add(head);
+    // 前肢の関節構造
     for(let side of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.35), new THREE.MeshBasicMaterial({color:0})); eye.position.set(1.4*side, 0.6, 0.5); head.add(eye);
-        const arm = new THREE.Group(); arm.position.set(0.6*side, -0.3, 1.2); head.add(arm);
-        let curr = arm; for(let k=0; k<7; k++) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.5), mats.anom); p.position.z=0.25; const w=new THREE.Group(); w.add(p); curr.add(w); curr=w; }
-    }
-    for(let i=0; i<11; i++) {
-        const s = 1 - Math.pow((i-2)/9, 2); const seg = new THREE.Group(); if(i>0) seg.position.z = -1.2 * s;
-        const body = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 12), mats.anom); body.scale.set(1.5*s, 0.5*s, 1.2*s); seg.add(body);
-        if(i>0 && i<10) {
-            const fL = new THREE.Mesh(new THREE.BoxGeometry(3.5*s, 0.05, 1.5*s), mats.anomFin); fL.position.set(1.6*s, 0, 0); seg.add(fL);
-            const fR = new THREE.Mesh(new THREE.BoxGeometry(3.5*s, 0.05, 1.5*s), mats.anomFin); fR.position.set(-1.6*s, 0, 0); seg.add(fR);
-            seg.userData = { fL, fR };
+        let prev = head;
+        for(let i=0; i<6; i++) {
+            const joint = new THREE.Group();
+            joint.position.set(0.6*side, -0.2, 1);
+            if(i>0) joint.position.set(0, 0, 0.5);
+            const segment = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.6), mats.flesh(0x448877));
+            segment.position.z = 0.3;
+            joint.add(segment);
+            prev.add(joint);
+            prev = joint;
+            if(!g.userData.arms) g.userData.arms = [];
+            g.userData.arms.push(joint);
         }
-        parent.add(seg); segments.push(seg); parent = seg;
     }
-    return { mesh: group, segments, type: 'swim' };
+    // 体節
+    let parent = head;
+    for(let i=0; i<10; i++) {
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(2 - i*0.15, 0.5, 1), mats.flesh(0x336655));
+        seg.position.z = -1;
+        parent.add(seg); parent = seg;
+    }
+    return { mesh: g, type: 'swim', speed: 0.15 };
 }
 function buildOpabinia() {
     const group = new THREE.Group(); const segments = []; const head = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 12), mats.opab); head.scale.set(1, 0.6, 1.5); group.add(head);
@@ -185,18 +193,23 @@ function buildMarrella() {
     return { mesh: group, segments, type: 'swim' };
 }
 
-// --- オルドビス紀 ---
+// --- オルドビス紀 ---(サカバンバスピス修正版)
 function buildSacabambaspis() {
-    const group = new THREE.Group(); const segments = [];
-    const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), mats.saca); body.scale.set(0.8, 0.6, 1.5); group.add(body);
-    const eyeMat = new THREE.MeshBasicMaterial({color: 0x000000});
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat); eyeL.position.set(0.5, 0.1, 1.4); body.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.set(-0.5, 0.1, 1.4); body.add(eyeR);
-    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.1), eyeMat); mouth.position.set(0, -0.2, 1.45); mouth.scale.set(2, 1, 1); body.add(mouth);
-    const tail = new THREE.Group(); tail.position.z = -1.5; body.add(tail);
-    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.2, 0.8), mats.saca); fin.position.z = -0.4; tail.add(fin);
-    segments.push(tail);
-    return { mesh: group, segments, type: 'clumsy_swim' };
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 16), mats.flesh(0xaaaa99));
+    body.scale.set(0.8, 0.6, 1.4);
+    g.add(body);
+    // 目と口を体に密着
+    const eyeMat = new THREE.MeshBasicMaterial({color:0});
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.18), eyeMat);
+    eyeL.position.set(0.4, 0.1, 1.25); body.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.set(-0.4, 0.1, 1.25); body.add(eyeR);
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), eyeMat);
+    mouth.position.set(0, -0.3, 1.35); body.add(mouth);
+    // 尾
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.5, 4), mats.flesh(0x888877));
+    tail.rotation.x = -Math.PI/2; tail.position.z = -1.5; g.add(tail);
+    return { mesh: g, type: 'wobble', speed: 0.08 };
 }
 function buildAegirocassis() {
     const group = new THREE.Group(); const segments = []; let parent = group;
