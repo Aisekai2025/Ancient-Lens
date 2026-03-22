@@ -164,12 +164,32 @@ function buildSpriggina() {
 }
 
 // --- カンブリア紀 ---
+
+// アノマロカリス (口器の追加と前肢の可動化)
 function buildAnomalocaris() {
     const g = new THREE.Group(); const segs = []; let parent = g;
     const headGroup = new THREE.Group(); g.add(headGroup);
     const head = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 16), mat(0x1a6655)); 
     head.scale.set(1.2, 0.5, 1.1); headGroup.add(head);
 
+    // 円形の口（ペイトイア型口器）
+    const mouthGroup = new THREE.Group();
+    mouthGroup.position.set(0, -0.6, 0.5);
+    mouthGroup.rotation.x = Math.PI / 2;
+    // 4つの大きな歯板
+    for(let i=0; i<4; i++) { 
+        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.1), mat(0x113322));
+        tooth.position.set(Math.cos(i*Math.PI/2)*0.3, Math.sin(i*Math.PI/2)*0.3, 0);
+        tooth.rotation.z = i*Math.PI/2;
+        mouthGroup.add(tooth);
+    }
+    // 細かな歯板（リング）
+    const mouthRing = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 8, 16), mat(0x1a6655));
+    mouthGroup.add(mouthRing);
+    headGroup.add(mouthGroup);
+
+    // 前肢と眼
+    const armsBase = [];
     for(let side of [-1, 1]) {
         const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.0), mat(0x1a6655));
         stalk.position.set(1.2*side, 0.4, 0.6); stalk.rotation.z = side * -1.0; stalk.rotation.x = 0.5; headGroup.add(stalk);
@@ -178,16 +198,22 @@ function buildAnomalocaris() {
         
         const armBase = new THREE.Group(); armBase.position.set(0.5*side, -0.2, 1.2); headGroup.add(armBase);
         let curr = armBase;
+        const armJoints = [];
         for(let k=0; k<7; k++) {
             const joint = new THREE.Group(); joint.position.z = 0.3;
+            // 普段は丸まるように初期角度を設定
+            joint.rotation.x = 0.5; 
             const part = new THREE.Mesh(new THREE.CylinderGeometry(0.15 - k*0.015, 0.15 - k*0.015, 0.4, 8), mat(0x1a6655)); 
             part.rotation.x = Math.PI/2; part.position.z = 0.2;
             const spine = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.5), mat(0x224433)); 
             spine.position.set(0, -0.2, 0.2); spine.rotation.x = -0.2;
             joint.add(part, spine); curr.add(joint); curr = joint;
-            if(!g.userData.arms) g.userData.arms = []; g.userData.arms.push(joint);
+            armJoints.push(joint);
         }
+        armsBase.push(armJoints);
     }
+    g.userData.armsBase = armsBase;
+
     for(let i=0; i<12; i++) {
         const s = 1 - Math.pow((i-2)/10, 2); 
         const seg = new THREE.Group(); if(i>0) seg.position.z = -1.0 * s;
@@ -210,7 +236,7 @@ function buildAnomalocaris() {
         }
         parent.add(seg); segs.push(seg); parent = seg;
     }
-    return { mesh: g, segments: segs, type: 'swim' };
+    return { mesh: g, segments: segs, type: 'swim_anomalocaris' }; // 可動ロジック用にタイプ変更
 }
 
 // フルディア (巨大なフロントカラパスを持つカンブリア紀の奇抜な覇者)
@@ -221,7 +247,7 @@ function buildHurdia() {
     // 巨大な空洞状の頭部甲殻（カラパス）
     const carapace = new THREE.Mesh(new THREE.ConeGeometry(1.5, 4.0, 16), mat(0x664433));
     carapace.rotation.x = Math.PI/2; carapace.position.set(0, 0.5, 1.5);
-    carapace.scale.set(1, 1, 0.5); // 平たくする
+    carapace.scale.set(1, 1, 0.5); 
     headGroup.add(carapace);
 
     // 柄のある目
@@ -230,10 +256,27 @@ function buildHurdia() {
         stalk.position.set(1.0*side, 0.3, 0.5); stalk.rotation.z = side * -1.2; headGroup.add(stalk);
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.3), eyeMat); 
         eye.position.set(1.5*side, 0.5, 0.5); headGroup.add(eye);
-        
-        // 短く強靭な前肢
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 1.5), mat(0x443322));
-        arm.position.set(0.5*side, -0.5, 1.0); arm.rotation.y = side * -0.3; headGroup.add(arm);
+    }
+
+    // フルディア型の熊手のような前肢（5つの太いブレードと副棘）
+    const armGroup = new THREE.Group(); armGroup.position.set(0, -0.5, 1.0); headGroup.add(armGroup);
+    for(let side of [-1, 1]) {
+        const arm = new THREE.Group(); arm.position.x = 0.4 * side;
+        arm.rotation.y = side * -0.2;
+        for(let j=0; j<5; j++) { 
+            const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.8 - j*0.1, 0.15), mat(0x443322));
+            blade.position.set(0, -0.4 + j*0.05, j*0.25);
+            blade.rotation.x = 0.2;
+            // 内側に向いた副棘
+            for(let s=0; s<3; s++) {
+                const secSpine = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.2), mat(0x221100));
+                secSpine.position.set(0, -0.2, 0.1);
+                secSpine.rotation.x = Math.PI/2;
+                blade.add(secSpine);
+            }
+            arm.add(blade);
+        }
+        armGroup.add(arm);
     }
 
     for(let i=0; i<9; i++) {
@@ -250,7 +293,7 @@ function buildHurdia() {
         parent.add(seg); segs.push(seg); parent = seg;
     }
     g.scale.set(1.2, 1.2, 1.2);
-    return { mesh: g, segments: segs, type: 'swim' };
+    return { mesh: g, segments: segs, type: 'elegant_swim' };
 }
 
 function buildOpabinia() {
@@ -368,6 +411,30 @@ function buildCrinoid() {
 }
 
 // --- オルドビス紀 ---
+
+// 新生物：フデイシ (群体で海中を漂う)
+function buildGraptolite() {
+    const g = new THREE.Group();
+    // V字型のストイプ（枝）
+    for(let side of [-1, 1]) {
+        const stipe = new THREE.Group();
+        stipe.rotation.z = side * 0.4;
+        const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 3), mat(0xaaaacc, 0.2));
+        branch.position.y = -1.5;
+        stipe.add(branch);
+        // セカ（個室）
+        for(let i=0; i<15; i++) {
+            const theca = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.2), mat(0xccccdd));
+            theca.position.set(side * 0.05, -0.2 - i*0.18, 0);
+            theca.rotation.z = side * -0.5;
+            stipe.add(theca);
+        }
+        g.add(stipe);
+    }
+    g.scale.set(1.5, 1.5, 1.5);
+    return { mesh: g, segments: [g], type: 'drift', offset: 0 };
+}
+
 function buildSacabambaspis() {
     const g = new THREE.Group(); const segs = []; const body = new THREE.Group(); g.add(body);
     const shell = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 24), mat(0xaaaa99)); shell.scale.set(0.8, 0.6, 1.5); body.add(shell);
@@ -379,13 +446,11 @@ function buildSacabambaspis() {
     segs.push(tail);
     return { mesh: g, segments: segs, type: 'clumsy_swim' };
 }
-
-// エギロカシス (ダブルフラップと巨大ろ過網)
 function buildAegirocassis() {
     const g = new THREE.Group(); const segs = []; let parent = g;
     const head = new THREE.Mesh(new THREE.SphereGeometry(2.0, 16, 12), mat(0x335577)); head.scale.set(1.2, 0.7, 1); g.add(head);
     
-    // 巨大なろ過網 (前方に複数の細い棒を配置)
+    // 巨大なろ過網
     const filterNet = new THREE.Group(); filterNet.position.set(0, -1.0, 1.5); head.add(filterNet);
     for(let f=0; f<8; f++) {
         const netLine = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.5), mat(0x335577));
@@ -395,13 +460,11 @@ function buildAegirocassis() {
     for(let i=0; i<12; i++) {
         const s = 1 - (i/12)*0.6; const seg = new THREE.Group(); if(i>0) seg.position.z = -1.8 * s;
         const body = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 12), mat(0x335577)); body.scale.set(1.2*s, 0.5*s, 1*s); seg.add(body);
-        // 背側のフラップ
         const topFin = new THREE.Mesh(new THREE.BoxGeometry(4*s, 0.05, 1.5*s), mat(0x447799, 0.2)); topFin.position.set(0, 0.5*s, 0); seg.add(topFin);
-        // 腹側のフラップ (ダブルフラップ構造)
         const btmFin = new THREE.Mesh(new THREE.BoxGeometry(3.5*s, 0.05, 1.5*s), mat(0x447799, 0.2)); btmFin.position.set(0, -0.6*s, 0); seg.add(btmFin);
         seg.userData = { topFin, btmFin }; parent.add(seg); segs.push(seg); parent = seg;
     }
-    g.scale.set(2.0, 2.0, 2.0); // 非常に巨大
+    g.scale.set(2.0, 2.0, 2.0);
     return { mesh: g, segments: segs, type: 'elegant_swim' };
 }
 function buildOrthoceras() {
@@ -455,41 +518,33 @@ function buildSeaApple() {
     g.userData.pulseBody = body; return g;
 }
 
-// 恐怖の巨大ウミサソリ (甲殻類らしい多関節とトゲを極限強化)
 function buildMegalograptus() {
     const g = new THREE.Group(); const segs = []; let parent = g;
     const head = new THREE.Group();
     
-    // なめらかな半円の頭胸甲 (カブトガニのような質感)
     const headShell = new THREE.Mesh(new THREE.SphereGeometry(1.5, 24, 24, 0, Math.PI*2, 0, Math.PI/2), mat(0x442211, 0, 0.3)); 
     headShell.scale.set(1.2, 0.6, 0.8); head.add(headShell);
     
-    // 眼（複眼）前方に配置
     const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.25), eyeMat); 
     eyeL.position.set(0.8, 0.4, 0.5); head.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.8; head.add(eyeR);
     g.add(head);
 
-    // 巨大なトゲ付き前肢（3関節構造でより凶悪に）
     for(let side of [-1, 1]) {
         const arm = new THREE.Group(); arm.position.set(1.0*side, -0.2, 0.5);
-        // 第一関節 (根元)
         const joint1 = new THREE.Group();
         const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 1.2, 8), mat(0x442211)); 
         p1.rotation.x = Math.PI/2; p1.position.z = 0.6; joint1.add(p1);
         joint1.rotation.y = side * -0.3; arm.add(joint1);
 
-        // 第二関節
         const joint2 = new THREE.Group(); joint2.position.set(0, 0, 1.2);
         const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 1.5, 8), mat(0x553322)); 
         p2.rotation.x = Math.PI/2; p2.position.z = 0.75; joint2.add(p2);
         joint1.add(joint2);
         
-        // 第三関節（内側に密集するトゲ）
         const joint3 = new THREE.Group(); joint3.position.set(0, 0, 1.5);
         const p3 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.05, 1.2, 8), mat(0x664433));
         p3.rotation.x = Math.PI/2; p3.position.z = 0.6; joint3.add(p3);
-        // 凶悪なトゲを配置
         for(let t=0; t<5; t++) {
             const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.6), mat(0x220000));
             spike.position.set(side * -0.1, 0, 0.2 + t*0.2); spike.rotation.z = side * -Math.PI/2; joint3.add(spike);
@@ -501,16 +556,14 @@ function buildMegalograptus() {
     
     for(let i=0; i<9; i++) {
         const s = 1 - (i/9)*0.7; const seg = new THREE.Group(); seg.position.z = -0.8;
-        // 丸みを帯びた節
         const b = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 16), mat(0x442211, 0, 0.4)); 
         b.scale.set(s, 0.25, 0.4); seg.add(b);
         if(i===1) {
-            // パドルを滑らかな楕円に
             const padL = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.1, 16), mat(0x442211)); 
             padL.scale.set(2, 1, 0.6); padL.position.x = 2.5; seg.add(padL);
             const padR = padL.clone(); padR.position.x = -2.5; seg.add(padR); seg.userData = { padL, padR };
         }
-        if(i===8) { // 尾剣
+        if(i===8) { 
             const tailSpike = new THREE.Mesh(new THREE.ConeGeometry(0.15, 3.0, 8), mat(0x331100));
             tailSpike.rotation.x = -Math.PI/2; tailSpike.position.z = -1.5; seg.add(tailSpike);
         }
@@ -556,7 +609,7 @@ function buildDunkleosteus() {
 
     g.userData.jaw = jaw; 
 
-    // 流線形の体 (Z方向に伸ばした球体でシームレスに)
+    // 流線形の体
     const torso = new THREE.Mesh(new THREE.SphereGeometry(2.5, 24, 24), mat(0x555555, 0, 0.3));
     torso.scale.set(0.8, 1.0, 2.2); torso.position.z = -2.5; g.add(torso);
 
@@ -574,7 +627,6 @@ function buildDunkleosteus() {
     const tailStalk = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 0.4, 4.0, 16), mat(0x555555));
     tailStalk.rotation.x = Math.PI/2; tailStalk.position.z = -2.0; tailGroup.add(tailStalk);
     
-    // サメ型の尾ビレ (上葉が長い)
     const tailTop = new THREE.Mesh(new THREE.ConeGeometry(0.1, 5, 8), mat(0x444444)); tailTop.position.set(0, 2.0, -4.0); tailTop.rotation.x = 0.5; tailGroup.add(tailTop);
     const tailBot = new THREE.Mesh(new THREE.ConeGeometry(0.1, 3, 8), mat(0x444444)); tailBot.position.set(0, -1.0, -3.5); tailBot.rotation.x = -0.5; tailGroup.add(tailBot);
 
@@ -584,18 +636,14 @@ function buildDunkleosteus() {
     return { mesh: g, segments: [], type: 'fish_dunk' };
 }
 
-// 丸みを帯びた自然なボトリオレピス
 function buildBothriolepis() {
     const g = new THREE.Group(); const segs = [];
-    // ドーム状の甲羅
     const carapace = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x776655)); 
     carapace.scale.set(1.0, 0.6, 1.4); g.add(carapace);
     
-    // 眼（背中側、近接配置）
     const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat); eyeL.position.set(0.2, 0.8, 0.6); carapace.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.2; carapace.add(eyeR);
 
-    // 多関節の昆虫のような腕 (2関節)
     for(let side of [-1, 1]) {
         const armBase = new THREE.Group(); armBase.position.set(1.2*side, 0, 0.5);
         armBase.rotation.z = side * 1.5; armBase.rotation.y = side * 0.5;
@@ -608,17 +656,14 @@ function buildBothriolepis() {
     return { mesh: g, segments: segs, type: 'floor', offset: 0.2 };
 }
 
-// 眼を自然に埋め込んだクリマティウス
 function buildClimatius() {
     const g = new THREE.Group();
     const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), mat(0x88aabb)); body.scale.set(0.6, 0.8, 2); g.add(body);
     
-    // 小さくして自然に埋め込んだ眼
     const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.06), eyeMat); 
     eyeL.position.set(0.22, 0.1, 0.6); body.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.22; body.add(eyeR);
 
-    // トゲ
     const spinePos = [[0, 0.45, 0], [0, -0.45, 0], [0.3, -0.3, 0], [-0.3, -0.3, 0]];
     spinePos.forEach(p => {
         const spine = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.6), mat(0xffffff));
@@ -634,25 +679,20 @@ function buildClimatius() {
 // 肉鰭を筋肉質に、顔を平たくワニのようにしたティクターリク
 function buildTiktaalik() {
     const g = new THREE.Group(); const segs = []; let parent = g;
-    // ワニのように平たい頭部
     const headGroup = new THREE.Group(); headGroup.position.z = 1.0; g.add(headGroup);
     const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), mat(0x667744)); 
     head.scale.set(0.8, 0.3, 1.4); headGroup.add(head);
     
-    // 眼（頭頂部に少し隆起させて配置）
     const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12), eyeMat); 
     eyeL.position.set(0.4, 0.3, 0.5); headGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.4; headGroup.add(eyeR);
 
-    // 自然な口のスリット
     const mouth = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.05, 0.5), mat(0x112211));
     mouth.position.set(0, -0.1, 1.0); headGroup.add(mouth);
 
-    // 胴体 (2パーツ構成でくねらせる)
     const torso1 = new THREE.Group(); torso1.position.z = -1.5; headGroup.add(torso1);
     const b1 = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x667744)); b1.scale.set(0.8, 0.6, 1.5); torso1.add(b1);
     
-    // 筋肉質な前肢 (肉鰭: 根元の筋肉と先のヒレ)
     for(let side of [-1, 1]) {
         const arm = new THREE.Group(); arm.position.set(0.8*side, -0.2, 0); arm.rotation.z = side * -0.5;
         const muscle = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.1, 1.0), mat(0x556633)); muscle.position.y = -0.5; arm.add(muscle);
@@ -668,44 +708,36 @@ function buildTiktaalik() {
     return { mesh: g, segments: segs, type: 'swim_tiktaalik' }; 
 }
 
-// サメらしい完全流線型のステタカントゥス
 function buildStethacanthus() { 
     const g = new THREE.Group();
     const bodyGroup = new THREE.Group(); g.add(bodyGroup);
     
-    // サメの流線型ボディ
     const torso = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), mat(0x445566));
     torso.scale.set(0.8, 1.1, 3.0); bodyGroup.add(torso);
     
     const head = new THREE.Mesh(new THREE.ConeGeometry(1.0, 3.0, 16), mat(0x445566)); 
     head.rotation.x = Math.PI/2; head.position.z = 3.5; bodyGroup.add(head);
     
-    // 眼 (側面に埋め込み)
     const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12), eyeMat); 
     eyeL.position.set(0.6, 0.2, 4.0); bodyGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.6; bodyGroup.add(eyeR);
 
-    // 下向きの半月状の口
     const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 8, 16, Math.PI), mat(0x111111));
     mouth.rotation.x = Math.PI/2; mouth.position.set(0, -0.6, 3.2); bodyGroup.add(mouth);
 
-    // ブラシ状の背ビレ（アイロン台）
     const dorsalBase = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.5, 1.5), mat(0x445566)); 
     dorsalBase.position.set(0, 1.5, 1.0); bodyGroup.add(dorsalBase); 
     const brush = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 1.6), mat(0x8899aa)); 
     brush.position.set(0, 2.3, 1.0); bodyGroup.add(brush);
     
-    // 胸ビレ
     const pecL = new THREE.Mesh(new THREE.ConeGeometry(0.15, 2.5, 8), mat(0x334455)); 
     pecL.position.set(0.8, -0.5, 1.5); pecL.rotation.z = -1; pecL.rotation.y = -0.2; bodyGroup.add(pecL);
     const pecR = pecL.clone(); pecR.position.x = -0.8; pecR.rotation.z = 1; pecR.rotation.y = 0.2; bodyGroup.add(pecR);
 
-    // 動く尾部
     const tailGroup = new THREE.Group(); tailGroup.position.z = -3.0; g.add(tailGroup);
     const tailStalk = new THREE.Mesh(new THREE.ConeGeometry(0.8, 3.5, 16), mat(0x445566));
     tailStalk.rotation.x = -Math.PI/2; tailStalk.position.z = -1.5; tailGroup.add(tailStalk);
 
-    // サメ型の非対称尾ビレ
     const tailTop = new THREE.Mesh(new THREE.ConeGeometry(0.1, 3.5, 8), mat(0x445566)); tailTop.position.set(0, 1.5, -3.0); tailTop.rotation.x = 0.6; tailGroup.add(tailTop);
     const tailBot = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.8, 8), mat(0x445566)); tailBot.position.set(0, -0.8, -2.8); tailBot.rotation.x = -0.5; tailGroup.add(tailBot);
 
@@ -732,11 +764,11 @@ const DB = {
     cambrian: {
         bg: 0x000a15,
         creatures: [
-            { id: 'anom', jp: 'アノマロカリス', en: 'Anomalocaris', latin: 'Anomalocaris canadensis', desc: '器用に動く多関節の前肢で獲物を捕らえる、カンブリア紀の絶対王者。', build: buildAnomalocaris, count: 4, speed: 0.15, yRange: [-10, 20] },
+            { id: 'anom', jp: 'アノマロカリス', en: 'Anomalocaris', latin: 'Anomalocaris canadensis', desc: '器用に動く多関節の前肢と円形の口で獲物を捕らえる、カンブリア紀の絶対王者。', build: buildAnomalocaris, count: 4, speed: 0.15, yRange: [-10, 20] },
             { id: 'opab', jp: 'オパビニア', en: 'Opabinia', latin: 'Opabinia regalis', desc: '5つの眼と長いノズルを持つ、奇妙な造形の代表格。', build: buildOpabinia, count: 5, speed: 0.1, yRange: [-20, 0] },
             { id: 'trilo', jp: '三葉虫', en: 'Trilobite', latin: 'Olenoides serratus', desc: '多数の脚をワサワサ動かして海底を這う、古生代を代表する節足動物。', build: buildTrilobite, count: 8, speed: 0.05, yRange: [bottomY, bottomY] },
             { id: 'hallu', jp: 'ハルキゲニア', en: 'Hallucigenia', latin: 'Hallucigenia sparsa', desc: '背中のトゲを上にし、細い脚を波打たせて海底を歩きます。', build: buildHallucigenia, count: 6, speed: 0.035, yRange: [bottomY, bottomY] },
-            { id: 'hurdia', jp: 'フルディア', en: 'Hurdia', latin: 'Hurdia victoria', desc: '体の半分を占める巨大な頭部甲殻を持つ、奇抜なラディオドンタ類。', build: buildHurdia, count: 3, speed: 0.12, yRange: [0, 20] } // フルディアはカンブリア紀に追加
+            { id: 'hurdia', jp: 'フルディア', en: 'Hurdia', latin: 'Hurdia victoria', desc: '体の半分を占める巨大な頭部甲殻を持つ、奇抜なラディオドンタ類。', build: buildHurdia, count: 3, speed: 0.12, yRange: [0, 20] }
         ],
         rare: { jp: 'ネクトカリス', en: 'Nectocaris', latin: 'Nectocaris pteryx', desc: '【希少】イカのような姿で、漏斗から水を噴射して高速で横切ります。', build: buildNectocaris, speed: 0.3, yRange: [-10, 10] }
     },
@@ -747,7 +779,7 @@ const DB = {
             { id: 'aegi', jp: 'エギロカシス', en: 'Aegirocassis', latin: 'Aegirocassis benmoulae', desc: 'ダブルフラップと巨大なろ過網を持つアノマロカリスの仲間。', build: buildAegirocassis, count: 2, speed: 0.08, yRange: [0, 20] },
             { id: 'ortho', jp: 'チョッカクガイ', en: 'Orthoceras', latin: 'Orthoceras regulare', desc: '直線的な殻を持つハンター。突然水を噴射して後ろ向きに急加速します。', build: buildOrthoceras, count: 4, speed: 0.02, yRange: [-15, 10] },
             { id: 'asaphus', jp: 'アサフス', en: 'Asaphus', latin: 'Asaphus kowalewskii', desc: '潜望鏡のように長く突き出た眼で泥の中から周囲を警戒する三葉虫。', build: buildAsaphus, count: 5, speed: 0.04, yRange: [bottomY, bottomY] },
-            { id: 'macl', jp: 'マクルリテス', en: 'Maclurites', latin: 'Maclurites sp.', desc: '片面が真っ平らな奇妙な巻貝。海底に張り付くように這い回ります。', build: buildMaclurites, count: 4, speed: 0.015, yRange: [bottomY, bottomY] }
+            { id: 'graptolite', jp: 'フデイシ（筆石）', en: 'Graptolite', latin: 'Didymograptus', desc: '海中を浮遊する半索動物の群体。V字型の枝に無数の個体が住んでいました。', build: buildGraptolite, count: 5, speed: 0.005, yRange: [5, 25] }
         ],
         rare: { jp: 'メガログラプトゥス', en: 'Megalograptus', latin: 'Megalograptus ohioensis', desc: '【希少】重戦車のように海底近くを横切る巨大なウミサソリ。', build: buildMegalograptus, speed: 0.15, yRange: [-30, -20] }
     },
@@ -787,10 +819,17 @@ class CreatureObj {
             else this.segments.forEach(s => s.rotation.z = Math.sin(time*0.5 + this.phase)*0.1); 
             return;
         }
+        
+        if(this.type === 'drift') {
+            this.mesh.position.y += Math.sin(time + this.phase) * 0.02;
+            this.mesh.rotation.y += 0.005;
+            this.mesh.rotation.z = Math.sin(time * 0.5 + this.phase) * 0.1;
+            return; // 漂うだけ
+        }
 
         let repel = new THREE.Vector3();
         entities.forEach(other => {
-            if (other === this || other.type === 'static') return;
+            if (other === this || other.type === 'static' || other.type === 'drift') return;
             const dist = this.mesh.position.distanceTo(other.mesh.position);
             if (dist < 6) repel.add(this.mesh.position.clone().sub(other.mesh.position).normalize().multiplyScalar(0.05));
         });
@@ -826,15 +865,26 @@ class CreatureObj {
         if(['crawl', 'walk', 'floor', 'slide'].includes(this.type)) this.mesh.position.y = bottomY + this.offset;
 
         // --- アニメーション ---
-        if(this.type === 'swim' || this.type === 'elegant_swim' || this.type === 'fast_swim') {
+        if(this.type === 'swim' || this.type === 'elegant_swim' || this.type === 'fast_swim' || this.type === 'swim_anomalocaris') {
             this.segments.forEach((seg, i) => {
                 seg.rotation.x = Math.sin(time * 3 - i * 0.4 + this.phase) * (this.type==='elegant_swim'?0.05:0.12);
                 seg.rotation.y = Math.sin(time * 1.5 - i * 0.2 + this.phase) * (this.type==='elegant_swim'?0.03:0.08);
                 if(seg.userData.fL) { const flap = Math.sin(time*5 - i*0.4 + this.phase)*0.5; seg.userData.fL.rotation.z = flap; seg.userData.fR.rotation.z = -flap; }
                 if(seg.userData.topFin) { const wave = Math.sin(time*4 - i*0.5 + this.phase)*0.2; seg.userData.topFin.rotation.x = wave; seg.userData.btmFin.rotation.x = wave; }
             });
-            if(this.mesh.userData.arms) this.mesh.userData.arms.forEach((a, i) => { a.rotation.x = Math.sin(time*6 - i*0.5 + this.phase) * 0.3; }); 
             if(this.mesh.userData.tSegs) this.mesh.userData.tSegs.forEach((ps, i) => { ps.rotation.y = Math.sin(time*3 + i*0.2 + this.phase)*0.2; }); 
+            
+            // アノマロカリスの前肢（捕食時に伸びる）
+            if(this.type === 'swim_anomalocaris' && this.mesh.userData.armsBase) {
+                const isFeeding = this.state === 'feeding';
+                const targetRotX = isFeeding ? 0.1 : 0.6; // 伸ばす vs 丸める
+                this.mesh.userData.armsBase.forEach(armJoints => {
+                    armJoints.forEach((joint, i) => {
+                        joint.rotation.x += (targetRotX - joint.rotation.x) * 0.1;
+                        joint.rotation.x += Math.sin(time * 5 - i * 0.5 + this.phase) * 0.05 * (isFeeding ? 0.5 : 1);
+                    });
+                });
+            }
         } else if(this.type === 'fish_dunk' || this.type === 'fish_shark') {
             const sway = Math.sin(time * 3 + this.phase);
             if (this.mesh.userData.body) {
@@ -929,6 +979,8 @@ function switchEra(era) {
          for(let i=0; i<10; i++) {
             const cr = buildCrinoid(); cr.position.set((Math.random()-0.5)*250, bottomY, (Math.random()-0.5)*250);
             cr.traverse(c => { if(c.isMesh) c.userData.entityData = { def: { jp:'ウミユリ', en:'Crinoid', latin:'Crinoidea', desc:'植物のような姿の棘皮動物。' } }; }); envGroup.add(cr);
+            const sp = buildSponge(); sp.position.set((Math.random()-0.5)*250, bottomY + sp.position.y, (Math.random()-0.5)*250);
+            sp.traverse(c => { if(c.isMesh) c.userData.entityData = { def: { jp:'カイメン', en:'Sponge', latin:'Porifera', desc:'海水を濾過して生きる原始的な動物。' } }; }); envGroup.add(sp);
         }
     }
 
