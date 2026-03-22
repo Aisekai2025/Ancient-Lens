@@ -479,6 +479,32 @@ function buildHallucigenia() {
     return { mesh: g, segments: segs, type: 'walk_hallu', offset: 1.0 };
 }
 
+// Corrected buildWiwaxia function [cite: 27, 28, 29, 30]
+function buildWiwaxia() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.SphereGeometry(0.8, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+    mat(0x554466)
+  );
+  body.scale.set(1.2, 0.6, 1.5);
+  body.position.y = 0.1;
+  g.add(body);
+
+  for (let i = 0; i < 8; i++) {
+    for (let side of [-1, 1]) {
+      // Fixed: Separate the geometry, material, and position assignments 
+      const spine = new THREE.Mesh(
+        new THREE.ConeGeometry(0.04, 1.5, 8),
+        mat(0x887799) 
+      );
+      spine.position.set(0.4 * side, 0.5, 0.8 - i * 0.25);
+      spine.rotation.set(-0.3, 0, side * -0.5);
+      g.add(spine);
+    }
+  }
+  return { mesh: g, segments: [], type: 'slide', offset: 0 };
+}
+
 function buildPikaia() {
     const g = new THREE.Group(); const segs = []; let parent = g;
     for(let i=0; i<30; i++) {
