@@ -128,18 +128,57 @@ scene.add(particles);
 // 2. 生物造形モデリング (学説に基づく究極ディテール)
 // ==========================================
 
-// --- 環境・プランクトン生物 ---
-function buildWiwaxia() {
+// --- 環境・底生生物 ---
+function buildStromatolite() {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x554466));
-    body.scale.set(1.2, 0.6, 1.5); body.position.y = 0.1; g.add(body);
-    for(let i=0; i<8; i++) {
-        for(let side of [-1, 1]) {
-            const spine = new THREE.Mesh(new THREE.ConeGeometry(0.04, 1.5, 8), mat(0x887799));
-            spine.position.set(0.4*side, 0.5, 0.8-i*0.25); spine.rotation.set(-0.3, 0, side*-0.5); g.add(spine);
-        }
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(2, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x445544));
+    mound.scale.set(1, 0.5, 1); g.add(mound); return { mesh: g, segments: [], type: 'static', offset: 0 };
+}
+function buildCyclomedusa() {
+    const g = new THREE.Group();
+    for(let i=0; i<4; i++) {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8 - i*0.2, 0.1, 8, 32), mat(0x7788aa, 0.2));
+        ring.rotation.x = Math.PI/2; ring.position.y = 0.05 + i*0.05; g.add(ring);
     }
-    return { mesh: g, segments: [], type: 'slide', offset: 0 };
+    const center = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 8), mat(0x8899bb, 0.1));
+    center.scale.set(1, 0.5, 1); center.position.y = 0.25; g.add(center);
+    return { mesh: g, segments: [], type: 'static', offset: 0 };
+}
+function buildSponge() {
+    const h = 3 + Math.random()*4; const g = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, h, 8), mat(0x889966));
+    g.position.y = h/2; return { mesh: g, segments: [], type: 'static', offset: 0 };
+}
+function buildChoia() {
+    const g = new THREE.Group();
+    const center = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 8, 0, Math.PI*2, 0, Math.PI/2), mat(0x887755));
+    center.scale.set(1, 0.3, 1); g.add(center);
+    for(let i=0; i<16; i++) {
+        const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 2.0), mat(0xaa9977));
+        const angle = (i/16) * Math.PI * 2; spine.rotation.set(Math.PI/2, angle, 0);
+        spine.position.set(Math.sin(angle), 0, Math.cos(angle)); g.add(spine);
+    }
+    return { mesh: g, segments: [], type: 'static', offset: 0 };
+}
+function buildHornCoral() {
+    const g = new THREE.Group(); const h = 2 + Math.random()*2;
+    const coral = new THREE.Mesh(new THREE.ConeGeometry(0.4, h, 16), mat(0xaa6655));
+    coral.position.y = h/2; coral.rotation.set(0.2+Math.random()*0.3, Math.random()*Math.PI*2, 0);
+    g.add(coral); return { mesh: g, segments: [], type: 'static', offset: 0 };
+}
+function buildCrinoid() {
+    const g = new THREE.Group(); const h = 4 + Math.random()*4;
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, h), mat(0x556644)); stem.position.y = h/2; g.add(stem);
+    for(let i=0; i<8; i++) {
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3, 0.1), mat(0x99aa66));
+        arm.position.y = h; arm.rotation.z = 0.6; arm.rotation.y = (i/8)*Math.PI*2; g.add(arm);
+    }
+    return { mesh: g, segments: [], type: 'static', offset: 0 };
+}
+function buildSeaApple() {
+    const g = new THREE.Group();
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 2.0), mat(0xddaa55)); stem.position.y = 1.0; g.add(stem);
+    const body = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2, 2), mat(0xddaa55)); body.position.y = 2.5; g.add(body);
+    g.userData.pulseBody = body; return { mesh: g, segments: [], type: 'static', offset: 0 };
 }
 function buildGraptolite() {
     const g = new THREE.Group();
@@ -169,56 +208,17 @@ function buildGoniatite() {
     }
     g.scale.set(1.5, 1.5, 1.5); return { mesh: g, segments: [], type: 'drift', offset: 10 };
 }
-function buildStromatolite() {
+function buildWiwaxia() {
     const g = new THREE.Group();
-    const mound = new THREE.Mesh(new THREE.SphereGeometry(2, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x445544));
-    mound.scale.set(1, 0.5, 1); g.add(mound); return { mesh: g, segments: [], type: 'static', offset: 0 };
-}
-function buildCyclomedusa() {
-    const g = new THREE.Group();
-    for(let i=0; i<4; i++) {
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8 - i*0.2, 0.1, 8, 32), mat(0x7788aa, 0.2));
-        ring.rotation.x = Math.PI/2; ring.position.y = 0.05 + i*0.05; g.add(ring);
-    }
-    const center = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 8), mat(0x8899bb, 0.1));
-    center.scale.set(1, 0.5, 1); center.position.y = 0.25; g.add(center);
-    return { mesh: g, segments: [], type: 'static', offset: 0 };
-}
-function buildChoia() {
-    const g = new THREE.Group();
-    const center = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 8, 0, Math.PI*2, 0, Math.PI/2), mat(0x887755));
-    center.scale.set(1, 0.3, 1); g.add(center);
-    for(let i=0; i<16; i++) {
-        const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 2.0), mat(0xaa9977));
-        const angle = (i/16) * Math.PI * 2; spine.rotation.set(Math.PI/2, angle, 0);
-        spine.position.set(Math.sin(angle), 0, Math.cos(angle)); g.add(spine);
-    }
-    return { mesh: g, segments: [], type: 'static', offset: 0 };
-}
-function buildHornCoral() {
-    const g = new THREE.Group(); const h = 2 + Math.random()*2;
-    const coral = new THREE.Mesh(new THREE.ConeGeometry(0.4, h, 16), mat(0xaa6655));
-    coral.position.y = h/2; coral.rotation.set(0.2+Math.random()*0.3, Math.random()*Math.PI*2, 0);
-    g.add(coral); return { mesh: g, segments: [], type: 'static', offset: 0 };
-}
-function buildSponge() {
-    const h = 3 + Math.random()*4; const g = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, h, 8), mat(0x889966));
-    g.position.y = h/2; return { mesh: g, segments: [], type: 'static', offset: 0 };
-}
-function buildCrinoid() {
-    const g = new THREE.Group(); const h = 4 + Math.random()*4;
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, h), mat(0x556644)); stem.position.y = h/2; g.add(stem);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x554466));
+    body.scale.set(1.2, 0.6, 1.5); body.position.y = 0.1; g.add(body);
     for(let i=0; i<8; i++) {
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3, 0.1), mat(0x99aa66));
-        arm.position.y = h; arm.rotation.z = 0.6; arm.rotation.y = (i/8)*Math.PI*2; g.add(arm);
+        for(let side of [-1, 1]) {
+            const spine = new THREE.Mesh(new THREE.ConeGeometry(0.04, 1.5, 8), mat(0x887799));
+            spine.position.set(0.4*side, 0.5, 0.8-i*0.25); spine.rotation.set(-0.3, 0, side*-0.5); g.add(spine);
+        }
     }
-    return { mesh: g, segments: [], type: 'static', offset: 0 };
-}
-function buildSeaApple() {
-    const g = new THREE.Group();
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 2.0), mat(0xddaa55)); stem.position.y = 1.0; g.add(stem);
-    const body = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2, 2), mat(0xddaa55)); body.position.y = 2.5; g.add(body);
-    g.userData.pulseBody = body; return { mesh: g, segments: [], type: 'static', offset: 0 };
+    return { mesh: g, segments: [], type: 'slide', offset: 0 };
 }
 
 // --- エディアカラ紀 ---
@@ -262,6 +262,17 @@ function buildTribrachidium() {
         arm.rotation.z = i*Math.PI*2/3; g.add(arm);
     }
     return { mesh: g, segments: [g], type: 'spin_static', offset: 0.1 };
+}
+function buildParvancorina() {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), mat(0xcc9977));
+    body.scale.set(1.0, 0.3, 1.2); body.position.y = 0.15;
+    const ridgeT = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.4), mat(0xddaa88));
+    ridgeT.rotation.z = Math.PI/2; ridgeT.position.set(0, 0.4, 0.6); body.add(ridgeT);
+    const ridgeM = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.8), mat(0xddaa88));
+    ridgeM.rotation.x = Math.PI/2; ridgeM.position.set(0, 0.4, -0.2); body.add(ridgeM);
+    g.add(body);
+    return { mesh: g, segments: [], type: 'slide', offset: 0.1 };
 }
 function buildSpriggina() {
     const g = new THREE.Group(); const segs = []; let parent = g;
@@ -505,6 +516,11 @@ function buildHallucigenia() {
             leg.rotation.z = j*0.2; seg.add(leg); legs.push(leg);
         }
         seg.userData.legs = legs; parent.add(seg); segs.push(seg); parent = seg;
+        
+        if (i === 7) { 
+            const tail = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.8, 8), mat(0xff6688));
+            tail.rotation.x = -Math.PI/2; tail.position.z = -0.6; seg.add(tail);
+        }
     }
     g.scale.set(1.2, 1.2, 1.2);
     return { mesh: g, segments: segs, type: 'walk_hallu', offset: 1.0 };
@@ -914,6 +930,51 @@ function buildBothriolepis() {
     return { mesh: g, segments: segs, type: 'floor', offset: 0.2 };
 }
 
+function buildEusthenopteron() {
+    const g = new THREE.Group(); const segs = []; let parent = g;
+    const headGroup = new THREE.Group(); headGroup.position.z = 0.5; g.add(headGroup);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.5, 16), mat(0x556655));
+    head.rotation.x = Math.PI/2; headGroup.add(head);
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12), eyeMat); eyeL.position.set(0.4, 0.3, 0.3); headGroup.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = -0.4; headGroup.add(eyeR);
+    
+    const jaw = new THREE.Group(); jaw.position.set(0, -0.2, -0.3); headGroup.add(jaw);
+    const jawMesh = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.2, 16), mat(0x445544));
+    jawMesh.rotation.x = Math.PI/2; jawMesh.position.set(0, -0.1, 0.5); jawMesh.scale.set(1, 0.5, 1); jaw.add(jawMesh);
+    g.userData.jaw = jaw;
+
+    for(let i=0; i<9; i++) {
+        const s = 1 - (i/9)*0.6; const seg = new THREE.Group(); seg.position.z = -0.8;
+        const b = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16), mat(0x556655));
+        b.scale.set(s*0.8, s*1.0, 1.0); seg.add(b);
+        
+        if(i===1 || i===5) { 
+            const fL = new THREE.Group(); fL.position.set(0.6*s, -0.5*s, 0); fL.rotation.set(-0.5, -0.2, -1.0);
+            const fLBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat(0x445544)); fLBase.position.y = -0.3; fL.add(fLBase);
+            const fLFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8), mat(0x334433)); fLFin.position.y = -0.9; fLFin.scale.set(1,1,0.2); fL.add(fLFin);
+            seg.add(fL);
+            const fR = new THREE.Group(); fR.position.set(-0.6*s, -0.5*s, 0); fR.rotation.set(-0.5, 0.2, 1.0);
+            const fRBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat(0x445544)); fRBase.position.y = -0.3; fR.add(fRBase);
+            const fRFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8), mat(0x334433)); fRFin.position.y = -0.9; fRFin.scale.set(1,1,0.2); fR.add(fRFin);
+            seg.add(fR);
+            seg.userData = { fL, fR };
+        }
+        if(i===4 || i===7) {
+            const dF = new THREE.Mesh(new THREE.ConeGeometry(0.15, 1.0, 8), mat(0x334433));
+            dF.position.set(0, 0.8*s + 0.2, -0.2); dF.rotation.x = -0.6; seg.add(dF);
+        }
+        if(i===8) {
+            const tMid = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.8, 8), mat(0x334433)); tMid.position.z = -0.8; tMid.rotation.x = -Math.PI/2; seg.add(tMid);
+            const tTop = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.2, 8), mat(0x334433)); tTop.position.set(0, 0.5, -0.6); tTop.rotation.x = 0.5; seg.add(tTop);
+            const tBot = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.2, 8), mat(0x334433)); tBot.position.set(0, -0.5, -0.6); tBot.rotation.x = -0.5; seg.add(tBot);
+        }
+        parent.add(seg); segs.push(seg); parent = seg;
+    }
+    g.scale.set(1.4, 1.4, 1.4);
+    return { mesh: g, segments: segs, type: 'elegant_swim' };
+}
+
+// 完全に魚化・可動アゴ付きのクリマティウス
 function buildClimatius() {
     const g = new THREE.Group(); const segs = []; let parent = g;
     
@@ -925,6 +986,7 @@ function buildClimatius() {
     eyeL.scale.set(0.5, 1, 1); eyeL.position.set(0.38, 0.1, 0.8); bodyGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.38; bodyGroup.add(eyeR);
     
+    // 自然な形の下顎（円錐を平たく）
     const jaw = new THREE.Group(); jaw.position.set(0, -0.15, 0.2); bodyGroup.add(jaw);
     const jawMesh = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 16), mat(0x7799aa));
     jawMesh.rotation.x = Math.PI/2; jawMesh.position.z = 0.25; jawMesh.scale.set(1, 0.4, 1);
@@ -967,13 +1029,13 @@ function buildTiktaalik() {
     eyeL.position.set(0.4, 0.3, 0.5); headGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.4; headGroup.add(eyeR);
 
-    // 下顎（ヒンジを後ろへ、上顎と平行に配置）
+    // 自然な形の下顎（支点を奥へ、半球形）
     const jaw = new THREE.Group(); 
     jaw.position.set(0, -0.15, 0.2); // 頭蓋骨後方
     headGroup.add(jaw);
     
-    const jawMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 1.4), mat(0x556633));
-    jawMesh.position.set(0, 0, 0.7); // ヒンジからのオフセット
+    const jawMesh = new THREE.Mesh(new THREE.ConeGeometry(0.85, 1.6, 16), mat(0x556633));
+    jawMesh.rotation.x = -Math.PI/2; jawMesh.scale.set(1.0, 0.3, 1.0); jawMesh.position.set(0, -0.05, 0.7);
     jaw.add(jawMesh);
     g.userData.jaw = jaw;
 
@@ -1010,6 +1072,7 @@ function buildStethacanthus() {
     eyeL.position.set(0.6, 0.2, 0.5); headGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.6; headGroup.add(eyeR);
 
+    // 下顎
     const jaw = new THREE.Group(); jaw.position.set(0, -0.3, -1.0); bodyGroup.add(jaw);
     const jawMesh = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.5, 16), mat(0x334455));
     jawMesh.rotation.x = Math.PI/2; jawMesh.position.set(0, -0.2, 0.7); jaw.add(jawMesh);
@@ -1047,7 +1110,8 @@ const DB = {
             { id: 'dick', jp: 'ディッキンソニア', en: 'Dickinsonia', latin: 'Dickinsonia costata', desc: '地球最古の大型多細胞生物の一つ。海底の微生物マットを吸収していました。', build: buildDickinsonia, count: 6, speed: 0.02, yRange: [bottomY, bottomY] },
             { id: 'char', jp: 'チャルニア', en: 'Charnia', latin: 'Charnia masoni', desc: '葉っぱのような姿ですが、動物です。海底に固定され海流に揺れます。', build: buildCharnia, count: 5, speed: 0, yRange: [bottomY, bottomY] },
             { id: 'kimb', jp: 'キンベレラ', en: 'Kimberella', latin: 'Kimberella quadrata', desc: '軟体動物の祖先に近いとされる、ナメクジのように這い回る生物。', build: buildKimberella, count: 5, speed: 0.03, yRange: [bottomY, bottomY] },
-            { id: 'trib', jp: 'トリブラキディウム', en: 'Tribrachidium', latin: 'Tribrachidium heraldicum', desc: '3本の腕が渦を巻く円盤状の不思議な生物。ゆっくり回転します。', build: buildTribrachidium, count: 4, speed: 0, yRange: [bottomY, bottomY] }
+            { id: 'trib', jp: 'トリブラキディウム', en: 'Tribrachidium', latin: 'Tribrachidium heraldicum', desc: '3本の腕が渦を巻く円盤状の不思議な生物。ゆっくり回転します。', build: buildTribrachidium, count: 4, speed: 0, yRange: [bottomY, bottomY] },
+            { id: 'parva', jp: 'パルヴァンコリナ', en: 'Parvancorina', latin: 'Parvancorina minchami', desc: '錨（いかり）や盾のような独特の隆起を持つ、節足動物の祖先とも言われる謎の生物。', build: buildParvancorina, count: 5, speed: 0.02, yRange: [bottomY, bottomY] }
         ],
         rare: { jp: 'スプリギナ', en: 'Spriggina', latin: 'Spriggina floundersi', desc: '【希少】三葉虫の先祖とも言われる「頭」のある生物。明確に前進します。', build: buildSpriggina, speed: 0.05, yRange: [bottomY, bottomY] }
     },
@@ -1055,7 +1119,7 @@ const DB = {
         bg: 0x000a15,
         creatures: [
             { id: 'anom', jp: 'アノマロカリス', en: 'Anomalocaris', latin: 'Anomalocaris canadensis', desc: '脈打つ円形の口と可動する前肢で獲物を捕らえる、カンブリア紀の絶対王者。', build: buildAnomalocaris, count: 4, speed: 0.15, yRange: [-10, 20] },
-            { id: 'opab', jp: 'オパビニア', en: 'Opabinia', latin: 'Opabinia regalis', desc: '5つの眼と長いノズルを持つ、奇妙な造形の代表格。', build: buildOpabinia, count: 5, speed: 0.1, yRange: [-20, 0] },
+            { id: 'opab', jp: 'オパビニア', en: 'Opabinia', latin: 'Opabinia regalis', desc: '5つの眼と上下に動く長いノズルを持つ、奇妙な造形の代表格。', build: buildOpabinia, count: 5, speed: 0.1, yRange: [-20, 0] },
             { id: 'trilo', jp: '三葉虫', en: 'Trilobite', latin: 'Olenoides serratus', desc: '多数の脚をワサワサ動かして海底を這う、古生代を代表する節足動物。', build: buildTrilobite, count: 8, speed: 0.05, yRange: [bottomY, bottomY] },
             { id: 'hallu', jp: 'ハルキゲニア', en: 'Hallucigenia', latin: 'Hallucigenia sparsa', desc: '首を動かして海底のエサを食べる不思議な生物。背中に2対のトゲを持ちます。', build: buildHallucigenia, count: 6, speed: 0.035, yRange: [bottomY, bottomY] },
             { id: 'hurdia', jp: 'フルディア', en: 'Hurdia', latin: 'Hurdia victoria', desc: '巨大な頭部甲殻と熊手状の前肢を持つ、奇抜なラディオドンタ類。', build: buildHurdia, count: 3, speed: 0.12, yRange: [0, 20] },
@@ -1087,6 +1151,7 @@ const DB = {
             { id: 'clim', jp: 'クリマティウス', en: 'Climatius', latin: 'Climatius reticulatus', desc: 'トゲだらけの小さな魚。アゴをパクパクさせながら群れを作って泳ぎます。', build: buildClimatius, count: 12, speed: 0.1, yRange: [-10, 10] },
             { id: 'schin', jp: 'シンダーハンネス', en: 'Schinderhannes', latin: 'Schinderhannes bartelsi', desc: 'デボン紀まで生き延びた最後のアノマロカリス類。巨大な胸ビレで泳ぎます。', build: buildSchinderhannes, count: 2, speed: 0.14, yRange: [5, 20] },
             { id: 'cheiro', jp: 'ケイロレピス', en: 'Cheirolepis', latin: 'Cheirolepis trailli', desc: '現生の魚類に近い最初期の「条鰭類」。サメのような尾ビレで素早く泳ぎます。', build: buildCheirolepis, count: 6, speed: 0.18, yRange: [0, 25] },
+            { id: 'eusthen', jp: 'ユーステノプテロン', en: 'Eusthenopteron', latin: 'Eusthenopteron foordi', desc: '四肢動物への進化の過程を示す、強力な肉鰭を持つ硬骨魚類。', build: buildEusthenopteron, count: 4, speed: 0.12, yRange: [0, 20] },
             { id: 'goniatite', jp: 'ゴニアタイト', en: 'Goniatite', latin: 'Goniatitida', desc: 'アンモナイトの祖先。渦巻状の殻を持ち、中層を漂います。', build: buildGoniatite, count: 4, speed: 0.01, yRange: [0, 15] }
         ],
         rare: { jp: 'ステタカントゥス', en: 'Stethacanthus', latin: 'Stethacanthus altonensis', desc: '【希少】背びれが「アイロン台」の形をした奇妙な古代ザメ。奥を優雅に過ぎます。', build: buildStethacanthus, speed: 0.12, yRange: [0, 15] }
@@ -1200,6 +1265,11 @@ class CreatureObj {
             
             if(this.type === 'elegant_swim' && this.mesh.userData.filterNet) {
                 this.mesh.userData.filterNet.rotation.x = Math.sin(time * 2 + this.phase) * 0.15;
+            }
+            
+            if (this.mesh.userData.jaw) {
+                const jawOpen = Math.max(0, Math.sin(time * 3 + this.phase)) * 0.5;
+                this.mesh.userData.jaw.rotation.x = jawOpen;
             }
 
         } else if(this.type === 'fish_dunk' || this.type === 'fish_shark' || this.type === 'fish_climatius') {
