@@ -90,6 +90,7 @@ let currentEra = '';
 let entities = [];
 let rareEntity = null;
 const envGroup = new THREE.Group(); scene.add(envGroup);
+let sunRays = null;
 
 const foodMesh = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffff00 }));
 const foodLight = new THREE.PointLight(0xffff00, 1.5, 30);
@@ -476,9 +477,11 @@ function buildTrilobite() {
     return { mesh: g, segments: segs, type: 'crawl', offset: 0.3 };
 }
 
+// やわらかい足と可動する首を持つハルキゲニア (カギムシの祖先)
 function buildHallucigenia() {
     const g = new THREE.Group(); const segs = []; let parent = g;
 
+    // 首と頭の結合
     const headGroup = new THREE.Group(); headGroup.position.z = 0.25; g.add(headGroup);
     const neckJoints = []; let currNeck = headGroup;
     for(let n=0; n<4; n++) {
@@ -495,7 +498,7 @@ function buildHallucigenia() {
     g.userData.neckJoints = neckJoints;
 
     for(let i=0; i<8; i++) {
-        const seg = new THREE.Group(); seg.position.z = i === 0 ? 0 : -0.5;
+        const seg = new THREE.Group(); seg.position.z = i === 0 ? 0 : -0.5; // 頭部に密着
         const b = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.5, 8), mat(0xff6688)); 
         b.rotation.x = Math.PI/2; seg.add(b);
         
@@ -507,6 +510,7 @@ function buildHallucigenia() {
 
         const legs = []; for(let j of [-1, 1]) {
             const leg = new THREE.Group(); leg.position.set(0.15*j, -0.1, 0); 
+            // やわらかい足（球体の連結）
             for(let l=0; l<4; l++) {
                 const fleshy = new THREE.Mesh(new THREE.SphereGeometry(0.05 - l*0.005, 8, 8), mat(0xff6688));
                 fleshy.position.y = -0.15 * l; leg.add(fleshy);
@@ -589,18 +593,22 @@ function buildMarrella() {
 function buildAstraspis() {
     const g = new THREE.Group(); const segs = []; let parent = g;
     const bodyGroup = new THREE.Group(); g.add(bodyGroup);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 12), mat(0x887755, 0, 0.6));
-    head.scale.set(1.0, 0.6, 1.4); bodyGroup.add(head);
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12), eyeMat); eyeL.position.set(0.8, 0.2, 1.0); head.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x = -0.8; head.add(eyeR);
-    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat);
-    mouth.scale.set(1.5, 0.5, 1); mouth.position.set(0, -0.3, 1.3); head.add(mouth);
+    
+    // 星型の突起がある分厚い装甲板 (頭・胴体) - 扁平な半球
+    const head = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 16, 0, Math.PI*2, 0, Math.PI*0.7), mat(0x887755, 0, 0.6));
+    head.scale.set(1.0, 0.5, 1.2); bodyGroup.add(head);
+    
+    // 黒丸の目
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12), eyeMat); eyeL.position.set(1.1, 0.2, 0.8); bodyGroup.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = -1.1; bodyGroup.add(eyeR);
+    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat); mouth.scale.set(1.5, 0.5, 1); mouth.position.set(0, -0.3, 1.6); bodyGroup.add(mouth);
 
+    // 尾部 (オタマジャクシ風)
     const tailGroup = new THREE.Group(); tailGroup.position.z = -1.2; g.add(tailGroup);
-    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.6, 2.0, 12), mat(0x776644));
-    tail.rotation.x = -Math.PI/2; tail.position.z = -1.0; tailGroup.add(tail);
-    const tailFin = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.2, 1.0), mat(0x776644));
-    tailFin.position.set(0, 0, -1.8); tailGroup.add(tailFin);
+    const tailStalk = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.5, 12), mat(0x776644));
+    tailStalk.rotation.x = -Math.PI/2; tailStalk.position.z = -1.0; tailGroup.add(tailStalk);
+    const tailFin = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.5, 1.5), mat(0x776644));
+    tailFin.position.set(0, 0, -2.0); tailGroup.add(tailFin);
 
     g.userData.body = bodyGroup; g.userData.tail = tailGroup;
     g.scale.set(1.2, 1.2, 1.2);
@@ -767,6 +775,7 @@ function buildCheirolepis() {
     eyeL.position.set(0.3, 0.2, 0.5); headGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.3; headGroup.add(eyeR);
 
+    // 下顎
     const jaw = new THREE.Group(); jaw.position.set(0, -0.2, 0.2); headGroup.add(jaw);
     const jawMesh = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 16), mat(0x445566));
     jawMesh.rotation.x = Math.PI/2; jawMesh.position.set(0, -0.1, 0.5); jawMesh.scale.set(1, 0.5, 1);
@@ -793,6 +802,56 @@ function buildCheirolepis() {
     g.userData.tail = tailGroup;
     g.scale.set(1.2, 1.2, 1.2);
     return { mesh: g, segments: [], type: 'fish_shark' };
+}
+
+function buildEusthenopteron() {
+    const g = new THREE.Group(); const bodyGroup = new THREE.Group(); g.add(bodyGroup);
+    
+    const headGroup = new THREE.Group(); headGroup.position.z = 2.0; bodyGroup.add(headGroup);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.5, 16), mat(0x556655));
+    head.rotation.x = Math.PI/2; head.position.z = 0.5; headGroup.add(head);
+    
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12), eyeMat); eyeL.position.set(0.4, 0.3, 0.3); headGroup.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = -0.4; headGroup.add(eyeR);
+    
+    // 下顎
+    const jaw = new THREE.Group(); jaw.position.set(0, -0.2, -0.3); headGroup.add(jaw);
+    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x445544));
+    jawMesh.rotation.x = Math.PI; jawMesh.scale.set(1.0, 0.2, 1.8); jawMesh.position.set(0, 0, 0.7);
+    jaw.add(jawMesh);
+    g.userData.jaw = jaw;
+
+    // 胴体
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 16), mat(0x556655));
+    torso.scale.set(0.8, 1.0, 3.0); bodyGroup.add(torso);
+    
+    // 肉鰭 (Lobe-fins)
+    const fL = new THREE.Group(); fL.position.set(0.8, -0.5, 1.0); fL.rotation.set(-0.5, -0.2, -1.0);
+    const fLBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat(0x445544)); fLBase.position.y = -0.3; fL.add(fLBase);
+    const fLFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8), mat(0x334433)); fLFin.position.y = -0.9; fLFin.scale.set(1,1,0.2); fL.add(fLFin);
+    bodyGroup.add(fL);
+    
+    const fR = new THREE.Group(); fR.position.set(-0.8, -0.5, 1.0); fR.rotation.set(-0.5, 0.2, 1.0);
+    const fRBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat(0x445544)); fRBase.position.y = -0.3; fR.add(fRBase);
+    const fRFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8), mat(0x334433)); fRFin.position.y = -0.9; fRFin.scale.set(1,1,0.2); fR.add(fRFin);
+    bodyGroup.add(fR);
+
+    const pL = fL.clone(); pL.position.set(0.6, -0.5, -1.5); bodyGroup.add(pL);
+    const pR = fR.clone(); pR.position.set(-0.6, -0.5, -1.5); bodyGroup.add(pR);
+
+    const tailGroup = new THREE.Group(); tailGroup.position.z = -3.0; g.add(tailGroup);
+    const tailStalk = new THREE.Mesh(new THREE.ConeGeometry(0.4, 2.0, 16), mat(0x556655));
+    tailStalk.rotation.x = -Math.PI/2; tailStalk.position.z = -1.0; tailGroup.add(tailStalk);
+    
+    const tMid = new THREE.Mesh(new THREE.ConeGeometry(0.1, 2.5, 8), mat(0x334433)); tMid.position.z = -1.5; tMid.rotation.x = -Math.PI/2; tailGroup.add(tMid);
+    const tTop = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.5, 8), mat(0x334433)); tTop.position.set(0, 0.6, -1.0); tTop.rotation.x = 0.5; tailGroup.add(tTop);
+    const tBot = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.5, 8), mat(0x334433)); tBot.position.set(0, -0.6, -1.0); tBot.rotation.x = -0.5; tailGroup.add(tBot);
+
+    g.userData.body = bodyGroup;
+    g.userData.tail = tailGroup;
+    g.userData.fins = [fL, fR, pL, pR]; 
+    g.scale.set(1.4, 1.4, 1.4);
+    return { mesh: g, segments: [], type: 'fish_lobe' }; 
 }
 
 function buildSchinderhannes() {
@@ -858,26 +917,26 @@ function buildSchinderhannes() {
     return { mesh: g, segments: segs, type: 'swim_anomalocaris' };
 }
 
-
 function buildDunkleosteus() {
-    const g = new THREE.Group(); const segs = []; let parent = g;
-    const headGroup = new THREE.Group(); g.add(headGroup);
+    const g = new THREE.Group(); const bodyGroup = new THREE.Group(); g.add(bodyGroup);
     
+    const headGroup = new THREE.Group(); headGroup.position.z = 2.0; bodyGroup.add(headGroup);
     const skull = new THREE.Mesh(new THREE.SphereGeometry(2.2, 24, 16), mat(0x444444, 0, 0.2)); 
-    skull.scale.set(0.8, 1.0, 1.2); skull.position.set(0, 0.5, 1.0); headGroup.add(skull);
+    skull.scale.set(0.8, 1.0, 1.2); headGroup.add(skull);
     
     const armorPlate = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.5, 4.0, 8), mat(0x555555));
     armorPlate.rotation.x = Math.PI/2; armorPlate.position.set(0, 0.6, -0.5); headGroup.add(armorPlate);
     
     const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.2), eyeMat); 
-    eyeL.position.set(1.5, 1.0, 1.8); headGroup.add(eyeL);
+    eyeL.position.set(1.5, 1.0, 0.8); headGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -1.5; headGroup.add(eyeR);
 
     const teethTop = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.8, 4), mat(0xddddcc));
-    teethTop.rotation.x = Math.PI; teethTop.position.set(1.2, -0.8, 2.0); headGroup.add(teethTop);
+    teethTop.rotation.x = Math.PI; teethTop.position.set(1.2, -0.8, 1.0); headGroup.add(teethTop);
     const teethTopR = teethTop.clone(); teethTopR.position.x = -1.2; headGroup.add(teethTopR);
 
-    const jaw = new THREE.Group(); jaw.position.set(0, -0.5, 1.0); headGroup.add(jaw);
+    // 下顎（ヒンジを後方へ）
+    const jaw = new THREE.Group(); jaw.position.set(0, -0.5, 0.0); headGroup.add(jaw);
     const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(1.8, 16, 16), mat(0x333333)); 
     jawMesh.scale.set(0.7, 0.5, 1.2); jawMesh.position.set(0, -0.2, 1.0); jaw.add(jawMesh);
     
@@ -888,23 +947,23 @@ function buildDunkleosteus() {
     g.userData.jaw = jaw; 
 
     const torso = new THREE.Mesh(new THREE.SphereGeometry(2.5, 24, 24), mat(0x555555, 0, 0.3));
-    torso.scale.set(0.8, 1.0, 2.2); torso.position.z = -2.5; g.add(torso);
+    torso.scale.set(0.8, 1.0, 2.2); torso.position.z = -1.5; bodyGroup.add(torso);
 
     const pFinL = new THREE.Mesh(new THREE.ConeGeometry(0.2, 4.0, 8), mat(0x444444));
-    pFinL.rotation.z = -Math.PI/3; pFinL.rotation.y = -0.2; pFinL.position.set(2.0, -1.5, -1.5); g.add(pFinL);
-    const pFinR = pFinL.clone(); pFinR.rotation.z = Math.PI/3; pFinR.rotation.y = 0.2; pFinR.position.x = -2.0; g.add(pFinR);
+    pFinL.rotation.z = -Math.PI/3; pFinL.rotation.y = -0.2; pFinL.position.set(2.0, -1.5, -0.5); bodyGroup.add(pFinL);
+    const pFinR = pFinL.clone(); pFinR.rotation.z = Math.PI/3; pFinR.rotation.y = 0.2; pFinR.position.x = -2.0; bodyGroup.add(pFinR);
 
     const dFin = new THREE.Mesh(new THREE.ConeGeometry(0.2, 3.0, 8), mat(0x444444));
-    dFin.position.set(0, 2.5, -3.0); dFin.rotation.x = -0.5; g.add(dFin);
+    dFin.position.set(0, 2.5, -2.0); dFin.rotation.x = -0.5; bodyGroup.add(dFin);
 
-    const tailGroup = new THREE.Group(); tailGroup.position.set(0, 0, -7.5); g.add(tailGroup);
+    const tailGroup = new THREE.Group(); tailGroup.position.set(0, 0, -6.5); g.add(tailGroup);
     const tailStalk = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 0.4, 4.0, 16), mat(0x555555));
     tailStalk.rotation.x = Math.PI/2; tailStalk.position.z = -2.0; tailGroup.add(tailStalk);
     
     const tailTop = new THREE.Mesh(new THREE.ConeGeometry(0.1, 5, 8), mat(0x444444)); tailTop.position.set(0, 2.0, -4.0); tailTop.rotation.x = 0.5; tailGroup.add(tailTop);
     const tailBot = new THREE.Mesh(new THREE.ConeGeometry(0.1, 3, 8), mat(0x444444)); tailBot.position.set(0, -1.0, -3.5); tailBot.rotation.x = -0.5; tailGroup.add(tailBot);
 
-    g.userData.body = torso;
+    g.userData.body = bodyGroup;
     g.userData.tail = tailGroup;
     g.scale.set(1.2, 1.2, 1.2);
     return { mesh: g, segments: [], type: 'fish_dunk' };
@@ -930,55 +989,8 @@ function buildBothriolepis() {
     return { mesh: g, segments: segs, type: 'floor', offset: 0.2 };
 }
 
-function buildEusthenopteron() {
-    const g = new THREE.Group(); const segs = []; let parent = g;
-    const headGroup = new THREE.Group(); headGroup.position.z = 0.5; g.add(headGroup);
-    const head = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.5, 16), mat(0x556655));
-    head.rotation.x = Math.PI/2; headGroup.add(head);
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12), eyeMat); eyeL.position.set(0.4, 0.3, 0.3); headGroup.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x = -0.4; headGroup.add(eyeR);
-    
-    const jaw = new THREE.Group(); jaw.position.set(0, -0.2, -0.3); headGroup.add(jaw);
-    const jawMesh = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.2, 16), mat(0x445544));
-    jawMesh.rotation.x = Math.PI/2; jawMesh.position.set(0, -0.1, 0.5); jawMesh.scale.set(1, 0.5, 1); jaw.add(jawMesh);
-    g.userData.jaw = jaw;
-
-    for(let i=0; i<9; i++) {
-        const s = 1 - (i/9)*0.6; const seg = new THREE.Group(); seg.position.z = -0.8;
-        const b = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16), mat(0x556655));
-        b.scale.set(s*0.8, s*1.0, 1.0); seg.add(b);
-        
-        if(i===1 || i===5) { 
-            const fL = new THREE.Group(); fL.position.set(0.6*s, -0.5*s, 0); fL.rotation.set(-0.5, -0.2, -1.0);
-            const fLBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat(0x445544)); fLBase.position.y = -0.3; fL.add(fLBase);
-            const fLFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8), mat(0x334433)); fLFin.position.y = -0.9; fLFin.scale.set(1,1,0.2); fL.add(fLFin);
-            seg.add(fL);
-            const fR = new THREE.Group(); fR.position.set(-0.6*s, -0.5*s, 0); fR.rotation.set(-0.5, 0.2, 1.0);
-            const fRBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat(0x445544)); fRBase.position.y = -0.3; fR.add(fRBase);
-            const fRFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8), mat(0x334433)); fRFin.position.y = -0.9; fRFin.scale.set(1,1,0.2); fR.add(fRFin);
-            seg.add(fR);
-            seg.userData = { fL, fR };
-        }
-        if(i===4 || i===7) {
-            const dF = new THREE.Mesh(new THREE.ConeGeometry(0.15, 1.0, 8), mat(0x334433));
-            dF.position.set(0, 0.8*s + 0.2, -0.2); dF.rotation.x = -0.6; seg.add(dF);
-        }
-        if(i===8) {
-            const tMid = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.8, 8), mat(0x334433)); tMid.position.z = -0.8; tMid.rotation.x = -Math.PI/2; seg.add(tMid);
-            const tTop = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.2, 8), mat(0x334433)); tTop.position.set(0, 0.5, -0.6); tTop.rotation.x = 0.5; seg.add(tTop);
-            const tBot = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.2, 8), mat(0x334433)); tBot.position.set(0, -0.5, -0.6); tBot.rotation.x = -0.5; seg.add(tBot);
-        }
-        parent.add(seg); segs.push(seg); parent = seg;
-    }
-    g.scale.set(1.4, 1.4, 1.4);
-    return { mesh: g, segments: segs, type: 'elegant_swim' };
-}
-
-// 完全に魚化・可動アゴ付きのクリマティウス
 function buildClimatius() {
-    const g = new THREE.Group(); const segs = []; let parent = g;
-    
-    const bodyGroup = new THREE.Group(); g.add(bodyGroup);
+    const g = new THREE.Group(); const bodyGroup = new THREE.Group(); g.add(bodyGroup);
     const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), mat(0x88aabb));
     body.scale.set(0.8, 1.0, 2.5); bodyGroup.add(body);
 
@@ -986,10 +998,10 @@ function buildClimatius() {
     eyeL.scale.set(0.5, 1, 1); eyeL.position.set(0.38, 0.1, 0.8); bodyGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.38; bodyGroup.add(eyeR);
     
-    // 自然な形の下顎（円錐を平たく）
+    // 平たく半円の下顎
     const jaw = new THREE.Group(); jaw.position.set(0, -0.15, 0.2); bodyGroup.add(jaw);
-    const jawMesh = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 16), mat(0x7799aa));
-    jawMesh.rotation.x = Math.PI/2; jawMesh.position.z = 0.25; jawMesh.scale.set(1, 0.4, 1);
+    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x7799aa));
+    jawMesh.rotation.x = Math.PI; jawMesh.scale.set(1.0, 0.2, 1.5); jawMesh.position.set(0, 0, 0.5);
     jaw.add(jawMesh);
     g.userData.jaw = jaw;
 
@@ -1013,10 +1025,9 @@ function buildClimatius() {
     const tailBot = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.6, 8), mat(0x88aabb));
     tailBot.position.set(0, -0.2, -0.2); tailBot.rotation.x = -0.5; tailGroup.add(tailBot);
 
-    g.userData.body = bodyGroup;
-    g.userData.tail = tailGroup;
+    g.userData.body = bodyGroup; g.userData.tail = tailGroup;
     g.scale.set(1.5, 1.5, 1.5);
-    return { mesh: g, segments: segs, type: 'fish_climatius' }; 
+    return { mesh: g, segments: [], type: 'fish_climatius' }; 
 }
 
 function buildTiktaalik() {
@@ -1029,13 +1040,16 @@ function buildTiktaalik() {
     eyeL.position.set(0.4, 0.3, 0.5); headGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.4; headGroup.add(eyeR);
 
-    // 自然な形の下顎（支点を奥へ、半球形）
+    // 平たい半円板状の下顎、支点は頭蓋骨後方
     const jaw = new THREE.Group(); 
-    jaw.position.set(0, -0.15, 0.2); // 頭蓋骨後方
+    jaw.position.set(0, -0.15, -0.2); // 頭蓋骨後方(首側)にヒンジを置く
     headGroup.add(jaw);
     
-    const jawMesh = new THREE.Mesh(new THREE.ConeGeometry(0.85, 1.6, 16), mat(0x556633));
-    jawMesh.rotation.x = -Math.PI/2; jawMesh.scale.set(1.0, 0.3, 1.0); jawMesh.position.set(0, -0.05, 0.7);
+    // 半球を変形させたU字の顎
+    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x556633));
+    jawMesh.rotation.x = Math.PI; // 逆さお椀
+    jawMesh.scale.set(1.0, 0.2, 1.3); // 平たくする
+    jawMesh.position.set(0, 0, 0.9); // 支点からのオフセット（前に突き出す）
     jaw.add(jawMesh);
     g.userData.jaw = jaw;
 
@@ -1058,8 +1072,7 @@ function buildTiktaalik() {
 }
 
 function buildStethacanthus() { 
-    const g = new THREE.Group();
-    const bodyGroup = new THREE.Group(); g.add(bodyGroup);
+    const g = new THREE.Group(); const bodyGroup = new THREE.Group(); g.add(bodyGroup);
     
     const torso = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), mat(0x445566));
     torso.scale.set(0.8, 1.1, 3.0); bodyGroup.add(torso);
@@ -1119,7 +1132,7 @@ const DB = {
         bg: 0x000a15,
         creatures: [
             { id: 'anom', jp: 'アノマロカリス', en: 'Anomalocaris', latin: 'Anomalocaris canadensis', desc: '脈打つ円形の口と可動する前肢で獲物を捕らえる、カンブリア紀の絶対王者。', build: buildAnomalocaris, count: 4, speed: 0.15, yRange: [-10, 20] },
-            { id: 'opab', jp: 'オパビニア', en: 'Opabinia', latin: 'Opabinia regalis', desc: '5つの眼と上下に動く長いノズルを持つ、奇妙な造形の代表格。', build: buildOpabinia, count: 5, speed: 0.1, yRange: [-20, 0] },
+            { id: 'opab', jp: 'オパビニア', en: 'Opabinia', latin: 'Opabinia regalis', desc: '5つの眼と上下にうねる長いノズルを持つ、奇妙な造形の代表格。', build: buildOpabinia, count: 5, speed: 0.1, yRange: [-20, 0] },
             { id: 'trilo', jp: '三葉虫', en: 'Trilobite', latin: 'Olenoides serratus', desc: '多数の脚をワサワサ動かして海底を這う、古生代を代表する節足動物。', build: buildTrilobite, count: 8, speed: 0.05, yRange: [bottomY, bottomY] },
             { id: 'hallu', jp: 'ハルキゲニア', en: 'Hallucigenia', latin: 'Hallucigenia sparsa', desc: '首を動かして海底のエサを食べる不思議な生物。背中に2対のトゲを持ちます。', build: buildHallucigenia, count: 6, speed: 0.035, yRange: [bottomY, bottomY] },
             { id: 'hurdia', jp: 'フルディア', en: 'Hurdia', latin: 'Hurdia victoria', desc: '巨大な頭部甲殻と熊手状の前肢を持つ、奇抜なラディオドンタ類。', build: buildHurdia, count: 3, speed: 0.12, yRange: [0, 20] },
@@ -1138,7 +1151,7 @@ const DB = {
             { id: 'asaphus', jp: 'アサフス', en: 'Asaphus', latin: 'Asaphus kowalewskii', desc: '潜望鏡のように長く突き出た眼で泥の中から周囲を警戒する三葉虫。', build: buildAsaphus, count: 5, speed: 0.04, yRange: [bottomY, bottomY] },
             { id: 'macl', jp: 'マクルリテス', en: 'Maclurites', latin: 'Maclurites sp.', desc: '片面が真っ平らな奇妙な巻貝。海底に張り付くように這い回ります。', build: buildMaclurites, count: 4, speed: 0.015, yRange: [bottomY, bottomY] },
             { id: 'grapto', jp: 'フデイシ（筆石）', en: 'Graptolite', latin: 'Didymograptus', desc: '海中を浮遊する半索動物の群体。V字型の枝に無数の個体が住んでいました。', build: buildGraptolite, count: 5, speed: 0.005, yRange: [5, 25] },
-            { id: 'astraspis', jp: 'アストラスピス', en: 'Astraspis', latin: 'Astraspis desiderata', desc: '分厚い装甲板とオタマジャクシのような尾を持つ、北米の初期無顎類。', build: buildAstraspis, count: 4, speed: 0.04, yRange: [-10, 5] }
+            { id: 'astraspis', jp: 'アストラスピス', en: 'Astraspis', latin: 'Astraspis desiderata', desc: '分厚い装甲板とオタマジャクシのような尾を持つ、北米の初期無顎類。', build: buildAstraspis, count: 5, speed: 0.04, yRange: [-10, 5] }
         ],
         rare: { jp: 'メガログラプトゥス', en: 'Megalograptus', latin: 'Megalograptus ohioensis', desc: '【希少】重戦車のように海底近くを横切る巨大なウミサソリ。', build: buildMegalograptus, speed: 0.15, yRange: [-30, -20] }
     },
@@ -1272,18 +1285,23 @@ class CreatureObj {
                 this.mesh.userData.jaw.rotation.x = jawOpen;
             }
 
-        } else if(this.type === 'fish_dunk' || this.type === 'fish_shark' || this.type === 'fish_climatius') {
-            const sway = Math.sin(time * 3 + this.phase);
+        } else if(this.type === 'fish_dunk' || this.type === 'fish_shark' || this.type === 'fish_climatius' || this.type === 'fish_lobe') {
+            const sway = Math.sin(time * 4 + this.phase);
             if (this.mesh.userData.body) {
-                this.mesh.userData.body.rotation.y = sway * 0.1;
-                this.mesh.userData.body.rotation.z = sway * 0.05; 
+                this.mesh.userData.body.rotation.y = sway * 0.08;
+                this.mesh.userData.body.rotation.z = sway * 0.02; 
             }
             if (this.mesh.userData.tail) {
-                this.mesh.userData.tail.rotation.y = -sway * 0.3; 
+                this.mesh.userData.tail.rotation.y = -sway * 0.25; 
             }
             if (this.mesh.userData.jaw) {
                 const jawOpen = Math.max(0, Math.sin(time * 1.5 + this.phase) - 0.7) * 1.0; 
                 this.mesh.userData.jaw.rotation.x = jawOpen;
+            }
+            if (this.mesh.userData.fins) {
+                this.mesh.userData.fins.forEach((fin, idx) => {
+                    fin.rotation.z += Math.sin(time * 5 + this.phase + idx) * 0.02;
+                });
             }
         } else if(this.type === 'swim_tiktaalik') {
             this.segments.forEach((seg, i) => {
@@ -1294,7 +1312,7 @@ class CreatureObj {
                 }
             });
             if (this.mesh.userData.jaw) {
-                this.mesh.userData.jaw.rotation.x = Math.max(0, Math.sin(time * 2 + this.phase)) * 0.5;
+                this.mesh.userData.jaw.rotation.x = Math.max(0, Math.sin(time * 2 + this.phase)) * 0.6;
             }
         } else if(this.type === 'eurypterid') {
             this.segments.forEach((seg, i) => {
@@ -1366,12 +1384,12 @@ function switchEra(era) {
     while(envGroup.children.length > 0) envGroup.remove(envGroup.children[0]);
 
     // 砂紋のある海底地形の生成
-    const planeGeo = new THREE.PlaneGeometry(600, 600, 60, 60);
+    const planeGeo = new THREE.PlaneGeometry(600, 600, 80, 80);
     const pos = planeGeo.attributes.position;
     for(let i=0; i<pos.count; i++) {
         const x = pos.getX(i);
         const y = pos.getY(i);
-        const zBump = Math.sin(x*0.05)*2 + Math.cos(y*0.05)*2 + Math.sin(x*0.1 + y*0.1)*1;
+        const zBump = Math.sin(x*0.1)*1.5 + Math.cos(y*0.1)*1.5 + Math.sin(x*0.05 + y*0.05)*2;
         pos.setZ(i, zBump);
     }
     planeGeo.computeVertexNormals();
@@ -1382,6 +1400,23 @@ function switchEra(era) {
     
     const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(200, 200, 300, 32, 1, true), new THREE.MeshBasicMaterial({ color: DB[era].bg, side: THREE.BackSide, transparent: true, opacity: 0.8 }));
     cylinder.position.y = 50; envGroup.add(cylinder);
+
+    // 水中の太陽光（God Rays）演出
+    sunRays = new THREE.Group();
+    const rayGeo = new THREE.CylinderGeometry(10, 60, 200, 16, 1, true);
+    const rayColor = era === 'cambrian' ? 0xcceeff : era === 'ordovician' ? 0x88ccff : 0xaaffcc;
+    const rayMat = new THREE.MeshBasicMaterial({ 
+        color: rayColor, transparent: true, opacity: 0.04, 
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide 
+    });
+    for(let i=0; i<6; i++) {
+        const ray = new THREE.Mesh(rayGeo, rayMat);
+        ray.position.set((Math.random()-0.5)*150, 50, (Math.random()-0.5)*150);
+        ray.rotation.x = (Math.random()-0.5)*0.3;
+        ray.rotation.z = (Math.random()-0.5)*0.3;
+        sunRays.add(ray);
+    }
+    envGroup.add(sunRays);
 
     if(era === 'ediacaran') {
         for(let i=0; i<15; i++) {
@@ -1506,6 +1541,15 @@ function animate() {
         }
     }
     particles.geometry.attributes.position.needsUpdate = true;
+
+    // 太陽光（God Rays）のアニメーション
+    if (sunRays) {
+        sunRays.rotation.y += 0.001;
+        sunRays.children.forEach((ray, i) => {
+            ray.rotation.x = Math.sin(time * 0.5 + i) * 0.05;
+            ray.rotation.z = Math.cos(time * 0.3 + i) * 0.05;
+        });
+    }
 
     camRadius += (targetCamRadius - camRadius) * 0.1;
     const zoomRatio = Math.max(0, Math.min(1, (camRadius - 20) / 80)); 
