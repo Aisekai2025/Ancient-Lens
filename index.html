@@ -446,11 +446,11 @@ function buildTrilobite() {
     return { mesh: g, segments: segs, type: 'crawl', offset: 0.3 };
 }
 
-// やわらかい足と可動する首を持つハルキゲニア
+// やわらかい足と可動する首を持つハルキゲニア (カギムシの祖先)
 function buildHallucigenia() {
     const g = new THREE.Group(); const segs = []; let parent = g;
 
-    const headGroup = new THREE.Group(); headGroup.position.z = 0.2; g.add(headGroup);
+    const headGroup = new THREE.Group(); headGroup.position.z = 0.25; g.add(headGroup);
     const neckJoints = []; let currNeck = headGroup;
     for(let n=0; n<4; n++) {
         const nj = new THREE.Group(); nj.position.z = 0.15;
@@ -458,7 +458,7 @@ function buildHallucigenia() {
         nj.add(nm); currNeck.add(nj); currNeck = nj; neckJoints.push(nj);
     }
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), mat(0xff6688));
-    head.position.z = 0.1; currNeck.add(head);
+    head.position.z = 0.15; currNeck.add(head);
 
     const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.02, 8, 8), mat(0x111111));
     mouth.position.set(0, -0.08, 0.12); mouth.rotation.x = Math.PI/2; head.add(mouth);
@@ -507,7 +507,6 @@ function buildPikaia() {
     return { mesh: g, segments: segs, type: 'snake' };
 }
 
-// 柄眼を持つネクトカリス
 function buildNectocaris() {
     const g = new THREE.Group(); const segs = [];
     const bodyGroup = new THREE.Group(); g.add(bodyGroup);
@@ -515,7 +514,6 @@ function buildNectocaris() {
     bodyMesh.scale.set(1.5, 0.2, 2); bodyGroup.add(bodyMesh);
 
     for(let side of [-1, 1]) {
-        // 体から伸びる眼柄
         const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5), mat(0xffaa88));
         stalk.position.set(0.4*side, 0.1, 1.8); stalk.rotation.x = Math.PI/2; stalk.rotation.z = side * -0.5; g.add(stalk);
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.2), eyeMat); 
@@ -531,7 +529,6 @@ function buildNectocaris() {
     return { mesh: g, segments: segs, type: 'fast_swim' };
 }
 
-// 新生物：マルレラ
 function buildMarrella() {
     const g = new THREE.Group(); const segs = []; let parent = g;
     const head = new THREE.Group();
@@ -663,6 +660,15 @@ function buildAsaphus() {
     }
     return { mesh: g, segments: segs, type: 'crawl', offset: 0.4 };
 }
+function buildMaclurites() {
+    const g = new THREE.Group(); const shellGroup = new THREE.Group();
+    for(let i=0; i<4; i++) {
+        const torus = new THREE.Mesh(new THREE.TorusGeometry(0.8 - i*0.18, 0.35 - i*0.06, 12, 24), mat(0xaabb88));
+        torus.rotation.x = Math.PI/2; torus.position.y = -i*0.15; shellGroup.add(torus);
+    }
+    shellGroup.position.y = 0.3; g.add(shellGroup);
+    return { mesh: g, segments: [shellGroup], type: 'floor', offset: 0 }; 
+}
 
 function buildMegalograptus() {
     const g = new THREE.Group(); const segs = []; let parent = g;
@@ -782,7 +788,7 @@ function buildSchinderhannes() {
         const armJoints = [];
         for(let k=0; k<4; k++) {
             const joint = new THREE.Group(); joint.position.z = 0.2;
-            joint.rotation.x = 0.6; // 普段は丸める
+            joint.rotation.x = 0.6; // 丸める
             const part = new THREE.Mesh(new THREE.CylinderGeometry(0.08 - k*0.01, 0.08 - k*0.01, 0.25, 8), mat(0x224455)); 
             part.rotation.x = Math.PI/2; part.position.z = 0.1;
             const spine = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.3), mat(0x112233)); 
@@ -822,8 +828,6 @@ function buildSchinderhannes() {
     return { mesh: g, segments: segs, type: 'swim_anomalocaris' };
 }
 
-
-// 完全流線型のダンクルオステウス
 function buildDunkleosteus() {
     const g = new THREE.Group(); const segs = []; let parent = g;
     const headGroup = new THREE.Group(); g.add(headGroup);
@@ -950,10 +954,10 @@ function buildTiktaalik() {
     eyeL.position.set(0.4, 0.3, 0.5); headGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.4; headGroup.add(eyeR);
 
-    // 自然な形の下顎（ワニのように）
-    const jaw = new THREE.Group(); jaw.position.set(0, -0.15, 0.6); headGroup.add(jaw);
+    // 自然な形の下顎（支点を奥へ）
+    const jaw = new THREE.Group(); jaw.position.set(0, -0.15, 0.4); headGroup.add(jaw);
     const jawMesh = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.4, 16), mat(0x556633));
-    jawMesh.rotation.x = Math.PI/2; jawMesh.scale.set(1, 0.3, 1); jawMesh.position.z = 0.5;
+    jawMesh.rotation.x = Math.PI/2; jawMesh.scale.set(1, 0.3, 1); jawMesh.position.z = 0.7;
     jaw.add(jawMesh);
     g.userData.jaw = jaw;
 
@@ -1042,9 +1046,9 @@ const DB = {
             { id: 'hurdia', jp: 'フルディア', en: 'Hurdia', latin: 'Hurdia victoria', desc: '巨大な頭部甲殻と熊手状の前肢を持つ、奇抜なラディオドンタ類。', build: buildHurdia, count: 3, speed: 0.12, yRange: [0, 20] },
             { id: 'wiwa', jp: 'ウィワクシア', en: 'Wiwaxia', latin: 'Wiwaxia corrugata', desc: '硬い鱗と長大な棘で身を守る、ナメクジのような底生生物。', build: buildWiwaxia, count: 5, speed: 0.02, yRange: [bottomY, bottomY] },
             { id: 'pika', jp: 'ピカイア', en: 'Pikaia', latin: 'Pikaia gracilens', desc: '脊索を持つ、我々脊椎動物の遠い祖先。体をくねらせて泳ぎます。', build: buildPikaia, count: 7, speed: 0.08, yRange: [-25, -5] },
-            { id: 'marrella', jp: 'マルレラ', en: 'Marrella', latin: 'Marrella splendens', desc: '後方に伸びる巨大なトゲを持つ、バージェス頁岩で最も繁栄した節足動物。', build: buildMarrella, count: 8, speed: 0.09, yRange: [-10, 10] }
+            { id: 'marrella', jp: 'マルレラ', en: 'Marrella', latin: 'Marrella splendens', desc: '後方に伸びる巨大なトゲを持つ、バージェス頁岩で最も繁栄した節足動物。', build: buildMarrella, count: 8, speed: 0.09, yRange: [bottomY, bottomY] }
         ],
-        rare: { jp: 'ネクトカリス', en: 'Nectocaris', latin: 'Nectocaris pteryx', desc: '【希少】イカのような姿で、漏斗から水を噴射して高速で横切ります。', build: buildNectocaris, speed: 0.3, yRange: [-10, 10] }
+        rare: { jp: 'ネクトカリス', en: 'Nectocaris', latin: 'Nectocaris pteryx', desc: '【希少】柄のついた眼と漏斗を持ち、イカのように高速で横切ります。', build: buildNectocaris, speed: 0.3, yRange: [-10, 10] }
     },
     ordovician: {
         bg: 0x001122,
@@ -1067,7 +1071,8 @@ const DB = {
             { id: 'both', jp: 'ボトリオレピス', en: 'Bothriolepis', latin: 'Bothriolepis canadensis', desc: '多関節の腕を持つドーム型の装甲魚。カニのように海底を這います。', build: buildBothriolepis, count: 6, speed: 0.03, yRange: [bottomY, bottomY] },
             { id: 'clim', jp: 'クリマティウス', en: 'Climatius', latin: 'Climatius reticulatus', desc: 'トゲだらけの小さな魚。アゴをパクパクさせながら群れを作って泳ぎます。', build: buildClimatius, count: 12, speed: 0.1, yRange: [-10, 10] },
             { id: 'schin', jp: 'シンダーハンネス', en: 'Schinderhannes', latin: 'Schinderhannes bartelsi', desc: 'デボン紀まで生き延びた最後のアノマロカリス類。巨大な胸ビレで泳ぎます。', build: buildSchinderhannes, count: 2, speed: 0.14, yRange: [5, 20] },
-            { id: 'cheiro', jp: 'ケイロレピス', en: 'Cheirolepis', latin: 'Cheirolepis trailli', desc: '現生の魚類に近い最初期の「条鰭類」。サメのような尾ビレで素早く泳ぎます。', build: buildCheirolepis, count: 6, speed: 0.18, yRange: [0, 25] }
+            { id: 'cheiro', jp: 'ケイロレピス', en: 'Cheirolepis', latin: 'Cheirolepis trailli', desc: '現生の魚類に近い最初期の「条鰭類」。サメのような尾ビレで素早く泳ぎます。', build: buildCheirolepis, count: 6, speed: 0.18, yRange: [0, 25] },
+            { id: 'goniatite', jp: 'ゴニアタイト', en: 'Goniatite', latin: 'Goniatitida', desc: 'アンモナイトの祖先。渦巻状の殻を持ち、中層を漂います。', build: buildGoniatite, count: 4, speed: 0.01, yRange: [0, 15] }
         ],
         rare: { jp: 'ステタカントゥス', en: 'Stethacanthus', latin: 'Stethacanthus altonensis', desc: '【希少】背びれが「アイロン台」の形をした奇妙な古代ザメ。奥を優雅に過ぎます。', build: buildStethacanthus, speed: 0.12, yRange: [0, 15] }
     }
@@ -1157,7 +1162,7 @@ class CreatureObj {
             if(this.mesh.userData.tSegs) {
                 this.mesh.userData.tSegs.forEach((ps, i) => { 
                     ps.rotation.y = Math.sin(time*3 + i*0.2 + this.phase)*0.2; 
-                    ps.rotation.x = Math.sin(time*2 + this.phase)*0.1 - 0.05; // オパビニアの吻の上下動
+                    ps.rotation.x = Math.sin(time*2 + this.phase)*0.1 - 0.05; 
                 }); 
             }
             
@@ -1168,7 +1173,7 @@ class CreatureObj {
                 }
                 if(this.mesh.userData.armsBase) {
                     const isFeeding = this.state === 'feeding';
-                    const targetRotX = isFeeding ? 0.1 : 0.6; // 伸ばす : 丸める
+                    const targetRotX = isFeeding ? 0.1 : 0.6;
                     this.mesh.userData.armsBase.forEach(armJoints => {
                         armJoints.forEach((joint, i) => {
                             joint.rotation.x += (targetRotX - joint.rotation.x) * 0.1;
@@ -1225,17 +1230,27 @@ class CreatureObj {
             this.segments.forEach((seg, i) => {
                 const walkPhase = time * 8 - i * 1.2 + this.phase;
                 if(seg.userData.legs) {
-                    seg.userData.legs[0].rotation.z = 0.2 + Math.sin(walkPhase) * 0.4; seg.userData.legs[1].rotation.z = -0.2 + Math.sin(walkPhase + Math.PI) * 0.4;
-                    seg.userData.legs[0].rotation.x = Math.max(0, -Math.cos(walkPhase)) * 0.5; seg.userData.legs[1].rotation.x = Math.max(0, -Math.cos(walkPhase + Math.PI)) * 0.5;
+                    seg.userData.legs[0].rotation.z = 0.2 + Math.sin(walkPhase) * 0.4; 
+                    seg.userData.legs[1].rotation.z = -0.2 + Math.sin(walkPhase + Math.PI) * 0.4;
+                    seg.userData.legs[0].rotation.x = Math.max(0, -Math.cos(walkPhase)) * 0.5; 
+                    seg.userData.legs[1].rotation.x = Math.max(0, -Math.cos(walkPhase + Math.PI)) * 0.5;
+                    
+                    if(this.type === 'walk_hallu') {
+                        seg.userData.legs.forEach(leg => {
+                            leg.children.forEach((mesh, index) => {
+                                if(mesh.geometry && mesh.geometry.type === 'SphereGeometry') {
+                                    mesh.position.x = Math.sin(walkPhase * 2 + index) * 0.05;
+                                }
+                            });
+                        });
+                    }
                 }
                 seg.rotation.x = Math.sin(walkPhase) * 0.05;
             });
             if(this.type === 'walk_hallu' && this.mesh.userData.headGroup) {
-                const isFeeding = (this.state === 'feeding' && this.mesh.position.distanceTo(this.target) < 18);
-                const targetRotX = isFeeding ? -0.3 : 0.05;
-                this.mesh.userData.neckJoints.forEach(nj => {
-                    nj.rotation.x += (targetRotX - nj.rotation.x) * 0.1;
-                });
+                const isFeeding = (this.state === 'feeding' && this.mesh.position.distanceTo(this.target) < 15);
+                const targetRotX = isFeeding ? -0.8 : 0;
+                this.mesh.userData.headGroup.rotation.x += (targetRotX - this.mesh.userData.headGroup.rotation.x) * 0.1;
             }
         } else if (this.type === 'crawl') {
             this.segments.forEach((seg, i) => {
