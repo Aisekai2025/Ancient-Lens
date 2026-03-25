@@ -1965,31 +1965,35 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
             await navigator.share({ files: [file], text: shareText });
         } catch (e) { console.error(e); }
     } else {
-        // PC向け：確実にXの投稿画面を開く
+                // PC向け：確実にXの投稿画面を開く（最優先）
         const xWindow = window.open(xUrl, '_blank');
 
         if (!xWindow) {
             alert("ポップアップがブロックされました。ブラウザの設定で許可してください。");
         }
 
-        // 裏でクリップボードにコピー
+        // 画像を強制的にダウンロードさせる
+        const a = document.createElement('a');
+        a.href = dataURL;
+        a.download = 'ancient-lens-snapshot.png';
+        a.click();
+
+        // 裏でクリップボードコピーも試みる（成功すればCtrl+Vで貼れる）
         try {
             const res = await fetch(dataURL);
             const blob = await res.blob();
-            // 一部のブラウザ仕様に合わせて配列で渡す
             await navigator.clipboard.write([
                 new ClipboardItem({ "image/png": blob })
             ]);
-            alert("画像をクリップボードにコピーしました！\nXの投稿画面で貼り付け（Ctrl+V）てください。");
+            alert("画像を保存し、クリップボードにもコピーしました！\nXの画面で貼り付け（Ctrl+V）るか、ダウンロードした画像を使ってください。");
         } catch (err) {
-            console.warn("Clipboard copy failed, downloading instead.");
-            const a = document.createElement('a');
-            a.href = dataURL;
-            a.download = 'ancient-lens-snapshot.png';
-            a.click();
+            console.warn("Clipboard copy failed.");
+            // すでにダウンロードは済んでいるので、案内のみ
+            alert("画像を保存しました！Xの画面でアップロードしてシェアしてください。");
         }
     }
 });
+
 
 
 
