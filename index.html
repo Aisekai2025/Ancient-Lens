@@ -22,6 +22,16 @@
         .era-btn.active { background: #00ffff; color: #000; box-shadow: 0 0 15px #0ff; border-color: #0ff; }
         .era-btn:hover:not(.active) { background: rgba(0,255,255,0.15); }
 
+        /* 撮影＆シェアボタン */
+        #camera-btn {
+            position: absolute; top: 15px; right: 20px;
+            background: rgba(0, 255, 255, 0.15); border: 1px solid #0ff; color: #0ff;
+            width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 22px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 15px rgba(0,255,255,0.3); transition: 0.3s; z-index: 100;
+        }
+        #camera-btn:hover { background: #00ffff; color: #000; box-shadow: 0 0 25px #0ff; transform: scale(1.1); }
+
         #alert {
             position: absolute; top: 90px; left: 50%; transform: translateX(-50%);
             background: rgba(255, 0, 50, 0.25); border: 2px solid #ff0055; color: #ff0055;
@@ -57,6 +67,8 @@
     <button id="btn-devonian" class="era-btn" onclick="switchEra('devonian')">DEVONIAN<span>デボン紀</span></button>
 </div>
 
+<button id="camera-btn" title="撮影＆シェア">📷</button>
+
 <div id="alert">⚠️ RARE CREATURE DETECTED / 希少生物接近 ⚠️</div>
 
 <div id="hologram-ui">
@@ -65,7 +77,7 @@
     <p id="holo-desc"></p>
     <button id="close-btn" onclick="closeHolo()">CLOSE / 調査終了</button>
 </div>
-<div id="hud">Drag: 回転 | Scroll: ズーム(海底視点) | Click: エサやり(水流沈降) & 図鑑</div>
+<div id="hud">Drag: 回転 | Scroll: ズーム | Click: エサやり & 図鑑</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 
@@ -78,7 +90,8 @@ scene.background = new THREE.Color(0x000205);
 scene.fog = new THREE.FogExp2(0x000205, 0.012);
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+// 画像撮影(toDataURL)のために preserveDrawingBuffer を true に設定
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
@@ -105,7 +118,8 @@ const dirLight = new THREE.DirectionalLight(0x00ffcc, 1.2); dirLight.position.se
 const mat = (col, trans=0, rough=0.5, glow=0) => new THREE.MeshStandardMaterial({ 
     color: col, transparent: trans>0, opacity: 1-trans, roughness: rough, emissive: col, emissiveIntensity: glow 
 });
-const eyeMat = new THREE.MeshStandardMaterial({color: 0x000000, roughness: 0.1});
+// 目のハイライト（生気）を出すために roughness を 0 にし、反射を強くする
+const eyeMat = new THREE.MeshStandardMaterial({color: 0x050505, roughness: 0.0, metalness: 0.8});
 
 // --- パーティクルシステム (気泡/マリンスノー) ---
 const particleCount = 800;
@@ -125,7 +139,6 @@ const particleMat = new THREE.PointsMaterial({
 });
 const particles = new THREE.Points(particleGeo, particleMat);
 scene.add(particles);
-
 
 // ==========================================
 // 2. 生物造形モデリング
@@ -948,10 +961,11 @@ function buildDalmanites() {
     const snout = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.8, 8), mat(0x445544));
     snout.rotation.x = Math.PI/2; snout.position.z = 1.0; head.add(snout);
     
-    // 鋭く伸びる後方への頬棘 (Genal spine)
+    // 鋭く伸びる後方への頬棘 (Genal spine) - 左右完全対称に配置
     const spineL = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.5, 8), mat(0x445544));
     spineL.rotation.x = -Math.PI/2; spineL.position.set(1.0, 0, -0.5); head.add(spineL);
-    const spineR = spineL.clone(); spineR.position.x = -1.0; head.add(spineR);
+    const spineR = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.5, 8), mat(0x445544));
+    spineR.rotation.x = -Math.PI/2; spineR.position.set(-1.0, 0, -0.5); head.add(spineR);
 
     // ドーム状の複眼
     const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat); eyeL.position.set(0.4, 0.2, 0.2); head.add(eyeL);
@@ -1028,10 +1042,11 @@ function buildPteraspis() {
     const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeL.position.set(0.4, 0.2, 1.0); head.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -0.4; head.add(eyeR);
 
-    // 翼のような突起 (Cornual plate)
+    // 翼のような突起 (Cornual plate) - 左右完全対称に修正
     const wingL = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.0, 8), mat(0x998866));
-    wingL.rotation.x = Math.PI/2; wingL.rotation.z = -0.5; wingL.position.set(0.8, 0, 0); head.add(wingL);
-    const wingR = wingL.clone(); wingR.rotation.z = 0.5; wingR.position.x = -0.8; head.add(wingR);
+    wingL.rotation.x = Math.PI/2; wingL.rotation.z = -0.5; wingL.position.set(0.6, 0, -0.2); head.add(wingL);
+    const wingR = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.0, 8), mat(0x998866));
+    wingR.rotation.x = Math.PI/2; wingR.rotation.z = 0.5; wingR.position.set(-0.6, 0, -0.2); head.add(wingR);
 
     // 胴体
     const torso = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), mat(0x998866));
@@ -1110,37 +1125,38 @@ function buildEusthenopteron() {
     const torso = new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 16), mat(0x556655));
     torso.scale.set(0.8, 1.0, 3.0); bodyGroup.add(torso);
     
-    // 肉鰭 (Lobe-fins) - 付け根は体側に、先端を外側後方へ向ける
-    // 左胸ビレ
-    const fL = new THREE.Group(); fL.position.set(0.7, -0.3, 0.8); fL.rotation.set(0.2, -0.4, -0.8); // Z回転で外側へ倒し、Y回転で後方へ流す
-    const fLBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat(0x445544)); 
-    fLBase.position.y = -0.3; fL.add(fLBase);
-    const fLFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8), mat(0x334433)); 
-    fLFin.position.y = -0.9; fLFin.scale.set(1, 0.2, 1); fL.add(fLFin);
+    // 肉鰭 (Lobe-fins) - 関節を体側に、先端を外側後方へ張り出す（腕立て伏せのような姿勢）
+    const fL = new THREE.Group(); fL.position.set(0.8, -0.2, 0.8);
+    fL.rotation.y = -0.5; fL.rotation.z = 1.0; // Yで後方へ、Zで外側・下向きへ
+    const fLBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.8), mat(0x445544)); 
+    fLBase.position.y = -0.4; fL.add(fLBase);
+    const fLFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8, 8), mat(0x334433)); 
+    fLFin.position.y = -1.2; fLFin.scale.set(1, 1, 0.2); fL.add(fLFin);
     bodyGroup.add(fL);
     
-    // 右胸ビレ
-    const fR = new THREE.Group(); fR.position.set(-0.7, -0.3, 0.8); fR.rotation.set(0.2, 0.4, 0.8);
-    const fRBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat(0x445544)); 
-    fRBase.position.y = -0.3; fR.add(fRBase);
-    const fRFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8), mat(0x334433)); 
-    fRFin.position.y = -0.9; fRFin.scale.set(1, 0.2, 1); fR.add(fRFin);
+    const fR = new THREE.Group(); fR.position.set(-0.8, -0.2, 0.8);
+    fR.rotation.y = 0.5; fR.rotation.z = -1.0;
+    const fRBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.8), mat(0x445544)); 
+    fRBase.position.y = -0.4; fR.add(fRBase);
+    const fRFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8, 8), mat(0x334433)); 
+    fRFin.position.y = -1.2; fRFin.scale.set(1, 1, 0.2); fR.add(fRFin);
     bodyGroup.add(fR);
 
-    // 左腹ビレ
-    const pL = new THREE.Group(); pL.position.set(0.5, -0.3, -1.0); pL.rotation.set(0.2, -0.4, -0.8);
-    const pLBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.5), mat(0x445544)); 
-    pLBase.position.y = -0.25; pL.add(pLBase);
-    const pLFin = new Mesh(new THREE.ConeGeometry(0.08, 0.6), mat(0x334433)); 
-    pLFin.position.y = -0.7; pLFin.scale.set(1, 0.2, 1); pL.add(pLFin);
+    // 腹ビレ
+    const pL = new THREE.Group(); pL.position.set(0.6, -0.2, -1.0);
+    pL.rotation.y = -0.4; pL.rotation.z = 0.8;
+    const pLBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.6), mat(0x445544)); 
+    pLBase.position.y = -0.3; pL.add(pLBase);
+    const pLFin = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.6, 8), mat(0x334433)); 
+    pLFin.position.y = -0.9; pLFin.scale.set(1, 1, 0.2); pL.add(pLFin);
     bodyGroup.add(pL);
 
-    // 右腹ビレ
-    const pR = new THREE.Group(); pR.position.set(-0.5, -0.3, -1.0); pR.rotation.set(0.2, 0.4, 0.8);
-    const pRBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.5), mat(0x445544)); 
-    pRBase.position.y = -0.25; pR.add(pRBase);
-    const pRFin = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.6), mat(0x334433)); 
-    pRFin.position.y = -0.7; pRFin.scale.set(1, 0.2, 1); pR.add(pRFin);
+    const pR = new THREE.Group(); pR.position.set(-0.6, -0.2, -1.0);
+    pR.rotation.y = 0.4; pR.rotation.z = -0.8;
+    const pRBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.6), mat(0x445544)); 
+    pRBase.position.y = -0.3; pR.add(pRBase);
+    const pRFin = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.6, 8), mat(0x334433)); 
+    pRFin.position.y = -0.9; pRFin.scale.set(1, 1, 0.2); pR.add(pRFin);
     bodyGroup.add(pR);
 
     // 初期角度を保存（パドリングアニメーション用）
@@ -1377,13 +1393,21 @@ function buildTiktaalik() {
     
     for(let side of [-1, 1]) {
         const arm = new THREE.Group(); 
-        arm.position.set(1.0*side, -0.2, 0); // 付け根を外側へ
-        arm.rotation.set(-0.4, side * 0.4, side * -1.2); // 外側後方へ向けて踏ん張る角度
-        const muscle = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.1, 1.0), mat(0x556633)); muscle.position.y = -0.5; arm.add(muscle);
-        const fin = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.3, 1.0), mat(0x445522)); fin.scale.set(1, 1, 0.2); fin.position.y = -1.5; arm.add(fin);
+        // 関節を体側に配置し、外側後方（腕立て伏せのような姿勢）へ張り出す
+        arm.position.set(1.0*side, -0.2, 0); 
+        arm.rotation.y = side * -0.5; // 後方へ
+        arm.rotation.z = side * 1.0;  // 外側・下向きへ
+        
+        const muscle = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.1, 1.0), mat(0x556633)); 
+        muscle.position.y = -0.5; arm.add(muscle);
+        
+        const fin = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.3, 1.0), mat(0x445522)); 
+        fin.scale.set(1, 1, 0.2); fin.position.y = -1.5; arm.add(fin);
+        
         torso1.add(arm);
         segs.push(arm); arm.userData.isArm = true;
-        arm.userData.origRot = arm.rotation.clone();
+        arm.userData.origRot = arm.rotation.clone(); // ローイングアニメーションの基準
+        arm.userData.side = side;
     }
 
     const torso2 = new THREE.Group(); torso2.position.z = -2.5; torso1.add(torso2);
@@ -1649,9 +1673,10 @@ class CreatureObj {
                     if (fin && fin.userData.origRot) {
                         const isLeft = idx % 2 === 0;
                         const phaseOffset = isLeft ? 0 : Math.PI;
+                        const frontBackOffset = idx > 1 ? Math.PI / 2 : 0;
                         // ローイング（櫂漕ぎ）動作のシミュレーション：前後にスイングしつつ上下にひねる
-                        fin.rotation.z = fin.userData.origRot.z + Math.sin(time * 6 + this.phase + phaseOffset) * 0.15;
-                        fin.rotation.x = fin.userData.origRot.x + Math.cos(time * 6 + this.phase + phaseOffset) * 0.2;
+                        fin.rotation.z = fin.userData.origRot.z + Math.sin(time * 6 + this.phase + phaseOffset + frontBackOffset) * 0.15;
+                        fin.rotation.x = fin.userData.origRot.x + Math.cos(time * 6 + this.phase + phaseOffset + frontBackOffset) * 0.2;
                     }
                 });
             }
@@ -1842,7 +1867,7 @@ function checkRareSpawn() {
 }
 
 // ==========================================
-// 5. インタラクション & カメラ
+// 5. インタラクション & カメラ & シェア機能
 // ==========================================
 const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
 let isDragging = false, pointerDownTime = 0, previousMouse = { x: 0, y: 0 };
@@ -1883,6 +1908,36 @@ window.addEventListener('pointerup', (e) => {
 });
 function closeHolo() { document.getElementById('hologram-ui').classList.remove('active'); }
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+
+// 撮影＆シェアボタンのロジック
+document.getElementById('camera-btn').addEventListener('click', async () => {
+    // 確実に最新フレームを描画
+    renderer.render(scene, camera);
+    const dataURL = renderer.domElement.toDataURL('image/png');
+    
+    try {
+        const res = await fetch(dataURL);
+        const blob = await res.blob();
+        const file = new File([blob], 'ancient-lens.png', { type: 'image/png' });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                title: 'Ancient Lens',
+                text: '古代の海を探索中！ #AncientLens #古生物 #Web3D',
+                files: [file]
+            });
+        } else {
+            throw new Error("Web Share API not supported on this device");
+        }
+    } catch(err) {
+        console.warn("Share failed or not supported. Downloading fallback.", err);
+        const a = document.createElement('a');
+        a.href = dataURL;
+        a.download = 'ancient-lens-snapshot.png';
+        a.click();
+        alert('スクリーンショットを保存しました！ #AncientLens をつけてSNSでシェアしよう！');
+    }
+});
 
 // ==========================================
 // 6. メインループ
