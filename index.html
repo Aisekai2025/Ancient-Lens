@@ -1951,45 +1951,47 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
     
     const shareText = '古代の海を探索中！ #AncientLens #古生物 #Web3D';
     const shareUrl = 'https://ancient-lens.vercel.app';
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    try {
-        const res = await fetch(dataURL);
-        const blob = await res.blob();
-        const file = new File([blob], 'ancient-lens.png', { type: 'image/png' });
+    // 【修正ポイント】先にBlob変換などを済ませる
+    const res = await fetch(dataURL);
+    const blob = await res.blob();
 
-        // モバイル端末（navigator.shareが使えて、かつタッチ操作が主）か判定
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-        if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
-            // 【スマホ】標準の共有メニュー（画像付き）
-            await navigator.share({
-                title: 'Ancient Lens',
-                text: shareText,
-                files: [file]
-            });
-        } else {
-            // 【PC】システム共有を介さず、直接Xへ誘導
-            // 1. 画像をクリップボードにコピー
+    if (isMobile && navigator.canShare) {
+        // スマホ向け：標準共有
+        try {
+            const file = new File([blob], 'ancient-lens.png', { type: 'image/png' });
+            await navigator.share({ files: [file], text: shareText });
+        } catch (e) { console.error(e); }
+    } else {
+        // PC向け：クリップボードコピー ＋ 直接遷移
+        try {
             const item = new ClipboardItem({ "image/png": blob });
             await navigator.clipboard.write([item]);
             
-            // 2. Xの投稿画面URLを作成
             const xUrl = `https://twitter.com{encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
             
-            // 3. ユーザーに案内してXを開く
-            if (confirm("画像をクリップボードにコピーしました！\nOKを押すとXが開くので、貼り付け（Ctrl+V）してシェアしてください。")) {
-                window.open(xUrl, '_blank');
+            // alert/confirmを挟まずに直接開くとブロックされにくいです
+            // もしブロックされる場合は、ボタンを「コピー用」と「X投稿用」に分けるのが確実です
+            const newWindow = window.open(xUrl, '_blank');
+            
+            if (!newWindow) {
+                // ブロックされた場合の予備手段
+                alert("ポップアップがブロックされました。ブラウザの設定で許可するか、手動でXを開いて貼り付けてください。");
+            } else {
+                alert("画像をコピーしました！Xの画面で貼り付け（Ctrl+V）てください。");
             }
+        } catch (err) {
+            console.error("Clipboard failed:", err);
+            // 最終フォールバック
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = 'ancient-lens-snapshot.png';
+            a.click();
         }
-    } catch(err) {
-        console.error("Share process failed:", err);
-        // フォールバック：画像保存
-        const a = document.createElement('a');
-        a.href = dataURL;
-        a.download = 'ancient-lens-snapshot.png';
-        a.click();
     }
 });
+
 
 
 // ==========================================
