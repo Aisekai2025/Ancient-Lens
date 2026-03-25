@@ -909,47 +909,49 @@ function buildMegalograptus() {
 function buildEndoceras() {
     const g = new THREE.Group();
     const segs = [];
-    const shellHeight = 18.0; // エンドセラスなら 18.0
-    const shellRadius = 1.5; // エンドセラスなら 1.5
+    const shellHeight = 18.0; // 巨大な殻
+    const shellRadius = 1.5;
 
-    // 1. 殻：原点(口)から「Zマイナス」方向に先端が伸びるように配置
+    // 1. 殻：原点(0,0,0)から「Zマイナス」方向に先端(18.0先)が伸びる
     const shellGeo = new THREE.ConeGeometry(shellRadius, shellHeight, 32);
+    // 底面（太い口）を原点に合わせる
     shellGeo.translate(0, shellHeight / 2, 0); 
+    // 頂点をZマイナス方向に向ける
     shellGeo.rotateX(-Math.PI / 2); 
-    const shell = new THREE.Mesh(shellGeo, mat(0xddccaa));
+    const shell = new THREE.Mesh(shellGeo, mat(0xccbb99));
     g.add(shell);
 
-    // 2. 頭部：原点(0,0,0)付近に配置
-    const head = new THREE.Mesh(new THREE.SphereGeometry(shellRadius * 0.8, 16, 16), mat(0xaa5555));
-    // 殻の口にめり込まないよう、わずかに「Zプラス（反転後に後ろになる方向）」へ
-    head.position.z = 0.2; 
+    // 2. 頭部：原点(0,0,0)から「Zプラス」方向（殻の外）へ配置
+    const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x995555));
+    // 殻の口から外側へしっかり出す（Zプラス方向）
+    head.position.z = 0.5; 
     g.add(head);
 
-    // 3. 目：頭の外側（Zプラス方向）に見えるように
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.2), eyeMat);
-    eyeL.position.set(0.6, 0.2, 0.2); 
+    // 3. 目：頭についているのでZプラス側
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.3), eyeMat);
+    eyeL.position.set(1.0, 0.3, 0.3); 
     head.add(eyeL);
     const eyeR = eyeL.clone();
-    eyeR.position.x = -0.6;
+    eyeR.position.x = -1.0;
     head.add(eyeR);
 
-    // 4. 触手：ここが修正ポイント！
-    // 頭から「Zプラス（殻とは逆方向）」へ伸ばす
-    for(let i = 0; i < 8; i++) {
+    // 4. 触手：頭の先からさらに「Zプラス（外側）」へ伸ばす
+    for(let i=0; i<10; i++) {
         const tentacle = new THREE.Group();
-        tentacle.position.z = 0.4; // 頭の「先（殻の反対側）」から開始
-        tentacle.rotation.z = (i / 8) * Math.PI * 2;
+        // 頭の先端（Zプラス方向）に配置
+        tentacle.position.z = 1.0; 
+        tentacle.rotation.z = (i/10) * Math.PI * 2;
         head.add(tentacle);
         
         let curr = tentacle;
-        for(let j = 0; j < 5; j++) {
-            const r1 = 0.1 * (1 - j/5);
-            const r2 = 0.1 * (1 - (j+1)/5);
-            const t = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, 0.5), mat(0xaa5555));
+        for(let j=0; j<6; j++) {
+            const r1 = 0.15 * (1 - j/6);
+            const r2 = 0.15 * (1 - (j+1)/6);
+            const t = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, 0.8), mat(0x995555));
             
-            // 重要：シリンダーを「Zプラス方向」に向けて伸ばす
+            // 重要：シリンダー自体を「Zプラス」方向に向けて伸ばす
             t.rotation.x = Math.PI / 2; 
-            t.position.z = 0.25; 
+            t.position.z = 0.4; // 自身の長さの半分だけZプラス方向へ
             
             const w = new THREE.Group();
             w.add(t);
@@ -959,10 +961,7 @@ function buildEndoceras() {
         }
     }
 
-    // 最後に全体を180度回転
-    // これで：
-    // Zマイナスにあった「殻の先」が Zプラス（前）になり、
-    // Zプラスにあった「頭と足」が Zマイナス（後ろ）になります。
+    // 5. 全体を反転：Zマイナスの「尖った先」を「前(Z+)」に、Zプラスの「足」を「後ろ(Z-)」に
     g.rotation.y = Math.PI; 
 
     return { mesh: g, segments: segs, type: 'jet', jetPhase: 0 };
