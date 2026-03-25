@@ -1950,11 +1950,12 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
     const dataURL = renderer.domElement.toDataURL('image/png');
     
     const shareText = '古代の海を探索中！ #AncientLens #古生物 #Web3D';
-    const shareUrl = 'https://ancient-lens.vercel.app';
+    const shareUrl = window.location.href; // 現在のページのURLを自動取得
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    // 【修正】テンプレートリテラルを使わずにURLを連結
-    const xUrl = 'https://twitter.com' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(shareUrl);
+    // 【修正】パスを正確に指定し、URLを連結
+    const xBase = 'https://twitter.com';
+    const xUrl = xBase + '?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(shareUrl);
 
     if (isMobile && navigator.canShare) {
         try {
@@ -1964,7 +1965,7 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
             await navigator.share({ files: [file], text: shareText });
         } catch (e) { console.error(e); }
     } else {
-        // PC向け：まず確実にXを開く
+        // PC向け：確実にXの投稿画面を開く
         const xWindow = window.open(xUrl, '_blank');
 
         if (!xWindow) {
@@ -1975,11 +1976,13 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
         try {
             const res = await fetch(dataURL);
             const blob = await res.blob();
-            const item = [new ClipboardItem({ "image/png": blob })];
-            await navigator.clipboard.write(item);
+            // 一部のブラウザ仕様に合わせて配列で渡す
+            await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob })
+            ]);
             alert("画像をクリップボードにコピーしました！\nXの投稿画面で貼り付け（Ctrl+V）てください。");
         } catch (err) {
-            console.warn("Clipboard copy failed, downloading instead.", err);
+            console.warn("Clipboard copy failed, downloading instead.");
             const a = document.createElement('a');
             a.href = dataURL;
             a.download = 'ancient-lens-snapshot.png';
@@ -1987,6 +1990,7 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
         }
     }
 });
+
 
 
 
