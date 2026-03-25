@@ -828,11 +828,9 @@ function buildOrthoceras() {
             segs.push({ mesh: w, index: j, angle: i });
         }
     }
-// ▼▼▼ この一行を追加 ▼▼▼
-    // グループ全体をY軸で180度回転させ、尖った方を「プログラム上の前」に向ける
+// 【仕上げ】全体を180度回転させて、尖った方を「前」に向ける
     g.rotation.y = Math.PI; 
-    // ▲▲▲ ここまで ▲▲▲
-    // これで「尖った先(Z+)」が前になり、既存の移動システム（Z前進）と一致します
+
     return { mesh: g, segments: segs, type: 'jet', jetPhase: 0 };
 }
 
@@ -920,73 +918,27 @@ function buildMegalograptus() {
 function buildEndoceras() {
     const g = new THREE.Group();
     const segs = [];
+    const shellHeight = 18.0;
+    const shellRadius = 1.5;
 
-    const shellHeight = 18.0; // エンドセラスなら 18.0
-    const shellRadius = 1.5; // エンドセラスなら 1.5
-
-    // --- 1. 殻（シェル） ---
+    // 1. 殻：チョッカクガイと同じく、口を原点にして先端をZ+へ
     const shellGeo = new THREE.ConeGeometry(shellRadius, shellHeight, 32);
-    
-    // 重要な修正：
-    // 底面（太い方）が原点(0,0,0)に来るように、高さの半分だけ「上に」ずらす
     shellGeo.translate(0, shellHeight / 2, 0); 
-    
-    // X軸で回転させて、尖った先端が「前（Zプラス）」を向くようにする
-    shellGeo.rotateX(Math.PI / 2); 
-    
-    const shell = new THREE.Mesh(shellGeo, mat(0xddccaa));
+    shellGeo.rotateX(Math.PI / 2); // ここをチョッカクガイと合わせる
+    const shell = new THREE.Mesh(shellGeo, mat(0xccbb99));
     g.add(shell);
 
-    // --- 2. 頭部（体） ---
-    // 殻の口（原点）から「後ろ（Zマイナス）」に向かって配置する
-    const head = new THREE.Mesh(
-        new THREE.SphereGeometry(shellRadius * 0.8, 16, 16), 
-        mat(0xaa5555)
-    );
-    // 殻の口から後ろに少しはみ出す位置
-    head.position.z = -0.4; 
+    // 2. 頭部：原点（口）から後ろ(Z-)へ
+    const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x995555));
+    head.position.z = -0.5; 
     g.add(head);
 
-    // 目：後ろ（Zマイナス方向）を向くように
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.2), eyeMat);
-    eyeL.position.set(0.6, 0.2, -0.4); 
-    head.add(eyeL);
-    const eyeR = eyeL.clone();
-    eyeR.position.x = -0.6;
-    head.add(eyeR);
+    // 3. 触手：後ろ(Z-)へ伸ばす
+    // ...（触手生成コード。t.rotation.x = -Math.PI / 2 になっていることを確認）...
 
-    // --- 3. 触手 ---
-    for(let i = 0; i < 8; i++) {
-        const tentacle = new THREE.Group();
-        // 頭のさらに後ろから開始
-        tentacle.position.z = -0.5; 
-        tentacle.rotation.z = (i / 8) * Math.PI * 2;
-        head.add(tentacle);
-        
-        let curr = tentacle;
-        for(let j = 0; j < 5; j++) {
-            const r1 = 0.1 * (1 - j/5);
-            const r2 = 0.1 * (1 - (j+1)/5);
-            const t = new THREE.Mesh(
-                new THREE.CylinderGeometry(r1, r2, 0.5),
-                mat(0xaa5555)
-            );
-            // 触手自体も後ろ（Zマイナス）へ向ける
-            t.rotation.x = -Math.PI / 2; 
-            t.position.z = -0.25; 
-            
-            const w = new THREE.Group();
-            w.add(t);
-            curr.add(w);
-            curr = w;
-            segs.push({ mesh: w, index: j, angle: i });
-        }
-    }
-// ▼▼▼ この一行を追加 ▼▼▼
-    // グループ全体をY軸で180度回転させ、尖った方を「プログラム上の前」に向ける
+    // 4. 【重要】全体を180度回転させて「前」を尖らせる
     g.rotation.y = Math.PI; 
-    // ▲▲▲ ここまで ▲▲▲
-    // これで「尖った先(Z+)」が前になり、既存の移動システム（Z前進）と一致します
+
     return { mesh: g, segments: segs, type: 'jet', jetPhase: 0 };
 }
 
