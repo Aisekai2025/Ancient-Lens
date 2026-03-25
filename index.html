@@ -1941,6 +1941,40 @@ window.addEventListener('pointerup', (e) => {
         }
     }
 });
+
+// ▼▼▼ ここから追加：スマホのピンチズームと画面スクロール防止 ▼▼▼
+let initialPinchDist = 0;
+
+window.addEventListener('touchstart', (e) => {
+    // 2本指でタッチした時だけ、指の距離を記録
+    if (e.touches.length === 2) {
+        initialPinchDist = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+        );
+    }
+}, { passive: false });
+
+window.addEventListener('touchmove', (e) => {
+    // 【重要】スマホの画面自体がスクロールしてしまうのを防ぐ
+    if (e.cancelable) {
+        e.preventDefault(); 
+    }
+
+    // 2本指でのズーム（ピンチ）処理
+    if (e.touches.length === 2) {
+        const currentDist = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+        );
+        const diff = initialPinchDist - currentDist;
+        // ズーム範囲を10〜180に制限（wheelイベントと同じ基準）
+        targetCamRadius = Math.max(10, Math.min(180, targetCamRadius + diff * 0.1));
+        initialPinchDist = currentDist;
+    }
+}, { passive: false });
+// ▲▲▲ 追加ここまで ▲▲▲
+
 function closeHolo() { document.getElementById('hologram-ui').classList.remove('active'); }
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
 
