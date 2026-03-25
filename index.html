@@ -1591,23 +1591,31 @@ function buildDunkleosteus() {
     const eyeR = eyeL.clone(); eyeR.position.x = -1.4; headGroup.add(eyeR);
 
 
-    // --- 5. 【尖鋭牙】（顎骨：gnathal plates）---
+    // ============================================
+    // --- 【尖鋭牙】（顎骨：gnathal plates）---
+    // ============================================
     // マテリアル：骨の色(ddddcc)で、少し金属光沢を持たせて「凶器」感を
     const toothMat = mat(0xddddcc, 0.6, 0.9);
 
-    // 上顎の固定された「牙」（Coneを鋭く伸ばす）
-    const upperToothGeom = new THREE.ConeGeometry(0.25, 3.0, 4); // 円錐（4面体）で尖らせる
+    // --- 【修正ポイント】上顎の固定された「牙」（先端を下に向ける） ---
+    // ConeGeometry(底面の半径, 高さ, 分割数)
+    const upperToothGeom = new THREE.ConeGeometry(0.25, 3.5, 4); // 少し長く、鋭く
+    
     const teethTopL = new THREE.Mesh(upperToothGeom, toothMat);
-    teethTopL.scale.set(1.2, 1.2, 0.4); // 前後に薄く
-    teethTopL.position.set(0.8, -1.0, 2.1);
-    teethTopL.rotation.x = -0.1; // 少し前向きに
+    teethTopL.scale.set(1.4, 1.2, 0.4); // 前後に薄く、横幅を広く（板状に）
+    teethTopL.position.set(0.85, -0.6, 2.0); // 位置を微調整
+
+    // 【重要】X軸で180度回転させて、先端を下に向ける（ Math.PI ）
+    // さらに、少し前斜め下を向くように角度を調整（ +0.2 ）
+    teethTopL.rotation.x = Math.PI + 0.2; 
     headGroup.add(teethTopL);
     
     const teethTopR = teethTopL.clone(); 
-    teethTopR.position.x = -0.8;
+    teethTopR.position.x = -0.85;
     headGroup.add(teethTopR);
 
-    // 下顎ユニット（ごつごつしたBoxベースに）
+
+    // --- 下顎ユニット（ごつごつしたBoxベースに：以前のまま） ---
     const jaw = new THREE.Group(); 
     jaw.position.set(0, -0.7, 0.8);
     headGroup.add(jaw);
@@ -1618,12 +1626,14 @@ function buildDunkleosteus() {
     jawMesh.rotation.x = -0.2; // 少し開く角度に
     jaw.add(jawMesh);
     
-    // 下顎の「牙」（ここもCone）
-    const lowerToothGeom = new THREE.ConeGeometry(0.22, 2.5, 4);
+    // 下顎の「牙」（ここもCone：先端は上を向いているので修正不要）
+    const lowerToothGeom = new THREE.ConeGeometry(0.22, 2.8, 4); // 少し長く
     const teethBotL = new THREE.Mesh(lowerToothGeom, toothMat);
-    teethBotL.scale.set(1.0, 1.0, 0.3);
-    teethBotL.position.set(0.7, 0.4, 2.0);
-    teethBotL.rotation.x = 0.2; // 少し後ろ向きに（上顎と噛み合うように）
+    teethBotL.scale.set(1.1, 1.1, 0.3);
+    teethBotL.position.set(0.7, 0.4, 1.9);
+    
+    // 下顎の牙は、少し後ろ向きに（上顎と噛み合うように）
+    teethBotL.rotation.x = 0.3; 
     jaw.add(teethBotL);
     
     const teethBotR = teethBotL.clone(); 
@@ -1631,6 +1641,8 @@ function buildDunkleosteus() {
     jaw.add(teethBotR);
 
     g.userData.jaw = jaw; 
+
+    // ============================================ 
 
     // --- 後略（胴体・鰭・尾鰭は以前の「肉付きの良い」造形をキープ） ---
     // --- 胴体ユニット（装甲との接続部を少し細めてメリハリをつける） ---
