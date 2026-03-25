@@ -1118,62 +1118,64 @@ function buildPteraspis() {
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
 
-    // 1. 頭部装甲 (CapsuleGeometryの代わりにSphereGeometryを使用)
-    // 球体を縦長（Z軸方向）に引き伸ばすことでカプセル状に見せる
-    const headGeom = new THREE.SphereGeometry(0.5, 16, 16);
+    // 1. 頭部装甲 (装甲らしい重厚感と流線型を両立)
+    const headGeom = new THREE.SphereGeometry(0.5, 24, 24); // 分割数を増やして滑らかに
     const head = new THREE.Mesh(headGeom, mat(0xaa9977));
-    // scale.set(左右の幅, 上下の厚み, 前後の長さ)
-    head.scale.set(1.2, 0.7, 1.8); 
-    head.position.z = 0.5;
+    head.scale.set(1.1, 0.65, 2.0); // 前後にさらに伸ばして流線型に
+    head.position.z = 0.6;
     bodyGroup.add(head);
 
     // 2. 特徴的な「吻 (Rostrum)」
-    const snout = new THREE.Mesh(
-        new THREE.ConeGeometry(0.25, 1.0, 16),
-        mat(0xaa9977)
-    );
-    snout.rotation.x = -Math.PI / 2; 
-    snout.position.z = 1.0; // headのscaleに合わせて調整
+    // ConeよりもSphereを細長く伸ばした方が、生き物の骨格に近い質感になります
+    const snoutGeom = new THREE.SphereGeometry(0.25, 16, 16);
+    const snout = new THREE.Mesh(snoutGeom, mat(0xaa9977));
+    snout.scale.set(0.6, 0.4, 2.5); // 鋭く突き出すように
+    snout.position.z = 0.9; 
     head.add(snout);
 
     // 3. 左右対称パーツ
     for (let side of [-1, 1]) {
-        // 目
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat);
-        eye.position.set(side * 0.35, 0.1, 0.4);
+        // 目（少し外向きに、かつ埋め込みを調整）
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07), eyeMat);
+        eye.position.set(side * 0.38, 0.05, 0.5);
         head.add(eye);
 
         // 翼状の突起 (Cornual plate)
-        const wing = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1, 0.05, 0.8),
-            mat(0x998866)
-        );
-        wing.position.set(side * 0.5, -0.1, -0.2);
-        wing.rotation.y = side * 0.4;
+        // BoxよりもSphereを平べったくしたほうが「鰭（ひれ）」に見えます
+        const wingGeom = new THREE.SphereGeometry(0.3, 12, 12);
+        const wing = new THREE.Mesh(wingGeom, mat(0x998866));
+        wing.scale.set(1.2, 0.1, 0.8); 
+        wing.position.set(side * 0.45, -0.1, -0.3);
+        wing.rotation.y = side * 0.5;
+        wing.rotation.z = side * 0.2; // 少し角度をつけて、揚力を得そうな形に
         head.add(wing);
     }
 
-    // 4. 胴体
-    const torso = new THREE.Mesh(
-        new THREE.SphereGeometry(0.5, 16, 16),
-        mat(0x998866)
-    );
-    torso.scale.set(0.9, 0.7, 2.0);
-    torso.position.z = -0.8; 
+    // 4. 胴体（頭部とのつなぎ目を太く、後ろを細く）
+    const torsoGeom = new THREE.SphereGeometry(0.5, 24, 24);
+    const torso = new THREE.Mesh(torsoGeom, mat(0x998866));
+    // 胴体は「涙のしずく」型を意識して、頭と重なるように配置
+    torso.scale.set(0.85, 0.6, 2.2);
+    torso.position.z = -0.7; 
     bodyGroup.add(torso);
 
     // 5. 尾部
     const tailGroup = new THREE.Group();
-    tailGroup.position.z = -2.2;
+    tailGroup.position.z = -2.1;
     g.add(tailGroup);
 
-    const tailFin = new THREE.Mesh(
-        new THREE.ConeGeometry(0.05, 1.5, 8),
-        mat(0x998866)
-    );
-    tailFin.scale.set(1, 1, 0.2);
-    tailFin.rotation.x = Math.PI + 0.3;
+    // 尾びれ（Coneの代わりに、上下に引き伸ばしたSphereで有機的な形に）
+    const tailFinGeom = new THREE.SphereGeometry(0.5, 16, 16);
+    const tailFin = new THREE.Mesh(tailFinGeom, mat(0x998866));
+    tailFin.scale.set(0.1, 1.8, 0.6); // 縦に大きく
+    tailFin.rotation.x = 0.2; // わずかに傾斜
     tailGroup.add(tailFin);
+
+    // 背びれ（追加するとさらに生き物らしくなります）
+    const dorsalFin = new THREE.Mesh(new THREE.SphereGeometry(0.2), mat(0x998866));
+    dorsalFin.scale.set(0.1, 0.6, 1.2);
+    dorsalFin.position.set(0, 0.4, -0.8);
+    bodyGroup.add(dorsalFin);
 
     g.userData.body = bodyGroup;
     g.userData.tail = tailGroup;
