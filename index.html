@@ -799,9 +799,10 @@ function buildOrthoceras() {
         head.add(tentacle);
         
         let curr = tentacle;
-        for(let j = 0; j < 5; j++) {
-            const r1 = 0.1 * (1 - j/5);
-            const r2 = 0.1 * (1 - (j+1)/5);
+        for(let j = 0; j < 10; j++) {
+            // 節が進むごとに、より急激に細くする（r1, r2の計算式を調整）
+const r1 = 0.1 * Math.pow(0.85, j); 
+const r2 = 0.1 * Math.pow(0.85, j + 1);
             const t = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, 0.5), mat(0xaa5555));
             
             // 重要：シリンダーを「Zプラス方向」に向けて伸ばす
@@ -944,9 +945,10 @@ function buildEndoceras() {
         head.add(tentacle);
         
         let curr = tentacle;
-        for(let j=0; j<6; j++) {
-            const r1 = 0.15 * (1 - j/6);
-            const r2 = 0.15 * (1 - (j+1)/6);
+        for(let j=0; j<12; j++) {
+            // 節が進むごとに、より急激に細くする（r1, r2の計算式を調整）
+const r1 = 0.1 * Math.pow(0.85, j); 
+const r2 = 0.1 * Math.pow(0.85, j + 1);
             const t = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, 0.8), mat(0x995555));
             
             // 重要：シリンダー自体を「Zプラス」方向に向けて伸ばす
