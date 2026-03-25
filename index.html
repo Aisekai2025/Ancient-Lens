@@ -1954,7 +1954,7 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     // 【修正】パスを正確に指定し、URLを連結
-    const xBase = 'https://twitter.com/intent/tweet?text=';
+    const xBase = 'https://twitter.com/intent/tweet?';
     const xUrl = xBase + '?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(shareUrl);
 
     if (isMobile && navigator.canShare) {
