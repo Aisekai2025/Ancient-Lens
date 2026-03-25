@@ -767,53 +767,61 @@ function buildOrthoceras() {
     const g = new THREE.Group();
     const segs = [];
 
-    // --- 1. 殻（シェル）の修正 ---
-    // ConeGeometry(底面の半径, 高さ, 分割数)
     const shellHeight = 8.0;
-    const shellGeo = new THREE.ConeGeometry(0.8, shellHeight, 32);
+    const shellRadius = 0.8;
+
+    // --- 1. 殻（シェル）の再構築 ---
+    const shellGeo = new THREE.ConeGeometry(shellRadius, shellHeight, 32);
     
     // 修正ポイント：
-    // 前回のコードは translate(0, -4.0, 0) で頂点を中心に持ってきていましたが、
-    // 今回は「太い底面」が原点(0,0,0)に来るように translate(0, 4.0, 0) します。
-    shellGeo.translate(0, shellHeight / 2, 0); 
+    // 頂点（尖った方）を原点(0,0,0)にする。
+    // ConeGeometryはデフォルトで中心にあるので、高さの半分だけ上にずらす。
+    shellGeo.translate(0, -shellHeight / 2, 0); 
     
-    // Z軸の後ろ（マイナス方向）に殻が伸びるように回転
-    shellGeo.rotateX(Math.PI / 2); 
+    // 尖った方が「前（Zプラス）」を向くように回転。
+    shellGeo.rotateX(-Math.PI / 2); 
     
     const shell = new THREE.Mesh(shellGeo, mat(0xddccaa));
     g.add(shell);
 
-    // --- 2. 頭部（体）の配置 ---
-    // 殻の太い口（原点）に配置
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), mat(0xaa5555));
-    // 少しだけ殻から出す
-    head.position.z = 0.3; 
+    // --- 2. 頭部（体）を「後ろ側」の開口部に配置 ---
+    const head = new THREE.Mesh(
+        new THREE.SphereGeometry(shellRadius * 0.9, 16, 16), 
+        mat(0xaa5555)
+    );
+    
+    // 殻の高さ分だけ「後ろ（Zマイナス）」に配置。
+    // これで、尖った方が先頭、太い口が最後尾になります。
+    head.position.z = -shellHeight; 
     g.add(head);
 
-    // 目
+    // 目（後ろを向きながら進むので、横や後ろが見える位置に）
     const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.2), eyeMat);
-    eyeL.position.set(0.6, 0.2, 0.4);
+    eyeL.position.set(0.6, 0.2, -0.4); // 進行方向とは逆を向く
     head.add(eyeL);
     const eyeR = eyeL.clone();
     eyeR.position.x = -0.6;
     head.add(eyeR);
 
-    // --- 3. 触手の配置 ---
+    // --- 3. 触手の配置（さらに後ろへ伸びる） ---
     for(let i = 0; i < 8; i++) {
         const tentacle = new THREE.Group();
-        tentacle.position.z = 0.6; // 頭の先から出す
+        tentacle.position.z = -0.5; // 頭のさらに後ろから出す
         tentacle.rotation.z = (i / 8) * Math.PI * 2;
         head.add(tentacle);
         
         let curr = tentacle;
         for(let j = 0; j < 5; j++) {
-            // 先細りになるように CylinderGeometry(上半径, 下半径, 高さ) を調整
+            const r1 = 0.1 * (1 - j/5);
+            const r2 = 0.1 * (1 - (j+1)/5);
             const t = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.1 * (1 - j/5), 0.1 * (1 - (j+1)/5), 0.5),
+                new THREE.CylinderGeometry(r1, r2, 0.5),
                 mat(0xaa5555)
             );
-            t.rotation.x = Math.PI / 2;
-            t.position.z = 0.25;
+            // 触手も後ろ（Zマイナス）へ伸びるように
+            t.rotation.x = -Math.PI / 2; 
+            t.position.z = -0.25;
+            
             const w = new THREE.Group();
             w.add(t);
             curr.add(w);
@@ -822,6 +830,7 @@ function buildOrthoceras() {
         }
     }
 
+    // エンドセラスの場合は、この shellHeight, shellRadius, 触手本数を大きくするだけでOKです
     return { mesh: g, segments: segs, type: 'jet', jetPhase: 0 };
 }
 function buildAsaphus() {
@@ -906,68 +915,73 @@ function buildMegalograptus() {
 }
 
 function buildEndoceras() {
-    const g = new THREE.Group(); 
+    const g = new THREE.Group();
     const segs = [];
 
-    // --- 1. 巨大な殻（シェル）の修正 ---
-    const shellHeight = 18.0; // 長さ
-    const shellRadius = 1.5;  // 太さ
-    const shellGeo = new THREE.ConeGeometry(shellRadius, shellHeight, 32);
+    const shellHeight = 18.0;
+    const shellRadius = 1.5;
 
-    // 修正ポイント：太い底面を原点(0,0,0)に持ってくる
-    shellGeo.translate(0, shellHeight / 2, 0); 
+    // --- 1. 殻（シェル）の再構築 ---
+    const shellGeo = new THREE.ConeGeometry(shellRadius, shellHeight, 32);
     
-    // Z軸の後ろ（マイナス方向）に向かって殻が伸びるように回転
-    shellGeo.rotateX(Math.PI / 2); 
+    // 修正ポイント：
+    // 頂点（尖った方）を原点(0,0,0)にする。
+    // ConeGeometryはデフォルトで中心にあるので、高さの半分だけ上にずらす。
+    shellGeo.translate(0, -shellHeight / 2, 0); 
     
-    const shell = new THREE.Mesh(shellGeo, mat(0xccbb99)); 
+    // 尖った方が「前（Zプラス）」を向くように回転。
+    shellGeo.rotateX(-Math.PI / 2); 
+    
+    const shell = new THREE.Mesh(shellGeo, mat(0xddccaa));
     g.add(shell);
 
-    // --- 2. 頭部（体）を太い口に配置 ---
+    // --- 2. 頭部（体）を「後ろ側」の開口部に配置 ---
     const head = new THREE.Mesh(
-        new THREE.SphereGeometry(1.2, 16, 16),
-        mat(0x995555)
+        new THREE.SphereGeometry(shellRadius * 0.9, 16, 16), 
+        mat(0xaa5555)
     );
-    // 殻の口から少しだけ出す
-    head.position.z = 0.5; 
+    
+    // 殻の高さ分だけ「後ろ（Zマイナス）」に配置。
+    // これで、尖った方が先頭、太い口が最後尾になります。
+    head.position.z = -shellHeight; 
     g.add(head);
 
-    // 目（巨大なハンターにふさわしいサイズ）
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.3), eyeMat);
-    eyeL.position.set(1.0, 0.3, 0.6); 
+    // 目（後ろを向きながら進むので、横や後ろが見える位置に）
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.2), eyeMat);
+    eyeL.position.set(0.6, 0.2, -0.4); // 進行方向とは逆を向く
     head.add(eyeL);
-    const eyeR = eyeL.clone(); 
-    eyeR.position.x = -1.0; 
+    const eyeR = eyeL.clone();
+    eyeR.position.x = -0.6;
     head.add(eyeR);
 
-    // --- 3. 触手の配置（10本） ---
-    for(let i=0; i<10; i++) {
-        const tentacle = new THREE.Group(); 
-        tentacle.position.z = 1.0; // 頭部先端付近
-        tentacle.rotation.z = (i/10) * Math.PI * 2;
+    // --- 3. 触手の配置（さらに後ろへ伸びる） ---
+    for(let i = 0; i < 8; i++) {
+        const tentacle = new THREE.Group();
+        tentacle.position.z = -0.5; // 頭のさらに後ろから出す
+        tentacle.rotation.z = (i / 8) * Math.PI * 2;
         head.add(tentacle);
-
+        
         let curr = tentacle;
-        for(let j=0; j<6; j++) {
-            // 先に行くほど細くなる計算
-            const r1 = 0.15 * (1 - j/6);
-            const r2 = 0.15 * (1 - (j+1)/6);
+        for(let j = 0; j < 5; j++) {
+            const r1 = 0.1 * (1 - j/5);
+            const r2 = 0.1 * (1 - (j+1)/5);
             const t = new THREE.Mesh(
-                new THREE.CylinderGeometry(r1, r2, 0.8), 
-                mat(0x995555)
-            ); 
-            t.rotation.x = Math.PI/2; 
-            t.position.z = 0.4;
-
-            const w = new THREE.Group(); 
-            w.add(t); 
-            curr.add(w); 
+                new THREE.CylinderGeometry(r1, r2, 0.5),
+                mat(0xaa5555)
+            );
+            // 触手も後ろ（Zマイナス）へ伸びるように
+            t.rotation.x = -Math.PI / 2; 
+            t.position.z = -0.25;
+            
+            const w = new THREE.Group();
+            w.add(t);
+            curr.add(w);
             curr = w;
             segs.push({ mesh: w, index: j, angle: i });
         }
     }
 
-    // jetPhaseは、水を噴射して後ろ向きに泳ぐアニメーションに使用
+    // エンドセラスの場合は、この shellHeight, shellRadius, 触手本数を大きくするだけでOKです
     return { mesh: g, segments: segs, type: 'jet', jetPhase: 0 };
 }
 
