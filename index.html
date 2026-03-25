@@ -1033,64 +1033,61 @@ function buildPteraspis() {
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
 
-    // 1. 頭部装甲 (Dorsal/Ventral shields)
-    // カプセル形状をベースに、平べったい流線型を作る
-    const headGeom = new THREE.CapsuleGeometry(0.5, 0.8, 4, 16);
+    // 1. 頭部装甲 (CapsuleGeometryの代わりにSphereGeometryを使用)
+    // 球体を縦長（Z軸方向）に引き伸ばすことでカプセル状に見せる
+    const headGeom = new THREE.SphereGeometry(0.5, 16, 16);
     const head = new THREE.Mesh(headGeom, mat(0xaa9977));
-    head.scale.set(1.2, 0.7, 1.0); // 左右に広く、上下に薄く
-    head.rotation.x = Math.PI / 2; // 進行方向（Z軸）に向ける
+    // scale.set(左右の幅, 上下の厚み, 前後の長さ)
+    head.scale.set(1.2, 0.7, 1.8); 
     head.position.z = 0.5;
     bodyGroup.add(head);
 
     // 2. 特徴的な「吻 (Rostrum)」
-    // 頭部から真っ直ぐ前方に突き出すように配置
     const snout = new THREE.Mesh(
-        new THREE.ConeGeometry(0.3, 1.2, 16),
+        new THREE.ConeGeometry(0.25, 1.0, 16),
         mat(0xaa9977)
     );
-    snout.rotation.x = -Math.PI / 2; // 前方を向く
-    snout.position.z = 1.2; // 頭部の先端から繋げる
+    snout.rotation.x = -Math.PI / 2; 
+    snout.position.z = 1.0; // headのscaleに合わせて調整
     head.add(snout);
 
-    // 3. 左右対称パーツ（目とCornual plates）
+    // 3. 左右対称パーツ
     for (let side of [-1, 1]) {
-        // 目：頭部の側面に配置
+        // 目
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat);
         eye.position.set(side * 0.35, 0.1, 0.4);
         head.add(eye);
 
-        // 翼状の突起 (Cornual plate)：装甲の後方側面
+        // 翼状の突起 (Cornual plate)
         const wing = new THREE.Mesh(
             new THREE.BoxGeometry(0.1, 0.05, 0.8),
             mat(0x998866)
         );
         wing.position.set(side * 0.5, -0.1, -0.2);
-        wing.rotation.y = side * 0.4; // 外側に開く
+        wing.rotation.y = side * 0.4;
         head.add(wing);
     }
 
-    // 4. 胴体 (Torso)
-    // 頭部装甲から滑らかに繋がるように配置
+    // 4. 胴体
     const torso = new THREE.Mesh(
         new THREE.SphereGeometry(0.5, 16, 16),
         mat(0x998866)
     );
-    torso.scale.set(0.9, 0.7, 2.0); // 流線型に引き伸ばす
-    torso.position.z = -0.6; // 頭部の後ろに密着
+    torso.scale.set(0.9, 0.7, 2.0);
+    torso.position.z = -0.8; 
     bodyGroup.add(torso);
 
-    // 5. 尾部 (Tail)
+    // 5. 尾部
     const tailGroup = new THREE.Group();
-    tailGroup.position.z = -1.8;
+    tailGroup.position.z = -2.2;
     g.add(tailGroup);
 
-    // 尾鰭：プテラスピス特有の「下葉が長い（Hypocercal）」形状を意識
     const tailFin = new THREE.Mesh(
         new THREE.ConeGeometry(0.05, 1.5, 8),
         mat(0x998866)
     );
-    tailFin.scale.set(1, 1, 0.2); // 薄い鰭にする
-    tailFin.rotation.x = Math.PI + 0.3; // 斜め後ろ下方に伸ばす
+    tailFin.scale.set(1, 1, 0.2);
+    tailFin.rotation.x = Math.PI + 0.3;
     tailGroup.add(tailFin);
 
     g.userData.body = bodyGroup;
