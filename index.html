@@ -1514,179 +1514,125 @@ function buildSchinderhannes() {
 }
 
 // ============================================
-// --- 【考古学的最凶モデル】ダンクルオステウス生成：究極版 ---
+// --- 【完全版】ダンクルオステウス：生物学的リファイン ---
 // ============================================
 function buildDunkleosteus() {
     const g = new THREE.Group();
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
 
-    // 共通マテリアル生成関数（ハイエンド・シェーディング対応）
     const mat = (color, rough, metal) => new THREE.MeshStandardMaterial({
-        color: color,
-        roughness: rough,
-        metalness: metal,
-        flatShading: true // 考古学的な「骨」の質感を出すためにフラットシェーディングを採用
+        color: color, roughness: rough, metalness: metal, flatShading: true
     });
 
-    // --- 1. 【超・重装甲】頭部・胸部装甲ユニット ---
+    // --- 1. 頭部ユニット（ここを起点に跳ね上がる） ---
     const headGroup = new THREE.Group();
-    headGroup.position.z = 2.0; // 回転軸を首の付け根（後頭部）に配置
+    headGroup.position.set(0, 0, 2.0); // 回転軸を首の付け根に
     bodyGroup.add(headGroup);
 
-    // メイン頭蓋（skull）: 骨の重厚感を出すため分割数をあえて抑える
-    const skull = new THREE.Mesh(
-        new THREE.SphereGeometry(2.1, 12, 10),
-        mat(0x4a4a4a, 0.4, 0.7)
-    );
+    // 頭蓋装甲
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(2.1, 12, 12), mat(0x444444, 0.5, 0.8));
     skull.scale.set(0.9, 1.0, 1.2);
     headGroup.add(skull);
 
-    // 側面・頬の装甲（Opercular plates）: 立体的な厚み
-    for (let side of [-1, 1]) {
-        const sidePlate = new THREE.Mesh(
-            new THREE.BoxGeometry(0.6, 2.0, 2.5),
-            mat(0x333333, 0.5, 0.8)
-        );
-        sidePlate.position.set(side * 1.8, -0.2, 0.5);
-        sidePlate.rotation.y = side * 0.3;
-        sidePlate.rotation.z = side * 0.1;
-        headGroup.add(sidePlate);
+    // --- 2. 下顎ユニット（頭部の子要素にする） ---
+    const jawGroup = new THREE.Group();
+    jawGroup.position.set(0, -0.8, 0.5); // 顎の関節位置
+    headGroup.add(jawGroup);
 
-        // 獲物を捉える「目」: 装甲の隙間から鋭く覗かせる
-        const eye = new THREE.Mesh(
-            new THREE.SphereGeometry(0.28, 8, 8),
-            new THREE.MeshBasicMaterial({ color: 0xff0000 }) // 凶暴な赤い眼光
-        );
-        eye.position.set(side * 1.4, 0.6, 1.5);
-        headGroup.add(eye);
+    const jawMesh = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 2.0), mat(0x333333, 0.6, 0.5));
+    jawMesh.position.z = 1.0;
+    jawGroup.add(jawMesh);
+
+    // 牙（上顎固定・下顎可動）
+    const toothMat = mat(0xddddcc, 0.6, 0.1);
+    for (let side of [-1, 1]) {
+        // 上牙
+        const uT = new THREE.Mesh(new THREE.ConeGeometry(0.3, 3.0, 4), toothMat);
+        uT.position.set(side * 0.85, -0.8, 2.0);
+        uT.rotation.x = Math.PI + 0.2;
+        headGroup.add(uT);
+
+        // 下牙
+        const lT = new THREE.Mesh(new THREE.ConeGeometry(0.25, 2.5, 4), toothMat);
+        lT.position.set(side * 0.7, 0.5, 1.8);
+        lT.rotation.x = 0.2;
+        jawGroup.add(lT);
     }
 
-    // --- 2. 【尖鋭牙】ハサミ状の顎骨（Gnathal plates） ---
-    const toothMat = mat(0xe0e0cc, 0.6, 0.2); // 象牙質の色
-
-    // 上顎の固定牙
-    for (let side of [-1, 1]) {
-        const uTooth = new THREE.Mesh(
-            new THREE.ConeGeometry(0.3, 3.5, 4),
-            toothMat
-        );
-        uTooth.scale.set(1.5, 1.0, 0.5);
-        uTooth.position.set(side * 0.9, -0.8, 2.2);
-        uTooth.rotation.x = Math.PI + 0.15;
-        uTooth.rotation.y = side * 0.15;
-        headGroup.add(uTooth);
-    }
-
-    // 下顎ユニット（吸引捕食を可能にするクランク構造）
-    const jaw = new THREE.Group();
-    jaw.position.set(0, -0.8, 1.0); // 回転支点
-    headGroup.add(jaw);
-
-    const jawBase = new THREE.Mesh(
-        new THREE.BoxGeometry(1.8, 0.7, 2.2),
-        mat(0x222222, 0.7, 0.5)
-    );
-    jawBase.position.z = 0.8;
-    jaw.add(jawBase);
-
-    // 下顎の牙（上顎を擦り合わせる構造）
-    for (let side of [-1, 1]) {
-        const lTooth = new THREE.Mesh(
-            new THREE.ConeGeometry(0.25, 3.0, 4),
-            toothMat
-        );
-        lTooth.scale.set(1.2, 1.0, 0.4);
-        lTooth.position.set(side * 0.75, 0.5, 1.8);
-        lTooth.rotation.x = 0.2;
-        lTooth.rotation.y = side * -0.1;
-        jaw.add(lTooth);
-    }
-
-    // --- 3. 【流体力学】しなやかな胴体と尾部 ---
-    const skinMat = mat(0x5a6066, 0.8, 0.1);
-
-    const torso = new THREE.Mesh(
-        new THREE.SphereGeometry(2.6, 24, 20),
-        skinMat
-    );
+    // --- 3. 胴体（サメのような流線型） ---
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(2.5, 24, 20), mat(0x50555a, 0.8, 0.1));
     torso.scale.set(0.8, 1.2, 2.8);
     torso.position.z = -2.5;
     bodyGroup.add(torso);
 
-    // 巨大な胸鰭（推進力の源）
-    for (let side of [-1, 1]) {
-        const pFin = new THREE.Mesh(
-            new THREE.SphereGeometry(1.5, 16, 8),
-            mat(0x40454a, 0.8, 0.1)
-        );
-        pFin.scale.set(1.8, 0.1, 1.2);
-        pFin.position.set(side * 2.0, -1.5, -0.5);
-        pFin.rotation.z = side * 0.8;
-        pFin.rotation.y = side * 0.4;
-        bodyGroup.add(pFin);
-    }
+    // --- 4. 【修正】生物的な尾鰭（Sphereを引き伸ばして作成） ---
+    const tailPivot = new THREE.Group(); // 尾を振るための支点
+    tailPivot.position.z = -6.5;
+    bodyGroup.add(tailPivot);
 
-    // 尾部ユニット
-    const tailGroup = new THREE.Group();
-    tailGroup.position.z = -7.0;
-    g.add(tailGroup);
+    const tailFinGroup = new THREE.Group();
+    tailPivot.add(tailFinGroup);
 
-    // 強靭な尾鰭（上葉が長い異尾構造）
-    const tailTop = new THREE.Mesh(new THREE.BoxGeometry(0.1, 5.0, 2.0), skinMat);
-    tailTop.position.y = 2.0;
-    tailTop.rotation.x = 0.7;
-    tailGroup.add(tailTop);
+    // 上葉（長く鋭い）
+    const tTop = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), mat(0x40454a, 0.9, 0.0));
+    tTop.scale.set(0.05, 3.0, 1.2); // 極薄にする
+    tTop.position.set(0, 2.2, -1.0);
+    tTop.rotation.x = 0.6;
+    tailFinGroup.add(tTop);
 
-    const tailBot = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.5, 1.5), skinMat);
-    tailBot.position.y = -1.0;
-    tailBot.rotation.x = -0.7;
-    tailGroup.add(tailBot);
+    // 下葉（推進力を生む）
+    const tBot = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x40454a, 0.9, 0.0));
+    tBot.scale.set(0.04, 1.8, 0.8);
+    tBot.position.set(0, -1.0, -0.5);
+    tBot.rotation.x = -0.6;
+    tailFinGroup.add(tBot);
 
-    // データ保存
+    // ユーザーデータの紐付け（ここがアニメーションに直結します）
     g.userData.head = headGroup;
-    g.userData.jaw = jaw;
-    g.userData.tail = tailGroup;
-    g.userData.body = bodyGroup;
+    g.userData.jaw = jawGroup;
+    g.userData.tail = tailPivot; 
 
-    return { mesh: g, type: 'dunkleosteus' };
+    return { mesh: g, type: 'fish_dunk' };
 }
 
 // ============================================
-// --- 捕食アクション・アニメーション ---
+// --- アニメーション：生命の鼓動 ---
 // ============================================
 function animateDunkleosteus(fish, clock) {
     const time = clock.getElapsedTime();
     const head = fish.userData.head;
-    const jaw = fish.userData.jaw;
+    const jaw = fish.clipboard ? null : fish.userData.jaw; // 安全策
     const tail = fish.userData.tail;
-    const body = fish.userData.body;
 
-    // 1. 口の開閉：2秒周期（溜めて、一瞬で噛みちぎる）
+    if (!head || !jaw) return; // パーツが見つからない場合はスキップ
+
+    // 1. 口のアクション（2秒周期：ゆっくり開いて、バチン！と閉じる）
     const period = 2.0;
-    const p = (time % period) / period;
-    let headRot = 0;
-    let jawRot = 0;
+    const phase = (time % period) / period;
+    
+    let jawOpen = 0;
+    let headLift = 0;
 
-    if (p < 0.7) { // じわじわと大きく開く（威圧感）
-        const s = Math.sin((p / 0.7) * Math.PI / 2);
-        headRot = 0.2 * s;
-        jawRot = -0.6 * s;
-    } else if (p < 0.75) { // 超高速で閉じる（破壊力）
-        const s = 1.0 - ((p - 0.7) / 0.05);
-        headRot = 0.2 * s;
-        jawRot = -0.6 * s;
+    if (phase < 0.75) {
+        // じわじわ開く
+        const p = Math.sin((phase / 0.75) * Math.PI / 2);
+        jawOpen = -0.5 * p;
+        headLift = 0.15 * p;
+    } else if (phase < 0.82) {
+        // 獲物を粉砕する速度で閉じる
+        const p = 1.0 - ((phase - 0.75) / 0.07);
+        jawOpen = -0.5 * p;
+        headLift = 0.15 * p;
     }
 
-    head.rotation.x = headRot;
-    jaw.rotation.x = jawRot;
+    head.rotation.x = headLift;
+    jaw.rotation.x = jawOpen;
 
-    // 2. 尾の振り：装甲の重さを感じさせる力強いスイング
-    const swing = Math.sin(time * 3.5) * 0.35;
-    tail.rotation.y = swing;
-    
-    // 3. 胴体の微細なうねり（セカンダリアクション）
-    body.rotation.y = Math.sin(time * 3.5 - 0.5) * 0.05;
+    // 2. 尾の振り（しなやかなS字の動き）
+    if (tail) {
+        tail.rotation.y = Math.sin(time * 3.0) * 0.4;
+    }
 }
 
 function buildBothriolepis() {
