@@ -1513,111 +1513,136 @@ function buildSchinderhannes() {
     return { mesh: g, segments: segs, type: 'swim_anomalocaris' };
 }
 
+// ============================================
+// --- 【考古学的最凶モデル】ダンクルオステウス生成 ---
+// ============================================
 function buildDunkleosteus() {
     const g = new THREE.Group(); 
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
     
-    // ============================================
-    // --- 【重装甲】頭部ユニット（頭蓋と胸部装甲） ---
-    // ============================================
+    // --- 【超・重装甲】頭部ユニット（装甲強化）---
     const headGroup = new THREE.Group(); 
     headGroup.position.z = 2.0;
     bodyGroup.add(headGroup);
 
-    // --- 1. 頭蓋（スカル）：巨大な脳函と吻部 ---
-    const skull = new THREE.Mesh(
-        new THREE.SphereGeometry(2.1, 8, 8), 
-        mat(0x3a3a3a, 0.4, 0.7) // 化石らしい少し沈んだ重金属の色
-    );
-    skull.scale.set(0.85, 0.95, 1.2); // 吻部（鼻先）を少し前に突き出す
+    // 1. メインの頭蓋装甲（前端）: Sphereの分割数を減らして「ポリゴン感」のある骨に
+    const skullGeom = new THREE.SphereGeometry(2.1, 8, 8); // 分割数8x8でカクカクに
+    const skullMat = mat(0x444444, 0.5, 0.8); // 重厚な金属光沢
+    const skull = new THREE.Mesh(skullGeom, skullMat);
+    skull.scale.set(0.85, 0.9, 1.1); 
     headGroup.add(skull);
     
-    // 吻部プレート（前方を覆う装甲）
-    const rostralPlate = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.2, 0.5), mat(0x3a3a3a, 0.4, 0.7));
-    rostralPlate.position.set(0, 0.5, 2.0);
-    rostralPlate.rotation.x = -0.4;
-    headGroup.add(rostralPlate);
+    // 前面の「追加装甲プレート」（角材ベース）
+    for (let side of [-1, 1]) {
+        const frontPlate = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.3), mat(0x333333, 0.5, 0.9));
+        frontPlate.position.set(side * 1.0, 0.0, 1.5);
+        frontPlate.rotation.y = side * -0.5; // 前方へ絞る
+        frontPlate.rotation.z = side * -0.2;
+        headGroup.add(frontPlate);
+    }
 
-    // --- 2. 胸部装甲（Thoracic armor）と首の関節（Nuchal joint） ---
-    // ダンクルオステウスの最大の特徴である「首を跳ね上げるための隙間」を意識
-    const mainNuchal = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.8, 1.6), mat(0x4a4a4a, 0.4, 0.8));
-    mainNuchal.position.set(0, 1.3, -0.8);
-    mainNuchal.rotation.x = -0.2; 
+    // 2. 首周りの背側装甲（Nuchal plates: 超・重機感）
+    // 襟足の「メインプレート」（分厚い角材）
+    const mainNuchal = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.8, 1.8), mat(0x555555, 0.5, 1.0));
+    mainNuchal.position.set(0, 1.2, -0.6);
+    mainNuchal.rotation.x = -0.3; // 後ろへ傾斜
     headGroup.add(mainNuchal);
 
-    // 側面の巨大な装甲板
+    // その上に重ねる「追加の背鰭装甲（リベット風の凸形）」
     for (let side of [-1, 1]) {
-        const sideThoracic = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.5, 1.8), mat(0x4a4a4a, 0.4, 0.8));
-        sideThoracic.position.set(side * 1.8, 0.2, -0.8);
-        sideThoracic.rotation.z = side * 0.4; 
-        sideThoracic.rotation.y = side * 0.2;
-        headGroup.add(sideThoracic);
-    }
-    
-    // --- 3. 頬と眼窩（Suborbital plates） ---
-    for (let side of [-1, 1]) {
-        const suborbital = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.5, 2.0), mat(0x3a3a3a, 0.4, 0.7));
-        suborbital.position.set(side * 1.9, -0.1, 0.5);
-        suborbital.rotation.y = side * 0.3; 
-        suborbital.rotation.z = side * 0.15;
-        headGroup.add(suborbital);
+        const spineArmor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 2.0), mat(0x666666, 0.6, 1.0));
+        spineArmor.position.set(side * 0.4, 1.6, -0.6);
+        spineArmor.rotation.x = -0.3;
+        headGroup.add(spineArmor);
     }
 
-    // 落ち窪んだ冷酷な目
-    const eyeGeom = new THREE.SphereGeometry(0.2, 8, 8); 
+    // 側面プレート（首を囲む分厚い角材）
+    for (let side of [-1, 1]) {
+        const sideNuchal = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.2, 1.5), mat(0x555555, 0.5, 1.0));
+        sideNuchal.position.set(side * 1.8, 0.4, -0.7);
+        sideNuchal.rotation.z = side * 0.5; // 傾けて囲う
+        sideNuchal.rotation.y = side * 0.3;
+        headGroup.add(sideNuchal);
+    }
+    
+    // 3. 頬の装甲（Opercular plates: 超・重機感）
+    // ここも分厚いBoxで構成
+    for (let side of [-1, 1]) {
+        const checkPlate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.8, 2.2), mat(0x333333, 0.5, 0.9));
+        checkPlate.position.set(side * 2.0, -0.2, 0.4);
+        checkPlate.rotation.y = side * 0.4; // 前方へ絞る
+        checkPlate.rotation.z = side * 0.1;
+        headGroup.add(checkPlate);
+    }
+
+    // 4. 装甲に守られた目（Sphereの分割数を減らす）
+    const eyeGeom = new THREE.SphereGeometry(0.25, 8, 8); // 目もカクカクに
     const eyeL = new THREE.Mesh(eyeGeom, eyeMat); 
-    eyeL.position.set(1.5, 0.6, 1.3); // 装甲の奥深くに配置
+    eyeL.position.set(1.4, 0.5, 1.4); // 装甲のスリットから覗く
     headGroup.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x = -1.5; headGroup.add(eyeR);
+    const eyeR = eyeL.clone(); eyeR.position.x = -1.4; headGroup.add(eyeR);
 
-    // ============================================
-    // --- 【凶刃】顎骨（Gnathal plates） ---
-    // ============================================
-    const toothMat = mat(0xc8c8b5, 0.6, 0.9); // 研ぎ澄まされた骨の刃
 
-    // --- 上顎の刃（前方の巨大な牙と、後方に続く切断刃） ---
-    // Coneの根元を太くし、骨から直接伸びている「刃物」を表現
-    const upperToothGeom = new THREE.ConeGeometry(0.5, 3.5, 4); 
-    
+    // --- 【尖鋭牙】（顎骨：gnathal plates）---
+    // マテリアル：骨の色(ddddcc)で、少し金属光沢を持たせて「凶器」感を
+    const toothMat = mat(0xddddcc, 0.6, 0.9);
+
+    // 【考古学的微調整】上顎の固定された「牙」（ハサミの刃のように外側へ傾ける）
+    const upperToothGeom = new THREE.ConeGeometry(0.25, 3.5, 4); // 円錐（4面体）で尖らせる
     const teethTopL = new THREE.Mesh(upperToothGeom, toothMat);
-    teethTopL.scale.set(1.2, 1.0, 0.3); // 板状のギロチン
-    teethTopL.position.set(0.9, -0.5, 2.0); 
-    teethTopL.rotation.x = Math.PI + 0.15; // 鋭く下を向く
-    teethTopL.rotation.y = 0.2; // 少し内側にカーブして獲物を逃がさない
+    teethTopL.scale.set(1.4, 1.2, 0.4); // 前後に薄く
+    teethTopL.position.set(0.85, -0.6, 2.0); 
+
+    // X軸で180度回転させて、先端を下に向ける（ Math.PI ）
+    // さらに、少し前斜め下を向くように角度を調整（ +0.2 ）
+    teethTopL.rotation.x = Math.PI + 0.2; 
+    
+    // 【重要】少し外側に傾けて、下牙の内側とすれ違うようにする
+    teethTopL.rotation.y = 0.1; 
     headGroup.add(teethTopL);
     
     const teethTopR = teethTopL.clone(); 
-    teethTopR.position.x = -0.9;
-    teethTopR.rotation.y = -0.2;
+    teethTopR.position.x = -0.85;
+    // 右側は対称に外側へ
+    teethTopR.rotation.y = -0.1; 
     headGroup.add(teethTopR);
 
-    // --- 下顎ユニット（巨大な咬筋を支える分厚い骨格） ---
-    // headGroupではなく、首の付け根寄りにpivot（回転軸）を置く構造
+    // 下顎ユニット（ごつごつしたBoxベースに）
     const jaw = new THREE.Group(); 
-    jaw.position.set(0, -0.8, 0.2); // 回転軸を後ろに下げる
+    // 下顎の回転軸（pivot）を少し後ろに設定（吸引捕食に有利な構造）
+    jaw.position.set(0, -0.7, 0.8);
     headGroup.add(jaw);
     
-    const jawMesh = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.8, 2.2), mat(0x2a2a2a, 0.3, 0.8)); 
-    jawMesh.position.set(0, -0.2, 1.0); // 軸から前に突き出す
-    jawMesh.rotation.x = -0.1; 
+    // 下顎のベース（Boxを組み合わせる）
+    const jawMesh = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 1.8), mat(0x333333)); 
+    jawMesh.position.set(0, -0.3, 1.0);
+    jawMesh.rotation.x = -0.2; // 少し開く角度に
     jaw.add(jawMesh);
     
-    // 下顎の刃（上顎の刃の内側を擦り上げるように噛み合う）
-    const lowerToothGeom = new THREE.ConeGeometry(0.45, 3.0, 4); 
+    // 【考古学的微調整】下顎の「牙」（ここもCone：上顎の内側を擦るように内側へ傾ける）
+    const lowerToothGeom = new THREE.ConeGeometry(0.22, 2.8, 4);
     const teethBotL = new THREE.Mesh(lowerToothGeom, toothMat);
-    teethBotL.scale.set(1.1, 1.0, 0.3);
-    teethBotL.position.set(0.8, 0.5, 1.8);
-    teethBotL.rotation.x = 0.25; 
-    teethBotL.rotation.y = 0.1; // 上顎の内側へ
+    teethBotL.scale.set(1.1, 1.1, 0.3);
+    teethBotL.position.set(0.7, 0.4, 1.9);
+    
+    // 下顎の牙は、少し後ろ向きに（上顎と噛み合うように）
+    teethBotL.rotation.x = 0.3; 
+    // 【重要】少し内側に傾けて、上牙の内側を擦るようにする
+    teethBotL.rotation.y = -0.1; 
     jaw.add(teethBotL);
     
     const teethBotR = teethBotL.clone(); 
-    teethBotR.position.x = -0.8;
-    teethBotR.rotation.y = -0.1;
+    teethBotR.position.x = -0.7;
+    // 右側は対称に内側へ
+    teethBotR.rotation.y = 0.1; 
     jaw.add(teethBotR);
 
-    g.userData.jaw = jaw; 
+    // アニメーション用にデータを保存
+    g.userData.head = headGroup; // 頭部全体（跳ね上げ用）
+    g.userData.jaw = jaw;        // 下顎（下降用）
+
+    // --- 後略（胴体・鰭・尾鰭は以前の造形をキープ） --- 
 
     // ============================================
     // --- 【肉体】胴体と尾部（軟骨魚類のしなやかな筋肉） ---
@@ -1674,7 +1699,54 @@ function buildDunkleosteus() {
     g.userData.body = bodyGroup;
     g.userData.tail = tailGroup;
     g.scale.set(1.2, 1.2, 1.2);
+
+   // アニメーションタイプを「fish_dunk」に設定
     return { mesh: g, segments: [], type: 'fish_dunk' };
+}
+
+
+// ============================================
+// --- ダンクルオステウス専用アニメーション ---
+// ============================================
+function animateDunkleosteus(fish, clock) {
+    const time = clock.getElapsedTime();
+    const head = fish.userData.head; // 頭部跳ね上げ
+    const jaw = fish.userData.jaw;   // 下顎下降
+
+    // 動きの周期設定（ゆっくり開けて、一瞬で閉じる）
+    const period = 2.0; // 2秒周期
+    const phase = (time % period) / period; // 0〜1
+
+    let jawAngle, headAngle;
+
+    if (phase < 0.75) {
+        // --- ゆっくり口を開ける (0〜1.5秒) ---
+        // 0から1へなだらかに変化させる（正弦波の半分）
+        const p = Math.sin((phase / 0.75) * Math.PI / 2);
+        jawAngle = -0.5 * p;    // 下顎は下がる（0から-0.5）
+        headAngle = 0.1 * p;    // 頭部は跳ね上がる（0から0.1）
+    } else if (phase < 0.8) {
+        // --- 一瞬で口を閉じる (1.5〜1.6秒) ---
+        // 1から0へ急激に落とす（Math.powで加速）
+        const p = 1 - Math.pow(((phase - 0.75) / 0.05), 3);
+        jawAngle = -0.5 * p;
+        headAngle = 0.1 * p;
+    } else {
+        // --- 口を閉じたまま停止 (1.6〜2.0秒) ---
+        jawAngle = 0;
+        headAngle = 0;
+    }
+
+    // 角度を適用
+    jaw.rotation.x = jawAngle;
+    head.rotation.x = headAngle;
+
+    // --- 尾のアニメーションは共通ロジックを流用 ---
+    const tail = fish.userData.tail;
+    if (tail) {
+        // 力強く泳ぐダンクルオステウスは、尾の振りを大きく、周波数を低めに
+        tail.rotation.y = Math.sin(time * 3.0) * 0.3;
+    }
 }
 
 function buildBothriolepis() {
