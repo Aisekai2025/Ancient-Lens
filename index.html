@@ -1518,83 +1518,121 @@ function buildDunkleosteus() {
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
     
-    // --- 頭部ユニット ---
+    // ============================================
+    // --- 【超・重装甲】頭部ユニット ---
+    // ============================================
     const headGroup = new THREE.Group(); 
     headGroup.position.z = 2.0;
     bodyGroup.add(headGroup);
 
-    // 1. メインの頭蓋装甲（ここは顔の丸みを出すためSphereを維持）
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(2.1, 24, 20), mat(0x444444)); 
-    skull.scale.set(0.85, 0.95, 1.0); 
+    // --- 1. 顔の前面（スカル）---
+    // Sphereをベースにしつつ、分割数を極端に減らして「ポリゴン感」のある骨にする
+    const skull = new THREE.Mesh(
+        new THREE.SphereGeometry(2.1, 8, 8), // 分割数8x8でカクカクに
+        mat(0x444444, 0.5, 0.8) // 金属光沢を強める
+    );
+    skull.scale.set(0.85, 0.9, 1.1); 
     headGroup.add(skull);
     
-    // --- 2. 首周りの背側装甲を「角材」で構成 (Nuchal plates) ---
-    // 中央の背板：分厚い板が乗っている感じ
-    const backPlate = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.5, 1.2), mat(0x555555));
-    backPlate.position.set(0, 1.2, -0.6);
-    backPlate.rotation.x = -0.2; // 少し後ろに傾ける
-    headGroup.add(backPlate);
-
-    // 左右の側面プレート：角材をハの字に配置
-    const nuchalL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.0, 1.2), mat(0x555555));
-    nuchalL.position.set(1.6, 0.4, -0.6);
-    nuchalL.rotation.z = -0.4; // 傾けて頭を囲う
-    nuchalL.rotation.y = 0.2;
-    headGroup.add(nuchalL);
+    // 前面の「追加装甲プレート」（角材ベース）
+    const frontPlateL = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.3), mat(0x333333, 0.5, 0.9));
+    frontPlateL.position.set(1.0, 0.0, 1.5);
+    frontPlateL.rotation.y = -0.5; // 前方へ絞る
+    frontPlateL.rotation.z = -0.2;
+    headGroup.add(frontPlateL);
     
-    const nuchalR = nuchalL.clone();
-    nuchalR.position.x = -1.6;
-    nuchalR.rotation.z = 0.4;
-    nuchalR.rotation.y = -0.2;
-    headGroup.add(nuchalR);
+    const frontPlateR = frontPlateL.clone();
+    frontPlateR.position.x = -1.0;
+    frontPlateR.rotation.y = 0.5;
+    frontPlateR.rotation.z = 0.2;
+    headGroup.add(frontPlateR);
+
+
+    // --- 2. 首周りの背側装甲（Nuchal plates: 超・重機感）---
+    // 襟足の「メインプレート」（分厚い角材）
+    const mainNuchal = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.8, 1.8), mat(0x555555, 0.5, 1.0));
+    mainNuchal.position.set(0, 1.2, -0.6);
+    mainNuchal.rotation.x = -0.3; // 後ろへ傾斜
+    headGroup.add(mainNuchal);
+
+    // その上に重ねる「追加の背鰭装甲（リベット風の凸形）」
+    for (let side of [-1, 1]) {
+        const spineArmor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 2.0), mat(0x666666, 0.6, 1.0));
+        spineArmor.position.set(side * 0.4, 1.6, -0.6);
+        spineArmor.rotation.x = -0.3;
+        headGroup.add(spineArmor);
+    }
+
+    // 側面プレート（首を囲む分厚い角材）
+    for (let side of [-1, 1]) {
+        const sideNuchal = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.2, 1.5), mat(0x555555, 0.5, 1.0));
+        sideNuchal.position.set(side * 1.8, 0.4, -0.7);
+        sideNuchal.rotation.z = side * 0.5; // 傾けて囲う
+        sideNuchal.rotation.y = side * 0.3;
+        headGroup.add(sideNuchal);
+    }
     
-    // --- 3. 頬の装甲を「角材」で構成 (Opercular plates) ---
-    const opercularL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.5, 2.0), mat(0x333333));
-    opercularL.position.set(1.8, -0.2, 0.2);
-    opercularL.rotation.y = 0.3; // 前方へ絞る
-    headGroup.add(opercularL);
+    
+    // --- 3. 頬の装甲（Opercular plates: 超・重機感）---
+    // ここも分厚いBoxで構成
+    for (let side of [-1, 1]) {
+        const checkPlate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.8, 2.2), mat(0x333333, 0.5, 0.9));
+        checkPlate.position.set(side * 2.0, -0.2, 0.4);
+        checkPlate.rotation.y = side * 0.4; // 前方へ絞る
+        checkPlate.rotation.z = side * 0.1;
+        headGroup.add(checkPlate);
+    }
 
-    const opercularR = opercularL.clone();
-    opercularR.position.x = -1.8;
-    opercularR.rotation.y = -0.3;
-    headGroup.add(opercularR);
-
-    // 4. 装甲に囲まれた目
-    const eyeGeom = new THREE.SphereGeometry(0.25, 16, 16);
+    // --- 4. 装甲に守られた目（Sphereの分割数を減らす）---
+    const eyeGeom = new THREE.SphereGeometry(0.25, 8, 8); // 目もカクカクに
     const eyeL = new THREE.Mesh(eyeGeom, eyeMat); 
-    eyeL.position.set(1.4, 0.4, 1.3); // 装甲のスリットから覗く位置
+    eyeL.position.set(1.4, 0.5, 1.4); // 装甲のスリットから覗く
     headGroup.add(eyeL);
     const eyeR = eyeL.clone(); eyeR.position.x = -1.4; headGroup.add(eyeR);
 
-    // 5. 顎の骨（gnathal plates）
-    // 上顎の固定された「牙」
-    const toothGeom = new THREE.SphereGeometry(0.4, 8, 12);
-    const teethTop = new THREE.Mesh(toothGeom, mat(0xddddcc));
-    teethTop.scale.set(1.0, 2.5, 0.4); 
-    teethTop.position.set(0.8, -0.8, 1.9);
-    teethTop.rotation.x = 0.3;
-    headGroup.add(teethTop);
-    const teethTopR = teethTop.clone(); teethTopR.position.x = -0.8;
+
+    // --- 5. 【尖鋭牙】（顎骨：gnathal plates）---
+    // マテリアル：骨の色(ddddcc)で、少し金属光沢を持たせて「凶器」感を
+    const toothMat = mat(0xddddcc, 0.6, 0.9);
+
+    // 上顎の固定された「牙」（Coneを鋭く伸ばす）
+    const upperToothGeom = new THREE.ConeGeometry(0.25, 3.0, 4); // 円錐（4面体）で尖らせる
+    const teethTopL = new THREE.Mesh(upperToothGeom, toothMat);
+    teethTopL.scale.set(1.2, 1.2, 0.4); // 前後に薄く
+    teethTopL.position.set(0.8, -1.0, 2.1);
+    teethTopL.rotation.x = -0.1; // 少し前向きに
+    headGroup.add(teethTopL);
+    
+    const teethTopR = teethTopL.clone(); 
+    teethTopR.position.x = -0.8;
     headGroup.add(teethTopR);
 
-    // 下顎ユニット
+    // 下顎ユニット（ごつごつしたBoxベースに）
     const jaw = new THREE.Group(); 
-    jaw.position.set(0, -0.6, 0.6);
+    jaw.position.set(0, -0.7, 0.8);
     headGroup.add(jaw);
-    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(1.7, 16, 16), mat(0x333333)); 
-    jawMesh.scale.set(0.7, 0.45, 1.4); 
-    jawMesh.position.z = 0.5;
+    
+    // 下顎のベース（Boxを組み合わせる）
+    const jawMesh = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 1.8), mat(0x333333)); 
+    jawMesh.position.set(0, -0.3, 1.0);
+    jawMesh.rotation.x = -0.2; // 少し開く角度に
     jaw.add(jawMesh);
     
-    const teethBot = new THREE.Mesh(toothGeom, mat(0xddddcc));
-    teethBot.scale.set(0.7, 2.2, 0.4);
-    teethBot.position.set(0.7, 0.4, 1.7);
-    jaw.add(teethBot);
-    const teethBotR = teethBot.clone(); teethBotR.position.x = -0.7;
+    // 下顎の「牙」（ここもCone）
+    const lowerToothGeom = new THREE.ConeGeometry(0.22, 2.5, 4);
+    const teethBotL = new THREE.Mesh(lowerToothGeom, toothMat);
+    teethBotL.scale.set(1.0, 1.0, 0.3);
+    teethBotL.position.set(0.7, 0.4, 2.0);
+    teethBotL.rotation.x = 0.2; // 少し後ろ向きに（上顎と噛み合うように）
+    jaw.add(teethBotL);
+    
+    const teethBotR = teethBotL.clone(); 
+    teethBotR.position.x = -0.7;
     jaw.add(teethBotR);
 
     g.userData.jaw = jaw; 
 
+    // --- 後略（胴体・鰭・尾鰭は以前の「肉付きの良い」造形をキープ） ---
     // --- 胴体ユニット（装甲との接続部を少し細めてメリハリをつける） ---
     const torso = new THREE.Mesh(new THREE.SphereGeometry(2.5, 24, 24), mat(0x555555));
     torso.scale.set(0.8, 1.05, 2.5); 
