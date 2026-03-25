@@ -1371,22 +1371,37 @@ function buildEusthenopteron() {
     const g = new THREE.Group(); 
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
-    
-    // 1. 頭部と胴体（流線型かつ、少しがっしりした体格）
-    const torsoGeom = new THREE.SphereGeometry(1.0, 24, 20);
-    const torso = new THREE.Mesh(torsoGeom, mat(0x556655));
-    torso.scale.set(0.9, 1.1, 3.2); 
+
+    // 共通マテリアル（鱗の光沢と生物的な質感を両立）
+    const mat = (color) => new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.7,
+        metalness: 0.2,
+        flatShading: true
+    });
+
+    // 1. 胴体（流線型だが、四肢を支えるがっしりした体格）
+    const torso = new THREE.Mesh(
+        new THREE.SphereGeometry(1.0, 24, 20), 
+        mat(0x556655)
+    );
+    torso.scale.set(0.8, 1.0, 3.0); 
     bodyGroup.add(torso);
 
+    // 2. 頭部ユニット
     const headGroup = new THREE.Group(); 
     headGroup.position.z = 1.8;
     bodyGroup.add(headGroup);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), mat(0x556655));
+
+    const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.8, 16, 16), 
+        mat(0x556655)
+    );
     head.scale.set(1.0, 0.9, 1.4);
     headGroup.add(head);
     
-    // 左右の目
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12), eyeMat);
+    // 目
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), eyeMat);
     eyeL.position.set(0.45, 0.25, 0.4); 
     headGroup.add(eyeL);
     const eyeR = eyeL.clone(); 
@@ -1397,59 +1412,86 @@ function buildEusthenopteron() {
     const jaw = new THREE.Group(); 
     jaw.position.set(0, -0.2, -0.1);
     headGroup.add(jaw);
-    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), mat(0x445544));
+    const jawMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.7, 16, 12), 
+        mat(0x445544)
+    );
     jawMesh.scale.set(1.0, 0.35, 1.6);
     jawMesh.position.z = 0.5;
     jaw.add(jawMesh);
-    g.userData.jaw = jaw;
 
-    // --- 肉鰭（胸鰭・腹鰭）は既存のロジックを流用しつつ、少し「肉感」を出す ---
-    // (中略：fL, fR, pL, pR の生成)
-    // ※ Cylinder の代わりに、細長い Sphere を使うとより肉鰭類らしくなります
+    // 3. 肉鰭 (Lobe-fins) - 胸鰭と腹鰭
+    const fins = [];
+    const createLobeFin = (x, y, z, ry, rz) => {
+        const f = new THREE.Group();
+        f.position.set(x, y, z);
+        f.rotation.y = ry;
+        f.rotation.z = rz;
+        // 肉厚な根元部分
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.8, 8), mat(0x445544));
+        base.position.y = -0.4;
+        f.add(base);
+        // 先端のヒレ部分
+        const fin = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.8, 8), mat(0x334433));
+        fin.position.y = -1.0;
+        fin.scale.set(1.5, 1, 0.2);
+        f.add(fin);
+        f.userData.origRot = f.rotation.clone(); // アニメーション用に保存
+        return f;
+    };
 
-    // 5. 尾部 (三葉状：Trilobed tail)
+    const fL = createLobeFin(0.7, -0.4, 0.8, -0.3, 1.0); // 胸鰭L
+    const fR = createLobeFin(-0.7, -0.4, 0.8, 0.3, -1.0); // 胸鰭R
+    const pL = createLobeFin(0.5, -0.4, -1.2, -0.2, 0.8); // 腹鰭L
+    const pR = createLobeFin(-0.5, -0.4, -1.2, 0.2, -0.8); // 腹鰭R
+    
+    [fL, fR, pL, pR].forEach(fin => {
+        bodyGroup.add(fin);
+        fins.push(fin);
+    });
+
+    // 4. 尾部 (三葉状：Trilobed tail)
     const tailGroup = new THREE.Group(); 
-    tailGroup.position.z = -3.2;
+    tailGroup.position.z = -3.0;
     g.add(tailGroup);
 
-    // 尾筒（尾の付け根：筋肉がしっかりついている部分）
     const tailStalk = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), mat(0x556655));
-    tailStalk.scale.set(0.5, 1.0, 2.0);
-    tailStalk.position.z = -0.8;
+    tailStalk.scale.set(0.6, 1.0, 1.5);
+    tailStalk.position.z = -0.5;
     tailGroup.add(tailStalk);
     
-    // 【重要】中央の葉（背骨の延長線上がそのまま突き出た部分）
-    const tMid = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), mat(0x334433));
-    tMid.scale.set(0.1, 0.8, 1.5); 
-    tMid.position.z = -1.8;
-    tailGroup.add(tMid);
+    // 特徴的な3枚の葉
+    const createTailLeaf = (h, w, d, pz, py, rx) => {
+        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), mat(0x334433));
+        leaf.scale.set(0.08, h, d);
+        leaf.position.set(0, py, pz);
+        leaf.rotation.x = rx;
+        return leaf;
+    };
 
-    // 上の葉
-    const tTop = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), mat(0x334433));
-    tTop.scale.set(0.08, 1.4, 1.0); 
-    tTop.position.set(0, 0.7, -1.2); 
-    tTop.rotation.x = 0.6; 
-    tailGroup.add(tTop);
+    tailGroup.add(createTailLeaf(0.8, 0.1, 1.8, -1.8, 0, 0));       // 中央（中軸）
+    tailGroup.add(createTailLeaf(1.5, 0.1, 1.2, -1.2, 0.8, 0.6));  // 上葉
+    tailGroup.add(createTailLeaf(1.5, 0.1, 1.2, -1.2, -0.8, -0.6)); // 下葉
 
-    // 下の葉
-    const tBot = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), mat(0x334433));
-    tBot.scale.set(0.08, 1.4, 1.0); 
-    tBot.position.set(0, -0.7, -1.2); 
-    tBot.rotation.x = -0.6; 
-    tailGroup.add(tBot);
-
-    // 背びれ（第二背鰭）と尻びれも追加するとさらに完璧です
-    const dFin = new THREE.Mesh(new THREE.SphereGeometry(0.3), mat(0x334433));
-    dFin.scale.set(0.1, 1.0, 0.8);
-    dFin.position.set(0, 0.8, -2.0);
+    // 5. 背びれと尻びれ
+    const dFin = new THREE.Mesh(new THREE.SphereGeometry(0.4), mat(0x334433));
+    dFin.scale.set(0.1, 1.2, 0.8);
+    dFin.position.set(0, 0.9, -1.8);
     bodyGroup.add(dFin);
 
+    const aFin = dFin.clone();
+    aFin.position.y = -0.9;
+    bodyGroup.add(aFin);
+
+    // データ紐付け
     g.userData.body = bodyGroup;
     g.userData.tail = tailGroup;
-    // ... 後略 ...
-    return { mesh: g, segments: [], type: 'fish_lobe' }; 
+    g.userData.jaw = jaw;
+    g.userData.fins = fins;
+    g.scale.set(1.4, 1.4, 1.4);
+    
+    return { mesh: g, type: 'fish_lobe' }; 
 }
-
 function buildSchinderhannes() {
     const g = new THREE.Group(); const segs = []; let parent = g;
     const headGroup = new THREE.Group(); g.add(headGroup);
