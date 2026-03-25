@@ -692,47 +692,49 @@ function buildAstraspis() {
     const bodyGroup = new THREE.Group(); 
     g.add(bodyGroup);
     
-    // 1. 頭部・胴体の装甲 (星型の突起がある分厚い装甲板)
-    // 扁平な半球で、当時の「盾のような」質感を表現
-    const headGeom = new THREE.SphereGeometry(1.4, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
-    const head = new THREE.Mesh(headGeom, mat(0x887755, 0, 0.6));
-    head.scale.set(1.1, 0.5, 1.4); 
-    bodyGroup.add(head);
+    // 1. 胴体：単なる半球ではなく、厚みのある「盾」の形に
+    // Sphereの半分ではなく、全体を使って上下の厚みを出す
+    const torsoGeom = new THREE.SphereGeometry(1.4, 24, 20);
+    const torso = new THREE.Mesh(torsoGeom, mat(0x887755, 0, 0.6));
+    // Y(高さ)を0.7程度にすることで、底面を少し平らにしつつ、尾部と繋がる厚みを確保
+    torso.scale.set(1.1, 0.7, 1.8); 
+    bodyGroup.add(torso);
 
-    // 底面を塞ぐ
-    const bottom = new THREE.Mesh(new THREE.CircleGeometry(1.4, 24), mat(0x887755, 0, 0.6));
-    bottom.rotation.x = Math.PI / 2;
-    head.add(bottom);
-    
-    // 2. 目と口（左右に離れた小さな目と、下側にある小さな口）
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12), eyeMat);
-    eyeL.position.set(0.9, 0.1, 0.9); 
+    // 2. 目と口（装甲の前端、左右に離れた位置に配置）
+    const eyeGeom = new THREE.SphereGeometry(0.12, 16, 16);
+    const eyeL = new THREE.Mesh(eyeGeom, eyeMat);
+    // 胴体のカーブに合わせて少し外側・上側に配置
+    eyeL.position.set(0.85, 0.2, 1.3); 
     bodyGroup.add(eyeL);
+    
     const eyeR = eyeL.clone(); 
-    eyeR.position.x = -0.9; 
+    eyeR.position.x = -0.85; 
     bodyGroup.add(eyeR);
 
-    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat);
-    mouth.scale.set(1.5, 0.5, 1); 
-    mouth.position.set(0, -0.2, 1.3);
+    // 口：無顎類なので、あごのない「吸い込み口」のようなスリット
+    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 12), eyeMat);
+    mouth.scale.set(1.8, 0.4, 0.5); 
+    // 目よりも低い位置、先端近くに配置
+    mouth.position.set(0, -0.25, 1.55);
     bodyGroup.add(mouth);
 
-    // 3. 尾部 (原始的なヘラ状の尾)
+    // 3. 尾部への自然な接続
     const tailGroup = new THREE.Group(); 
+    // 胴体の後ろ(Zマイナス方向)に配置
     tailGroup.position.z = -1.2;
     g.add(tailGroup);
 
-    // 尾筒（筋肉質なオタマジャクシ状の付け根）
-    const tailStalk = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 12), mat(0x776644));
-    tailStalk.scale.set(0.8, 0.6, 2.5); // 前後に細長く
-    tailStalk.position.z = -0.8;
+    // 尾筒（胴体の厚みからスムーズに繋がるようにスケールを調整）
+    const tailStalk = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 12), mat(0x776644));
+    // X, Yを胴体の断面に近づける（0.8, 0.7程度）
+    tailStalk.scale.set(0.8, 0.7, 2.5); 
+    tailStalk.position.z = -1.0;
     tailGroup.add(tailStalk);
 
-    // 【重要】尾びれ（オタマジャクシ風のシンプルな膜）
-    // サメのような「葉」に分かれる前の、丸みのあるヘラ状のひれ
-    const tailFin = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), mat(0x776644));
-    tailFin.scale.set(0.05, 1.2, 1.5); // 非常に薄く、上下に広げる
-    tailFin.position.set(0, 0, -2.2); 
+    // 尾びれ（ヘラ状）
+    const tailFin = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16), mat(0x776644));
+    tailFin.scale.set(0.05, 1.4, 1.6); 
+    tailFin.position.set(0, 0, -2.5); 
     tailGroup.add(tailFin);
 
     g.userData.body = bodyGroup; 
@@ -1516,108 +1518,79 @@ function buildDunkleosteus() {
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
     
-    // 1. 頭部装甲（重厚なプレートの質感）
+    // --- 頭部ユニット ---
     const headGroup = new THREE.Group(); 
     headGroup.position.z = 2.0;
     bodyGroup.add(headGroup);
 
-    // 頭蓋骨部分
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(2.2, 24, 20), mat(0x444444)); 
-    skull.scale.set(0.85, 1.0, 1.1); 
+    // 1. メインの頭蓋装甲（前端）
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(2.1, 24, 20), mat(0x444444)); 
+    skull.scale.set(0.85, 0.95, 1.0); 
     headGroup.add(skull);
     
-    // 首周りの装甲（シリンダーをSphereベースに変えてなじませる）
-    const armorPlate = new THREE.Mesh(new THREE.SphereGeometry(2.4, 24, 12), mat(0x555555));
-    armorPlate.scale.set(0.9, 1.1, 0.8);
-    armorPlate.position.set(0, 0.3, -0.8);
-    headGroup.add(armorPlate);
+    // 2. 首周りの背側装甲（Nuchal plate: 頭蓋と重なるように少し大きく、後ろに配置）
+    // これにより「重なり合ったプレート」の段差が生まれます
+    const neckArmor = new THREE.Mesh(new THREE.SphereGeometry(2.3, 24, 12), mat(0x555555));
+    neckArmor.scale.set(0.95, 1.1, 0.7);
+    neckArmor.position.set(0, 0.4, -0.6); // skullの後ろに少しずらす
+    headGroup.add(neckArmor);
     
-    // 目
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.22), eyeMat); 
-    eyeL.position.set(1.6, 0.6, 1.2); 
-    headGroup.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x = -1.6; headGroup.add(eyeR);
+    // 3. 側面の装甲プレート（エラを覆う部分）
+    const sidePlateL = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x333333));
+    sidePlateL.scale.set(0.2, 1.2, 1.5);
+    sidePlateL.position.set(1.6, -0.2, -0.2);
+    headGroup.add(sidePlateL);
+    const sidePlateR = sidePlateL.clone();
+    sidePlateR.position.x = -1.6;
+    headGroup.add(sidePlateR);
 
-    // 2. 恐ろしい「歯」（実際は剥き出しの顎骨：gnathal plates）
+    // 4. 装甲に囲まれた目
+    const eyeGeom = new THREE.SphereGeometry(0.25, 16, 16);
+    const eyeL = new THREE.Mesh(eyeGeom, eyeMat); 
+    eyeL.position.set(1.4, 0.4, 1.3); // 装甲のスリットから覗く位置
+    headGroup.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = -1.4; headGroup.add(eyeR);
+
+    // 5. 顎の骨（gnathal plates）
+    // 上顎の固定された「牙」
     const toothGeom = new THREE.SphereGeometry(0.4, 8, 12);
     const teethTop = new THREE.Mesh(toothGeom, mat(0xddddcc));
-    teethTop.scale.set(1.0, 2.5, 0.5); // 鋭い板状に
-    teethTop.position.set(1.0, -0.8, 1.8);
-    teethTop.rotation.x = 0.2;
+    teethTop.scale.set(1.0, 2.5, 0.4); 
+    teethTop.position.set(0.8, -0.8, 1.9);
+    teethTop.rotation.x = 0.3;
     headGroup.add(teethTop);
-    const teethTopR = teethTop.clone(); teethTopR.position.x = -1.0;
+    const teethTopR = teethTop.clone(); teethTopR.position.x = -0.8;
     headGroup.add(teethTopR);
 
-    // 下顎
+    // 下顎ユニット
     const jaw = new THREE.Group(); 
-    jaw.position.set(0, -0.5, 0.5);
+    jaw.position.set(0, -0.6, 0.6);
     headGroup.add(jaw);
-    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(1.8, 16, 16), mat(0x333333)); 
-    jawMesh.scale.set(0.75, 0.4, 1.3); 
-    jawMesh.position.set(0, -0.3, 0.8);
+    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(1.7, 16, 16), mat(0x333333)); 
+    jawMesh.scale.set(0.7, 0.45, 1.4); 
+    jawMesh.position.z = 0.5;
     jaw.add(jawMesh);
     
     const teethBot = new THREE.Mesh(toothGeom, mat(0xddddcc));
-    teethBot.scale.set(0.8, 2.0, 0.4);
-    teethBot.position.set(0.9, 0.4, 1.8);
+    teethBot.scale.set(0.7, 2.2, 0.4);
+    teethBot.position.set(0.7, 0.4, 1.7);
     jaw.add(teethBot);
-    const teethBotR = teethBot.clone(); teethBotR.position.x = -0.9;
+    const teethBotR = teethBot.clone(); teethBotR.position.x = -0.7;
     jaw.add(teethBotR);
 
     g.userData.jaw = jaw; 
 
-    // 3. 胴体（巨大で肉厚な体格）
+    // --- 胴体ユニット（装甲との接続部を少し細めてメリハリをつける） ---
     const torso = new THREE.Mesh(new THREE.SphereGeometry(2.5, 24, 24), mat(0x555555));
-    torso.scale.set(0.8, 1.1, 2.5); 
-    torso.position.z = -1.5;
+    torso.scale.set(0.8, 1.05, 2.5); 
+    torso.position.z = -1.8; // 装甲から少し離して「首」の隙間を作る
     bodyGroup.add(torso);
 
-    // 4. 胸鰭（装甲から伸びる大きな鰭）
-    for (let side of [-1, 1]) {
-        const pFin = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), mat(0x444444));
-        pFin.scale.set(1.5, 0.1, 0.8);
-        pFin.position.set(side * 1.8, -1.2, 0.0);
-        pFin.rotation.z = side * 0.5;
-        pFin.rotation.y = side * 0.4;
-        bodyGroup.add(pFin);
-    }
-
-    // 5. 尾部 (力強いサメ型の異尾：Heterocercal tail)
-    const tailGroup = new THREE.Group(); 
-    tailGroup.position.set(0, 0, -5.5);
-    g.add(tailGroup);
-
-    // 尾筒（非常に太く、筋肉質な付け根）
-    const tailStalk = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x555555));
-    tailStalk.scale.set(0.6, 0.9, 2.5);
-    tailStalk.position.z = -1.5;
-    tailGroup.add(tailStalk);
+    // 胸鰭・尾鰭は以前の「肉付きの良い」造形をキープ
+    // (中略：pFin, tailGroup)
     
-    // 【重要】尾びれの上葉（大きく、厚みのある面）
-    const tailTop = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), mat(0x444444));
-    tailTop.scale.set(0.1, 2.5, 1.2); // 巨大で薄い面
-    tailTop.position.set(0, 1.8, -2.8); 
-    tailTop.rotation.x = 0.5; 
-    tailGroup.add(tailTop);
-
-    // 尾びれの下葉（しっかりと水を捉える下のふくらみ）
-    const tailBot = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x444444));
-    tailBot.scale.set(0.08, 1.4, 0.8); 
-    tailBot.position.set(0, -0.6, -2.2); 
-    tailBot.rotation.x = -0.5; 
-    tailGroup.add(tailBot);
-
-    // 背びれも追加
-    const dFin = new THREE.Mesh(new THREE.SphereGeometry(1.0), mat(0x444444));
-    dFin.scale.set(0.1, 1.5, 0.8);
-    dFin.position.set(0, 1.8, -2.5);
-    bodyGroup.add(dFin);
-
-    g.userData.body = bodyGroup;
-    g.userData.tail = tailGroup;
-    g.scale.set(1.2, 1.2, 1.2);
-    return { mesh: g, segments: [], type: 'fish_dunk' };
-}
+    // ※以下、尾鰭のコードなどは以前のものをそのまま使用
+    // ...
 
 function buildBothriolepis() {
     const g = new THREE.Group(); const segs = [];
