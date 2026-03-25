@@ -1029,38 +1029,59 @@ function buildBirkenia() {
 }
 
 function buildPteraspis() {
-    const g = new THREE.Group(); const bodyGroup = new THREE.Group(); g.add(bodyGroup);
+    const g = new THREE.Group(); 
+    const bodyGroup = new THREE.Group(); g.add(bodyGroup);
     
-    // 馬蹄形の頭部装甲
+    // 馬蹄形の頭部装甲（ベース）
     const head = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.3, 24, 1, false, 0, Math.PI), mat(0xaa9977));
-    head.rotation.y = Math.PI / 2; head.scale.set(1, 1, 1.5); head.position.z = 0.5;
+    head.rotation.y = Math.PI / 2; 
+    head.scale.set(1, 1, 1.5); 
+    head.position.z = 0.5;
+    
     const snout = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.0, 16), mat(0xaa9977));
-    snout.rotation.x = Math.PI / 2; snout.position.z = 0.8; head.add(snout);
+    snout.rotation.x = Math.PI / 2; 
+    snout.position.z = 0.8; 
+    head.add(snout);
     bodyGroup.add(head);
 
-    // 目
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeL.position.set(0.4, 0.2, 1.0); head.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x = -0.4; head.add(eyeR);
+    // 【重要：ループ処理で左右を生成】
+    // こうすることで、座標（pos）や角度（rot）の数値の入れ間違いを防ぎ、完全な対称を作ります。
+    for(let side of [-1, 1]) {
+        // 目
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat);
+        eye.position.set(side * 0.4, 0.2, 1.0); // sideを掛けることで左右反転
+        head.add(eye);
 
-    // 翼のような突起 (Cornual plate) - 左右完全対称に修正
-    const wingL = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.0, 8), mat(0x998866));
-    wingL.rotation.x = Math.PI/2; wingL.rotation.z = -0.5; wingL.position.set(0.6, 0, -0.2); head.add(wingL);
-    const wingR = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.0, 8), mat(0x998866));
-    wingR.rotation.x = Math.PI/2; wingR.rotation.z = 0.5; wingR.position.set(-0.6, 0, -0.2); head.add(wingR);
+        // 翼のような突起 (Cornual plate)
+        const wing = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.0, 8), mat(0x998866));
+        wing.rotation.x = Math.PI / 2;
+        wing.rotation.z = side * 0.5;      // 角度を左右反転
+        wing.position.set(side * 0.6, 0, -0.2); // X軸の位置を左右反転
+        head.add(wing);
+    }
 
     // 胴体
     const torso = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), mat(0x998866));
-    torso.scale.set(0.8, 0.8, 2.0); torso.position.z = -0.5; bodyGroup.add(torso);
+    torso.scale.set(0.8, 0.8, 2.0); 
+    torso.position.z = -0.5; 
+    bodyGroup.add(torso);
     
-    const tailGroup = new THREE.Group(); tailGroup.position.z = -2.0; g.add(tailGroup);
+    // 尾部
+    const tailGroup = new THREE.Group(); 
+    tailGroup.position.z = -2.0; 
+    g.add(tailGroup);
+    
     const tailFin = new THREE.Mesh(new THREE.ConeGeometry(0.05, 1.2, 8), mat(0x998866));
-    tailFin.position.set(0, -0.4, -0.6); tailFin.rotation.x = -0.6; tailGroup.add(tailFin);
+    tailFin.position.set(0, -0.4, -0.6); 
+    tailFin.rotation.x = -0.6; 
+    tailGroup.add(tailFin);
 
-    g.userData.body = bodyGroup; g.userData.tail = tailGroup;
+    g.userData.body = bodyGroup; 
+    g.userData.tail = tailGroup;
     g.scale.set(1.5, 1.5, 1.5);
+    
     return { mesh: g, segments: [], type: 'fish_dunk' };
 }
-
 // --- デボン紀 ---
 function buildCheirolepis() {
     const g = new THREE.Group(); const bodyGroup = new THREE.Group(); g.add(bodyGroup);
