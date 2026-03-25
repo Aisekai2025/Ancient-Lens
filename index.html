@@ -1523,26 +1523,39 @@ function buildDunkleosteus() {
     headGroup.position.z = 2.0;
     bodyGroup.add(headGroup);
 
-    // 1. メインの頭蓋装甲（前端）
+    // 1. メインの頭蓋装甲
     const skull = new THREE.Mesh(new THREE.SphereGeometry(2.1, 24, 20), mat(0x444444)); 
     skull.scale.set(0.85, 0.95, 1.0); 
     headGroup.add(skull);
     
-    // 2. 首周りの背側装甲（Nuchal plate: 頭蓋と重なるように少し大きく、後ろに配置）
-    // これにより「重なり合ったプレート」の段差が生まれます
-    const neckArmor = new THREE.Mesh(new THREE.SphereGeometry(2.3, 24, 12), mat(0x555555));
-    neckArmor.scale.set(0.95, 1.1, 0.7);
-    neckArmor.position.set(0, 0.4, -0.6); // skullの後ろに少しずらす
-    headGroup.add(neckArmor);
+    // 2. 首周りの背側装甲 (Nuchal plates)
+    // 中央の背側プレート
+    const backPlate = new THREE.Mesh(new THREE.SphereGeometry(2.3, 12, 12), mat(0x555555));
+    backPlate.scale.set(0.6, 1.2, 0.5);
+    backPlate.position.set(0, 0.6, -0.6);
+    headGroup.add(backPlate);
+
+    // 左右の「首」側面プレート（変数の重複を避けるため、名前をnuchalに変更）
+    const nuchalL = new THREE.Mesh(new THREE.SphereGeometry(2.3, 12, 12), mat(0x555555));
+    nuchalL.scale.set(0.4, 0.9, 0.6);
+    nuchalL.position.set(1.5, 0.2, -0.5);
+    nuchalL.rotation.z = -0.3; 
+    headGroup.add(nuchalL);
     
-    // 3. 側面の装甲プレート（エラを覆う部分）
-    const sidePlateL = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x333333));
-    sidePlateL.scale.set(0.2, 1.2, 1.5);
-    sidePlateL.position.set(1.6, -0.2, -0.2);
-    headGroup.add(sidePlateL);
-    const sidePlateR = sidePlateL.clone();
-    sidePlateR.position.x = -1.6;
-    headGroup.add(sidePlateR);
+    const nuchalR = nuchalL.clone();
+    nuchalR.position.x = -1.5;
+    nuchalR.rotation.z = 0.3;
+    headGroup.add(nuchalR);
+    
+    // 3. 側面の装甲プレート（エラを覆う部分：Opercular plates）
+    const opercularL = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x333333));
+    opercularL.scale.set(0.2, 1.2, 1.5);
+    opercularL.position.set(1.6, -0.2, -0.2);
+    headGroup.add(opercularL);
+
+    const opercularR = opercularL.clone();
+    opercularR.position.x = -1.6;
+    headGroup.add(opercularR);
 
     // 4. 装甲に囲まれた目
     const eyeGeom = new THREE.SphereGeometry(0.25, 16, 16);
