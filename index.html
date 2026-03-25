@@ -1953,37 +1953,26 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
     const shareUrl = 'https://ancient-lens.vercel.app';
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    // 【修正ポイント】先にBlob変換などを済ませる
-    const res = await fetch(dataURL);
-    const blob = await res.blob();
-
     if (isMobile && navigator.canShare) {
-        // スマホ向け：標準共有
-        try {
-            const file = new File([blob], 'ancient-lens.png', { type: 'image/png' });
-            await navigator.share({ files: [file], text: shareText });
-        } catch (e) { console.error(e); }
+        // スマホは今まで通り
+        const res = await fetch(dataURL);
+        const blob = await res.blob();
+        const file = new File([blob], 'ancient-lens.png', { type: 'image/png' });
+        await navigator.share({ files: [file], text: shareText });
     } else {
-        // PC向け：クリップボードコピー ＋ 直接遷移
+        // 【PC対策】まず確実にXのウィンドウを開く（ブロック回避）
+        const xUrl = `https://twitter.com{encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+        const xWindow = window.open(xUrl, '_blank');
+
+        // その後にバックグラウンドでコピー処理
         try {
+            const res = await fetch(dataURL);
+            const blob = await res.blob();
             const item = new ClipboardItem({ "image/png": blob });
             await navigator.clipboard.write([item]);
-            
-            const xUrl = `https://twitter.com{encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-            
-            // alert/confirmを挟まずに直接開くとブロックされにくいです
-            // もしブロックされる場合は、ボタンを「コピー用」と「X投稿用」に分けるのが確実です
-            const newWindow = window.open(xUrl, '_blank');
-            
-            if (!newWindow) {
-                // ブロックされた場合の予備手段
-                alert("ポップアップがブロックされました。ブラウザの設定で許可するか、手動でXを開いて貼り付けてください。");
-            } else {
-                alert("画像をコピーしました！Xの画面で貼り付け（Ctrl+V）てください。");
-            }
+            alert("画像をコピーしました！Xの画面で貼り付け（Ctrl+V）てください。");
         } catch (err) {
-            console.error("Clipboard failed:", err);
-            // 最終フォールバック
+            console.warn("Clipboard copy failed, downloading instead.");
             const a = document.createElement('a');
             a.href = dataURL;
             a.download = 'ancient-lens-snapshot.png';
@@ -1991,6 +1980,7 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
         }
     }
 });
+
 
 
 
