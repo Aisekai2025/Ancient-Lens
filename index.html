@@ -764,24 +764,66 @@ function buildAegirocassis() {
 }
 
 function buildOrthoceras() {
-    const g = new THREE.Group(); const segs = [];
-    const shellGeo = new THREE.ConeGeometry(0.8, 8.0, 32); shellGeo.translate(0, -4.0, 0); shellGeo.rotateX(-Math.PI/2);
-    const shell = new THREE.Mesh(shellGeo, mat(0xddccaa)); g.add(shell);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), mat(0xaa5555)); head.position.z = 0.5; g.add(head);
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.2), eyeMat); eyeL.position.set(0.6, 0.2, 0.4); head.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x = -0.6; head.add(eyeR);
+    const g = new THREE.Group();
+    const segs = [];
 
-    for(let i=0; i<8; i++) {
-        const tentacle = new THREE.Group(); tentacle.position.z = 1.0; tentacle.rotation.z = (i/8)*Math.PI*2; head.add(tentacle);
+    // --- 1. 殻（シェル）の修正 ---
+    // ConeGeometry(底面の半径, 高さ, 分割数)
+    const shellHeight = 8.0;
+    const shellGeo = new THREE.ConeGeometry(0.8, shellHeight, 32);
+    
+    // 修正ポイント：
+    // 前回のコードは translate(0, -4.0, 0) で頂点を中心に持ってきていましたが、
+    // 今回は「太い底面」が原点(0,0,0)に来るように translate(0, 4.0, 0) します。
+    shellGeo.translate(0, shellHeight / 2, 0); 
+    
+    // Z軸の後ろ（マイナス方向）に殻が伸びるように回転
+    shellGeo.rotateX(Math.PI / 2); 
+    
+    const shell = new THREE.Mesh(shellGeo, mat(0xddccaa));
+    g.add(shell);
+
+    // --- 2. 頭部（体）の配置 ---
+    // 殻の太い口（原点）に配置
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), mat(0xaa5555));
+    // 少しだけ殻から出す
+    head.position.z = 0.3; 
+    g.add(head);
+
+    // 目
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.2), eyeMat);
+    eyeL.position.set(0.6, 0.2, 0.4);
+    head.add(eyeL);
+    const eyeR = eyeL.clone();
+    eyeR.position.x = -0.6;
+    head.add(eyeR);
+
+    // --- 3. 触手の配置 ---
+    for(let i = 0; i < 8; i++) {
+        const tentacle = new THREE.Group();
+        tentacle.position.z = 0.6; // 頭の先から出す
+        tentacle.rotation.z = (i / 8) * Math.PI * 2;
+        head.add(tentacle);
+        
         let curr = tentacle;
-        for(let j=0; j<5; j++) {
-            const t = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.05, 0.5), mat(0xaa5555)); t.rotation.x = Math.PI/2; t.position.z = 0.25;
-            const w = new THREE.Group(); w.add(t); curr.add(w); curr = w; segs.push({ mesh: w, index: j, angle: i });
+        for(let j = 0; j < 5; j++) {
+            // 先細りになるように CylinderGeometry(上半径, 下半径, 高さ) を調整
+            const t = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.1 * (1 - j/5), 0.1 * (1 - (j+1)/5), 0.5),
+                mat(0xaa5555)
+            );
+            t.rotation.x = Math.PI / 2;
+            t.position.z = 0.25;
+            const w = new THREE.Group();
+            w.add(t);
+            curr.add(w);
+            curr = w;
+            segs.push({ mesh: w, index: j, angle: i });
         }
     }
+
     return { mesh: g, segments: segs, type: 'jet', jetPhase: 0 };
 }
-
 function buildAsaphus() {
     const g = new THREE.Group(); const segs = []; let parent = g; const headGroup = new THREE.Group();
     const headShell = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 8, 0, Math.PI*2, 0, Math.PI/2), mat(0x556644)); headShell.scale.set(1.5, 0.5, 1.0); headGroup.add(headShell);
@@ -864,22 +906,68 @@ function buildMegalograptus() {
 }
 
 function buildEndoceras() {
-    const g = new THREE.Group(); const segs = [];
-    const shellGeo = new THREE.ConeGeometry(1.5, 18.0, 32); shellGeo.translate(0, -9.0, 0); shellGeo.rotateX(-Math.PI/2);
-    const shell = new THREE.Mesh(shellGeo, mat(0xccbb99)); g.add(shell);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x995555)); head.position.z = 0.5; g.add(head);
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.3), eyeMat); eyeL.position.set(1.0, 0.3, 0.6); head.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x = -1.0; head.add(eyeR);
+    const g = new THREE.Group(); 
+    const segs = [];
 
+    // --- 1. 巨大な殻（シェル）の修正 ---
+    const shellHeight = 18.0; // 長さ
+    const shellRadius = 1.5;  // 太さ
+    const shellGeo = new THREE.ConeGeometry(shellRadius, shellHeight, 32);
+
+    // 修正ポイント：太い底面を原点(0,0,0)に持ってくる
+    shellGeo.translate(0, shellHeight / 2, 0); 
+    
+    // Z軸の後ろ（マイナス方向）に向かって殻が伸びるように回転
+    shellGeo.rotateX(Math.PI / 2); 
+    
+    const shell = new THREE.Mesh(shellGeo, mat(0xccbb99)); 
+    g.add(shell);
+
+    // --- 2. 頭部（体）を太い口に配置 ---
+    const head = new THREE.Mesh(
+        new THREE.SphereGeometry(1.2, 16, 16),
+        mat(0x995555)
+    );
+    // 殻の口から少しだけ出す
+    head.position.z = 0.5; 
+    g.add(head);
+
+    // 目（巨大なハンターにふさわしいサイズ）
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.3), eyeMat);
+    eyeL.position.set(1.0, 0.3, 0.6); 
+    head.add(eyeL);
+    const eyeR = eyeL.clone(); 
+    eyeR.position.x = -1.0; 
+    head.add(eyeR);
+
+    // --- 3. 触手の配置（10本） ---
     for(let i=0; i<10; i++) {
-        const tentacle = new THREE.Group(); tentacle.position.z = 1.5; tentacle.rotation.z = (i/10)*Math.PI*2; head.add(tentacle);
+        const tentacle = new THREE.Group(); 
+        tentacle.position.z = 1.0; // 頭部先端付近
+        tentacle.rotation.z = (i/10) * Math.PI * 2;
+        head.add(tentacle);
+
         let curr = tentacle;
         for(let j=0; j<6; j++) {
-            const t = new THREE.Mesh(new THREE.CylinderGeometry(0.15 - j*0.02, 0.12 - j*0.02, 0.8), mat(0x995555)); 
-            t.rotation.x = Math.PI/2; t.position.z = 0.4;
-            const w = new THREE.Group(); w.add(t); curr.add(w); curr = w; segs.push({ mesh: w, index: j, angle: i });
+            // 先に行くほど細くなる計算
+            const r1 = 0.15 * (1 - j/6);
+            const r2 = 0.15 * (1 - (j+1)/6);
+            const t = new THREE.Mesh(
+                new THREE.CylinderGeometry(r1, r2, 0.8), 
+                mat(0x995555)
+            ); 
+            t.rotation.x = Math.PI/2; 
+            t.position.z = 0.4;
+
+            const w = new THREE.Group(); 
+            w.add(t); 
+            curr.add(w); 
+            curr = w;
+            segs.push({ mesh: w, index: j, angle: i });
         }
     }
+
+    // jetPhaseは、水を噴射して後ろ向きに泳ぐアニメーションに使用
     return { mesh: g, segments: segs, type: 'jet', jetPhase: 0 };
 }
 
@@ -1942,38 +2030,7 @@ window.addEventListener('pointerup', (e) => {
     }
 });
 
-// ▼▼▼ ここから追加：スマホのピンチズームと画面スクロール防止 ▼▼▼
-let initialPinchDist = 0;
-
-window.addEventListener('touchstart', (e) => {
-    // 2本指でタッチした時だけ、指の距離を記録
-    if (e.touches.length === 2) {
-        initialPinchDist = Math.hypot(
-            e.touches[0].pageX - e.touches[1].pageX,
-            e.touches[0].pageY - e.touches[1].pageY
-        );
-    }
-}, { passive: false });
-
-window.addEventListener('touchmove', (e) => {
-    // 【重要】スマホの画面自体がスクロールしてしまうのを防ぐ
-    if (e.cancelable) {
-        e.preventDefault(); 
-    }
-
-    // 2本指でのズーム（ピンチ）処理
-    if (e.touches.length === 2) {
-        const currentDist = Math.hypot(
-            e.touches[0].pageX - e.touches[1].pageX,
-            e.touches[0].pageY - e.touches[1].pageY
-        );
-        const diff = initialPinchDist - currentDist;
-        // ズーム範囲を10〜180に制限（wheelイベントと同じ基準）
-        targetCamRadius = Math.max(10, Math.min(180, targetCamRadius + diff * 0.1));
-        initialPinchDist = currentDist;
-    }
-}, { passive: false });
-// ▲▲▲ 追加ここまで ▲▲▲
+// ▼▼▼ ここから追加：スマホのピンチズームと画面スクロール防止 ▼▼▼ let initialPinchDist = 0; window.addEventListener('touchstart', (e) => { // 2本指でタッチした時だけ、指の距離を記録 if (e.touches.length === 2) { initialPinchDist = Math.hypot( e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY ); } }, { passive: false }); window.addEventListener('touchmove', (e) => { // 【重要】スマホの画面自体がスクロールしてしまうのを防ぐ if (e.cancelable) { e.preventDefault(); } // 2本指でのズーム（ピンチ）処理 if (e.touches.length === 2) { const currentDist = Math.hypot( e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY ); const diff = initialPinchDist - currentDist; // ズーム範囲を10〜180に制限（wheelイベントと同じ基準） targetCamRadius = Math.max(10, Math.min(180, targetCamRadius + diff * 0.1)); initialPinchDist = currentDist; } }, { passive: false }); // ▲▲▲ 追加ここまで ▲▲▲
 
 function closeHolo() { document.getElementById('hologram-ui').classList.remove('active'); }
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
@@ -1988,7 +2045,7 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     // 【修正】パスを正確に指定し、URLを連結
-    const xBase = 'https://twitter.com/intent/tweet?';
+    const xBase = 'https://twitter.com/intent/tweet';
     const xUrl = xBase + '?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(shareUrl);
 
     if (isMobile && navigator.canShare) {
@@ -2027,13 +2084,6 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
         }
     }
 });
-
-
-
-
-
-
-
 
 // ==========================================
 // 6. メインループ
