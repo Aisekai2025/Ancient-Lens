@@ -1029,57 +1029,74 @@ function buildBirkenia() {
 }
 
 function buildPteraspis() {
-    const g = new THREE.Group(); 
-    const bodyGroup = new THREE.Group(); g.add(bodyGroup);
-    
-    // 馬蹄形の頭部装甲（ベース）
-    const head = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.3, 24, 1, false, 0, Math.PI), mat(0xaa9977));
-    head.rotation.y = Math.PI / 2; 
-    head.scale.set(1, 1, 1.5); 
+    const g = new THREE.Group();
+    const bodyGroup = new THREE.Group();
+    g.add(bodyGroup);
+
+    // 1. 頭部装甲 (Dorsal/Ventral shields)
+    // カプセル形状をベースに、平べったい流線型を作る
+    const headGeom = new THREE.CapsuleGeometry(0.5, 0.8, 4, 16);
+    const head = new THREE.Mesh(headGeom, mat(0xaa9977));
+    head.scale.set(1.2, 0.7, 1.0); // 左右に広く、上下に薄く
+    head.rotation.x = Math.PI / 2; // 進行方向（Z軸）に向ける
     head.position.z = 0.5;
-    
-    const snout = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.0, 16), mat(0xaa9977));
-    snout.rotation.x = Math.PI / 2; 
-    snout.position.z = 0.8; 
-    head.add(snout);
     bodyGroup.add(head);
 
-    // 【重要：ループ処理で左右を生成】
-    // こうすることで、座標（pos）や角度（rot）の数値の入れ間違いを防ぎ、完全な対称を作ります。
-    for(let side of [-1, 1]) {
-        // 目
+    // 2. 特徴的な「吻 (Rostrum)」
+    // 頭部から真っ直ぐ前方に突き出すように配置
+    const snout = new THREE.Mesh(
+        new THREE.ConeGeometry(0.3, 1.2, 16),
+        mat(0xaa9977)
+    );
+    snout.rotation.x = -Math.PI / 2; // 前方を向く
+    snout.position.z = 1.2; // 頭部の先端から繋げる
+    head.add(snout);
+
+    // 3. 左右対称パーツ（目とCornual plates）
+    for (let side of [-1, 1]) {
+        // 目：頭部の側面に配置
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat);
-        eye.position.set(side * 0.4, 0.2, 1.0); // sideを掛けることで左右反転
+        eye.position.set(side * 0.35, 0.1, 0.4);
         head.add(eye);
 
-        // 翼のような突起 (Cornual plate)
-        const wing = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.0, 8), mat(0x998866));
-        wing.rotation.x = Math.PI / 2;
-        wing.rotation.z = side * 0.5;      // 角度を左右反転
-        wing.position.set(side * 0.6, 0, -0.2); // X軸の位置を左右反転
+        // 翼状の突起 (Cornual plate)：装甲の後方側面
+        const wing = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, 0.05, 0.8),
+            mat(0x998866)
+        );
+        wing.position.set(side * 0.5, -0.1, -0.2);
+        wing.rotation.y = side * 0.4; // 外側に開く
         head.add(wing);
     }
 
-    // 胴体
-    const torso = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), mat(0x998866));
-    torso.scale.set(0.8, 0.8, 2.0); 
-    torso.position.z = -0.5; 
+    // 4. 胴体 (Torso)
+    // 頭部装甲から滑らかに繋がるように配置
+    const torso = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 16, 16),
+        mat(0x998866)
+    );
+    torso.scale.set(0.9, 0.7, 2.0); // 流線型に引き伸ばす
+    torso.position.z = -0.6; // 頭部の後ろに密着
     bodyGroup.add(torso);
-    
-    // 尾部
-    const tailGroup = new THREE.Group(); 
-    tailGroup.position.z = -2.0; 
+
+    // 5. 尾部 (Tail)
+    const tailGroup = new THREE.Group();
+    tailGroup.position.z = -1.8;
     g.add(tailGroup);
-    
-    const tailFin = new THREE.Mesh(new THREE.ConeGeometry(0.05, 1.2, 8), mat(0x998866));
-    tailFin.position.set(0, -0.4, -0.6); 
-    tailFin.rotation.x = -0.6; 
+
+    // 尾鰭：プテラスピス特有の「下葉が長い（Hypocercal）」形状を意識
+    const tailFin = new THREE.Mesh(
+        new THREE.ConeGeometry(0.05, 1.5, 8),
+        mat(0x998866)
+    );
+    tailFin.scale.set(1, 1, 0.2); // 薄い鰭にする
+    tailFin.rotation.x = Math.PI + 0.3; // 斜め後ろ下方に伸ばす
     tailGroup.add(tailFin);
 
-    g.userData.body = bodyGroup; 
+    g.userData.body = bodyGroup;
     g.userData.tail = tailGroup;
     g.scale.set(1.5, 1.5, 1.5);
-    
+
     return { mesh: g, segments: [], type: 'fish_dunk' };
 }
 // --- デボン紀 ---
