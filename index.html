@@ -1946,12 +1946,9 @@ window.addEventListener('resize', () => { camera.aspect = window.innerWidth / wi
 
 // 撮影＆シェアボタンのロジック
 document.getElementById('camera-btn').addEventListener('click', async () => {
-    // 1. 最新フレームをレンダリングして画像化
     renderer.render(scene, camera);
     const dataURL = renderer.domElement.toDataURL('image/png');
     
-    // シェア用の設定
-    const shareTitle = 'Ancient Lens';
     const shareText = '古代の海を探索中！ #AncientLens #古生物 #Web3D';
     const shareUrl = 'https://ancient-lens.vercel.app';
 
@@ -1960,35 +1957,40 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
         const blob = await res.blob();
         const file = new File([blob], 'ancient-lens.png', { type: 'image/png' });
 
-        // 【スマホ向け】Web Share APIが画像シェアに対応している場合
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        // モバイル端末（navigator.shareが使えて、かつタッチ操作が主）か判定
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+            // 【スマホ】標準の共有メニュー（画像付き）
             await navigator.share({
-                title: shareTitle,
+                title: 'Ancient Lens',
                 text: shareText,
                 files: [file]
             });
-        } 
-        // 【PC向け】クリップボードにコピーしてXの投稿画面を開く
-        else {
+        } else {
+            // 【PC】システム共有を介さず、直接Xへ誘導
+            // 1. 画像をクリップボードにコピー
             const item = new ClipboardItem({ "image/png": blob });
             await navigator.clipboard.write([item]);
             
-            const xIntentUrl = `https://twitter.com{encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+            // 2. Xの投稿画面URLを作成
+            const xUrl = `https://twitter.com{encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
             
-            if (confirm("スクリーンショットをコピーしました！\nX（Twitter）を開いて貼り付け（Ctrl+V）ますか？")) {
-                window.open(xIntentUrl, '_blank');
+            // 3. ユーザーに案内してXを開く
+            if (confirm("画像をクリップボードにコピーしました！\nOKを押すとXが開くので、貼り付け（Ctrl+V）してシェアしてください。")) {
+                window.open(xUrl, '_blank');
             }
         }
     } catch(err) {
-        console.warn("Share failed or not supported. Downloading fallback.", err);
-        // 【フォールバック】保存と手動シェアの案内
+        console.error("Share process failed:", err);
+        // フォールバック：画像保存
         const a = document.createElement('a');
         a.href = dataURL;
         a.download = 'ancient-lens-snapshot.png';
         a.click();
-        alert('スクリーンショットを保存しました！\n#AncientLens をつけてSNSでシェアしてね！');
     }
 });
+
 
 // ==========================================
 // 6. メインループ
