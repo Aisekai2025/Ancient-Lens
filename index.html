@@ -1523,38 +1523,40 @@ function buildDunkleosteus() {
     headGroup.position.z = 2.0;
     bodyGroup.add(headGroup);
 
-    // 1. メインの頭蓋装甲
+    // 1. メインの頭蓋装甲（ここは顔の丸みを出すためSphereを維持）
     const skull = new THREE.Mesh(new THREE.SphereGeometry(2.1, 24, 20), mat(0x444444)); 
     skull.scale.set(0.85, 0.95, 1.0); 
     headGroup.add(skull);
     
-    // 2. 首周りの背側装甲 (Nuchal plates)
-    // 中央の背側プレート
-    const backPlate = new THREE.Mesh(new THREE.SphereGeometry(2.3, 12, 12), mat(0x555555));
-    backPlate.scale.set(0.6, 1.2, 0.5);
-    backPlate.position.set(0, 0.6, -0.6);
+    // --- 2. 首周りの背側装甲を「角材」で構成 (Nuchal plates) ---
+    // 中央の背板：分厚い板が乗っている感じ
+    const backPlate = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.5, 1.2), mat(0x555555));
+    backPlate.position.set(0, 1.2, -0.6);
+    backPlate.rotation.x = -0.2; // 少し後ろに傾ける
     headGroup.add(backPlate);
 
-    // 左右の「首」側面プレート（変数の重複を避けるため、名前をnuchalに変更）
-    const nuchalL = new THREE.Mesh(new THREE.SphereGeometry(2.3, 12, 12), mat(0x555555));
-    nuchalL.scale.set(0.4, 0.9, 0.6);
-    nuchalL.position.set(1.5, 0.2, -0.5);
-    nuchalL.rotation.z = -0.3; 
+    // 左右の側面プレート：角材をハの字に配置
+    const nuchalL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.0, 1.2), mat(0x555555));
+    nuchalL.position.set(1.6, 0.4, -0.6);
+    nuchalL.rotation.z = -0.4; // 傾けて頭を囲う
+    nuchalL.rotation.y = 0.2;
     headGroup.add(nuchalL);
     
     const nuchalR = nuchalL.clone();
-    nuchalR.position.x = -1.5;
-    nuchalR.rotation.z = 0.3;
+    nuchalR.position.x = -1.6;
+    nuchalR.rotation.z = 0.4;
+    nuchalR.rotation.y = -0.2;
     headGroup.add(nuchalR);
     
-    // 3. 側面の装甲プレート（エラを覆う部分：Opercular plates）
-    const opercularL = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x333333));
-    opercularL.scale.set(0.2, 1.2, 1.5);
-    opercularL.position.set(1.6, -0.2, -0.2);
+    // --- 3. 頬の装甲を「角材」で構成 (Opercular plates) ---
+    const opercularL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.5, 2.0), mat(0x333333));
+    opercularL.position.set(1.8, -0.2, 0.2);
+    opercularL.rotation.y = 0.3; // 前方へ絞る
     headGroup.add(opercularL);
 
     const opercularR = opercularL.clone();
-    opercularR.position.x = -1.6;
+    opercularR.position.x = -1.8;
+    opercularR.rotation.y = -0.3;
     headGroup.add(opercularR);
 
     // 4. 装甲に囲まれた目
