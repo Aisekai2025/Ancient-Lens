@@ -490,8 +490,19 @@ function buildOpabinia() {
 
 function buildTrilobite() {
     const g = new THREE.Group(); const segs = []; let parent = g; const legGeo = new THREE.BoxGeometry(0.05, 0.3, 0.05); legGeo.translate(0, -0.15, 0);
+    
+    // 三葉虫の頭に触角を追加
+    const head = new THREE.Group();
+    const headShell = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x443322)); 
+    headShell.scale.set(1.5, 0.4, 1.2); head.add(headShell);
+    const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.6), mat(0x443322));
+    ant.rotation.x = Math.PI/2; ant.rotation.z = -0.3; ant.position.set(0.2, -0.1, 0.6); head.add(ant);
+    const antR = ant.clone(); antR.rotation.z = 0.3; antR.position.x = -0.2; head.add(antR);
+    
+    g.add(head); parent = head; segs.push(head);
+
     for(let i=0; i<9; i++) {
-        const s = 1-(i/9)*0.5; const seg = new THREE.Group(); if(i>0) seg.position.z = -0.4*s;
+        const s = 1-(i/9)*0.5; const seg = new THREE.Group(); seg.position.z = -0.4*s;
         const shell = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x443322)); shell.scale.set(1.5*s, 0.4*s, 1.2*s); seg.add(shell);
         const legs = []; for(let j of [-1, 1]) { const leg = new THREE.Mesh(legGeo, mat(0x443322)); leg.position.set(0.4*s*j, -0.1, 0); seg.add(leg); legs.push(leg); }
         seg.userData.legs = legs; parent.add(seg); segs.push(seg); parent = seg;
@@ -656,7 +667,7 @@ function buildSidneyia() {
     
     // 幅広い尾扇
     const tailFin = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.05, 0.8), mat(0x553311));
-    tailFin.position.z = -0.3; parent.add(tailFin);
+    tailFin.position.z = -0.4; parent.add(tailFin);
     
     g.scale.set(1.2, 1.2, 1.2);
     return { mesh: g, segments: segs, type: 'crawl', offset: 0.2 };
@@ -928,14 +939,28 @@ function buildDalmanites() {
     const g = new THREE.Group(); const segs = []; let parent = g; const legGeo = new THREE.BoxGeometry(0.05, 0.4, 0.05); legGeo.translate(0, -0.2, 0);
     
     const head = new THREE.Group();
-    const headShell = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.5, 16, 1, false, 0, Math.PI), mat(0x445544));
-    headShell.rotation.x = -Math.PI/2; headShell.scale.set(1, 0.5, 1); head.add(headShell);
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat); eyeL.position.set(0.5, 0.3, -0.2); head.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x = -0.5; head.add(eyeR);
-    g.add(head); parent = head;
+    // 完全な左右対称の丸みを帯びた頭部シールド
+    const headShell = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16, 0, Math.PI*2, 0, Math.PI/2), mat(0x445544));
+    headShell.scale.set(1.0, 0.3, 0.8); 
+    head.add(headShell);
+    
+    // 前方の突起 (Rostrum)
+    const snout = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.8, 8), mat(0x445544));
+    snout.rotation.x = Math.PI/2; snout.position.z = 1.0; head.add(snout);
+    
+    // 鋭く伸びる後方への頬棘 (Genal spine)
+    const spineL = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.5, 8), mat(0x445544));
+    spineL.rotation.x = -Math.PI/2; spineL.position.set(1.0, 0, -0.5); head.add(spineL);
+    const spineR = spineL.clone(); spineR.position.x = -1.0; head.add(spineR);
+
+    // ドーム状の複眼
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat); eyeL.position.set(0.4, 0.2, 0.2); head.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = -0.4; head.add(eyeR);
+    
+    g.add(head); parent = head; segs.push(head);
 
     for(let i=0; i<10; i++) {
-        const s = 1 - (i/10)*0.6; const seg = new THREE.Group(); seg.position.z = i===0 ? -0.8 : -0.3*s;
+        const s = 1 - (i/10)*0.6; const seg = new THREE.Group(); seg.position.z = i===0 ? -0.5 : -0.3*s;
         const shell = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x445544)); 
         shell.scale.set(1.2*s, 0.3*s, 0.8*s); seg.add(shell);
         const legs = []; 
@@ -944,9 +969,11 @@ function buildDalmanites() {
             leg.position.set(0.5*s*j, -0.1, 0); seg.add(leg); legs.push(leg); 
         }
         seg.userData.legs = legs; parent.add(seg); segs.push(seg); parent = seg;
+        
+        // 尾剣 (Pygidial spine)
         if (i===9) {
-            const tailSpike = new THREE.Mesh(new THREE.ConeGeometry(0.05, 1.0, 8), mat(0x334433));
-            tailSpike.rotation.x = -Math.PI/2; tailSpike.position.z = -0.5; seg.add(tailSpike);
+            const tailSpike = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.2, 8), mat(0x334433));
+            tailSpike.rotation.x = -Math.PI/2; tailSpike.position.z = -0.6; seg.add(tailSpike);
         }
     }
     g.scale.set(1.2, 1.2, 1.2);
@@ -985,6 +1012,38 @@ function buildBirkenia() {
     g.userData.body = bodyGroup; g.userData.tail = tailGroup;
     g.scale.set(1.5, 1.5, 1.5);
     return { mesh: g, segments: [], type: 'fish_dunk' }; 
+}
+
+function buildPteraspis() {
+    const g = new THREE.Group(); const bodyGroup = new THREE.Group(); g.add(bodyGroup);
+    
+    // 馬蹄形の頭部装甲
+    const head = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.3, 24, 1, false, 0, Math.PI), mat(0xaa9977));
+    head.rotation.y = Math.PI / 2; head.scale.set(1, 1, 1.5); head.position.z = 0.5;
+    const snout = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.0, 16), mat(0xaa9977));
+    snout.rotation.x = Math.PI / 2; snout.position.z = 0.8; head.add(snout);
+    bodyGroup.add(head);
+
+    // 目
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeL.position.set(0.4, 0.2, 1.0); head.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = -0.4; head.add(eyeR);
+
+    // 翼のような突起 (Cornual plate)
+    const wingL = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.0, 8), mat(0x998866));
+    wingL.rotation.x = Math.PI/2; wingL.rotation.z = -0.5; wingL.position.set(0.8, 0, 0); head.add(wingL);
+    const wingR = wingL.clone(); wingR.rotation.z = 0.5; wingR.position.x = -0.8; head.add(wingR);
+
+    // 胴体
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), mat(0x998866));
+    torso.scale.set(0.8, 0.8, 2.0); torso.position.z = -0.5; bodyGroup.add(torso);
+    
+    const tailGroup = new THREE.Group(); tailGroup.position.z = -2.0; g.add(tailGroup);
+    const tailFin = new THREE.Mesh(new THREE.ConeGeometry(0.05, 1.2, 8), mat(0x998866));
+    tailFin.position.set(0, -0.4, -0.6); tailFin.rotation.x = -0.6; tailGroup.add(tailFin);
+
+    g.userData.body = bodyGroup; g.userData.tail = tailGroup;
+    g.scale.set(1.5, 1.5, 1.5);
+    return { mesh: g, segments: [], type: 'fish_dunk' };
 }
 
 // --- デボン紀 ---
@@ -1051,36 +1110,39 @@ function buildEusthenopteron() {
     const torso = new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 16), mat(0x556655));
     torso.scale.set(0.8, 1.0, 3.0); bodyGroup.add(torso);
     
-    // 肉鰭 (Lobe-fins) - 体側に沿ってやや外側後方へ向ける
-    const fL = new THREE.Group(); fL.position.set(0.7, -0.3, 0.8); fL.rotation.set(Math.PI/2, 0.2, -0.3);
+    // 肉鰭 (Lobe-fins) - 付け根は体側に、先端を外側後方へ向ける
+    // 左胸ビレ
+    const fL = new THREE.Group(); fL.position.set(0.7, -0.3, 0.8); fL.rotation.set(0.2, -0.4, -0.8); // Z回転で外側へ倒し、Y回転で後方へ流す
     const fLBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat(0x445544)); 
     fLBase.position.y = -0.3; fL.add(fLBase);
     const fLFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8), mat(0x334433)); 
     fLFin.position.y = -0.9; fLFin.scale.set(1, 0.2, 1); fL.add(fLFin);
     bodyGroup.add(fL);
     
-    const fR = new THREE.Group(); fR.position.set(-0.7, -0.3, 0.8); fR.rotation.set(Math.PI/2, -0.2, 0.3);
+    // 右胸ビレ
+    const fR = new THREE.Group(); fR.position.set(-0.7, -0.3, 0.8); fR.rotation.set(0.2, 0.4, 0.8);
     const fRBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat(0x445544)); 
     fRBase.position.y = -0.3; fR.add(fRBase);
     const fRFin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.8), mat(0x334433)); 
     fRFin.position.y = -0.9; fRFin.scale.set(1, 0.2, 1); fR.add(fRFin);
     bodyGroup.add(fR);
 
-    const pL = new THREE.Group(); pL.position.set(0.5, -0.3, -1.0); pL.rotation.set(Math.PI/2, 0.2, -0.3);
+    // 左腹ビレ
+    const pL = new THREE.Group(); pL.position.set(0.5, -0.3, -1.0); pL.rotation.set(0.2, -0.4, -0.8);
     const pLBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.5), mat(0x445544)); 
     pLBase.position.y = -0.25; pL.add(pLBase);
-    const pLFin = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.6), mat(0x334433)); 
+    const pLFin = new Mesh(new THREE.ConeGeometry(0.08, 0.6), mat(0x334433)); 
     pLFin.position.y = -0.7; pLFin.scale.set(1, 0.2, 1); pL.add(pLFin);
     bodyGroup.add(pL);
 
-    const pR = new THREE.Group(); pR.position.set(-0.5, -0.3, -1.0); pR.rotation.set(Math.PI/2, -0.2, 0.3);
+    // 右腹ビレ
+    const pR = new THREE.Group(); pR.position.set(-0.5, -0.3, -1.0); pR.rotation.set(0.2, 0.4, 0.8);
     const pRBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.5), mat(0x445544)); 
     pRBase.position.y = -0.25; pR.add(pRBase);
     const pRFin = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.6), mat(0x334433)); 
     pRFin.position.y = -0.7; pRFin.scale.set(1, 0.2, 1); pR.add(pRFin);
     bodyGroup.add(pR);
 
-    
     // 初期角度を保存（パドリングアニメーション用）
     fL.userData.origRot = fL.rotation.clone(); fR.userData.origRot = fR.rotation.clone();
     pL.userData.origRot = pL.rotation.clone(); pR.userData.origRot = pR.rotation.clone();
@@ -1315,12 +1377,13 @@ function buildTiktaalik() {
     
     for(let side of [-1, 1]) {
         const arm = new THREE.Group(); 
-        arm.position.set(1.0*side, -0.2, 0); // 外側へ
+        arm.position.set(1.0*side, -0.2, 0); // 付け根を外側へ
         arm.rotation.set(-0.4, side * 0.4, side * -1.2); // 外側後方へ向けて踏ん張る角度
         const muscle = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.1, 1.0), mat(0x556633)); muscle.position.y = -0.5; arm.add(muscle);
         const fin = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.3, 1.0), mat(0x445522)); fin.scale.set(1, 1, 0.2); fin.position.y = -1.5; arm.add(fin);
         torso1.add(arm);
         segs.push(arm); arm.userData.isArm = true;
+        arm.userData.origRot = arm.rotation.clone();
     }
 
     const torso2 = new THREE.Group(); torso2.position.z = -2.5; torso1.add(torso2);
@@ -1420,7 +1483,7 @@ const DB = {
         creatures: [
             { id: 'eurypterus', jp: 'ユーリプテルス', en: 'Eurypterus', latin: 'Eurypterus remipes', desc: 'シルル紀の海を遊泳する代表的なウミサソリ。パドル状の脚で力強く泳ぎます。', build: buildEurypterus, count: 5, speed: 0.12, yRange: [-15, 10] },
             { id: 'birkenia', jp: 'ビルケニア', en: 'Birkenia', latin: 'Birkenia elegans', desc: '鱗を持つ初期の無顎類。下向きに伸びた尾ビレ（逆異尾）で泳ぐ姿が特徴です。', build: buildBirkenia, count: 8, speed: 0.08, yRange: [-5, 15] },
-            { id: 'clim', jp: 'クリマティウス', en: 'Climatius', latin: 'Climatius reticulatus', desc: 'トゲだらけの小さな魚。シルル紀からデボン紀にかけて繁栄しました。', build: buildClimatius, count: 8, speed: 0.1, yRange: [-10, 10] },
+            { id: 'pteraspis', jp: 'プテラスピス', en: 'Pteraspis', latin: 'Pteraspis rostrata', desc: '馬蹄形の頭部装甲と翼のような突起を持つ無顎類。素早く泳ぎ回ります。', build: buildPteraspis, count: 5, speed: 0.15, yRange: [0, 20] },
             { id: 'ortho', jp: 'チョッカクガイ', en: 'Orthoceras', latin: 'Orthoceras regulare', desc: '殻を持つハンター。水を噴射して後ろ向きに泳ぎます。', build: buildOrthoceras, count: 3, speed: 0.02, yRange: [-15, 10] },
             { id: 'dalm', jp: 'ダルマニテス', en: 'Dalmanites', latin: 'Dalmanites', desc: 'シルル紀に生息していた、長い尾剣を持つ三葉虫。', build: buildDalmanites, count: 5, speed: 0.04, yRange: [bottomY, bottomY] }
         ],
@@ -1431,7 +1494,7 @@ const DB = {
         creatures: [
             { id: 'dunk', jp: 'ダンクルオステウス', en: 'Dunkleosteus', latin: 'Dunkleosteus terrelli', desc: 'アゴを開閉して威嚇する流線型の巨大魚。デボン紀の海の支配者です。', build: buildDunkleosteus, count: 3, speed: 0.16, yRange: [-10, 20] },
             { id: 'tikt', jp: 'ティクターリク', en: 'Tiktaalik', latin: 'Tiktaalik roseae', desc: '肉鰭を持つ、魚と四肢動物の中間。浅瀬(上層)を泳ぎます。', build: buildTiktaalik, count: 4, speed: 0.08, yRange: [15, 30] },
-            { id: 'both', jp: 'ボトリオレピス', en: 'Bothriolepis', latin: 'Bothriolepis canadensis', desc: '多関節の腕を持つドーム型の装甲魚。カニのように海底を這います。', build: buildBothriolepis, count: 6, speed: 0.03, yRange: [bottomY, bottomY] },
+            { id: 'both', jp: 'ボトリオレピス', en: 'Bothriolepis', latin: 'Bothriolepis canadensis', desc: '多関節の腕を持つドーム型の装甲魚。腕を使って海底を這います。', build: buildBothriolepis, count: 6, speed: 0.03, yRange: [bottomY, bottomY] },
             { id: 'clim', jp: 'クリマティウス', en: 'Climatius', latin: 'Climatius reticulatus', desc: 'トゲだらけの小さな魚。アゴをパクパクさせながら群れを作って泳ぎます。', build: buildClimatius, count: 12, speed: 0.1, yRange: [-10, 10] },
             { id: 'schin', jp: 'シンダーハンネス', en: 'Schinderhannes', latin: 'Schinderhannes bartelsi', desc: 'デボン紀まで生き延びた最後のアノマロカリス類。巨大な胸ビレで泳ぎます。', build: buildSchinderhannes, count: 2, speed: 0.14, yRange: [5, 20] },
             { id: 'cheiro', jp: 'ケイロレピス', en: 'Cheirolepis', latin: 'Cheirolepis trailli', desc: '現生の魚類に近い最初期の「条鰭類」。サメのような尾ビレで素早く泳ぎます。', build: buildCheirolepis, count: 6, speed: 0.18, yRange: [0, 25] },
@@ -1586,17 +1649,18 @@ class CreatureObj {
                     if (fin && fin.userData.origRot) {
                         const isLeft = idx % 2 === 0;
                         const phaseOffset = isLeft ? 0 : Math.PI;
-                        const frontBackOffset = idx > 1 ? Math.PI / 2 : 0;
-                        fin.rotation.z = fin.userData.origRot.z + Math.sin(time * 6 + this.phase + phaseOffset + frontBackOffset) * 0.15;
-                        fin.rotation.y = fin.userData.origRot.y + Math.cos(time * 6 + this.phase + phaseOffset + frontBackOffset) * 0.15;
+                        // ローイング（櫂漕ぎ）動作のシミュレーション：前後にスイングしつつ上下にひねる
+                        fin.rotation.z = fin.userData.origRot.z + Math.sin(time * 6 + this.phase + phaseOffset) * 0.15;
+                        fin.rotation.x = fin.userData.origRot.x + Math.cos(time * 6 + this.phase + phaseOffset) * 0.2;
                     }
                 });
             }
         } else if(this.type === 'swim_tiktaalik') {
             this.segments.forEach((seg, i) => {
-                if(seg.userData.isArm) {
-                    seg.rotation.y = Math.sin(time * 2 + this.phase) * 0.4;
-                } else {
+                if(seg.userData.isArm && seg.userData.origRot) {
+                    seg.rotation.x = seg.userData.origRot.x + Math.sin(time * 4 + this.phase) * 0.3;
+                    seg.rotation.z = seg.userData.origRot.z + Math.cos(time * 4 + this.phase) * 0.1;
+                } else if (!seg.userData.isArm) {
                     seg.rotation.y = Math.sin(time * 2 - i * 0.5 + this.phase) * 0.15;
                 }
             });
