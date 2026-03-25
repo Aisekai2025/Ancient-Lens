@@ -1953,24 +1953,34 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
     const shareUrl = 'https://ancient-lens.vercel.app';
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
+    // Xの投稿用URLを正しく生成
+    const xUrl = `https://twitter.com{encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+
     if (isMobile && navigator.canShare) {
-        // スマホは今まで通り
-        const res = await fetch(dataURL);
-        const blob = await res.blob();
-        const file = new File([blob], 'ancient-lens.png', { type: 'image/png' });
-        await navigator.share({ files: [file], text: shareText });
+        // スマホ向け：標準共有
+        try {
+            const res = await fetch(dataURL);
+            const blob = await res.blob();
+            const file = new File([blob], 'ancient-lens.png', { type: 'image/png' });
+            await navigator.share({ files: [file], text: shareText });
+        } catch (e) { console.error(e); }
     } else {
-        // 【PC対策】まず確実にXのウィンドウを開く（ブロック回避）
-        const xUrl = `https://twitter.com{encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+        // PC向け：まず確実にXを開く（非同期処理の前に呼ぶのが鉄則）
         const xWindow = window.open(xUrl, '_blank');
 
-        // その後にバックグラウンドでコピー処理
+        if (!xWindow) {
+            alert("ポップアップがブロックされました。ブラウザの設定で許可してください。");
+            return;
+        }
+
+        // 裏でクリップボードにコピー
         try {
             const res = await fetch(dataURL);
             const blob = await res.blob();
             const item = new ClipboardItem({ "image/png": blob });
             await navigator.clipboard.write([item]);
-            alert("画像をコピーしました！Xの画面で貼り付け（Ctrl+V）てください。");
+            // Xのタブが開いた後にアラートを出す
+            alert("画像をクリップボードにコピーしました！\nXの投稿画面で貼り付け（Ctrl+V）てください。");
         } catch (err) {
             console.warn("Clipboard copy failed, downloading instead.");
             const a = document.createElement('a');
@@ -1980,6 +1990,7 @@ document.getElementById('camera-btn').addEventListener('click', async () => {
         }
     }
 });
+
 
 
 
