@@ -828,7 +828,10 @@ function buildOrthoceras() {
             segs.push({ mesh: w, index: j, angle: i });
         }
     }
-
+// ▼▼▼ この一行を追加 ▼▼▼
+    // グループ全体をY軸で180度回転させ、尖った方を「プログラム上の前」に向ける
+    g.rotation.y = Math.PI; 
+    // ▲▲▲ ここまで ▲▲▲
     // これで「尖った先(Z+)」が前になり、既存の移動システム（Z前進）と一致します
     return { mesh: g, segments: segs, type: 'jet', jetPhase: 0 };
 }
@@ -979,7 +982,10 @@ function buildEndoceras() {
             segs.push({ mesh: w, index: j, angle: i });
         }
     }
-
+// ▼▼▼ この一行を追加 ▼▼▼
+    // グループ全体をY軸で180度回転させ、尖った方を「プログラム上の前」に向ける
+    g.rotation.y = Math.PI; 
+    // ▲▲▲ ここまで ▲▲▲
     // これで「尖った先(Z+)」が前になり、既存の移動システム（Z前進）と一致します
     return { mesh: g, segments: segs, type: 'jet', jetPhase: 0 };
 }
