@@ -1908,35 +1908,26 @@ function buildDunkleosteus() {
     // ============================================
     // --- 【仮面】ユニット ---
     // ============================================
-    const maskGroup = new THREE.Group();
-    maskGroup.position.set(0, 0.2, 2.0); // 回転支点
-    g.add(maskGroup);
+    // 【凶悪化：球体を使わず箱で組み立てる】
+const maskGroup = new THREE.Group();
 
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(2.0, 8, 8), matArmor);
-    skull.scale.set(0.9, 0.95, 1.2); 
-    skull.position.z = 0.5;
-    maskGroup.add(skull);
+// 1. メインの頭蓋骨（箱でゴツゴツさせる）
+const skullPlate = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.5, 2.0), matArmor);
+maskGroup.add(skullPlate);
 
-    for (let side of [-1, 1]) {
-        const frontPlate = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.5, 0.3), mat(0x2a2a2a, 0.5, 0.9));
-        frontPlate.position.set(side * 1.0, 0.1, 1.8);
-        frontPlate.rotation.y = side * -0.4;
-        maskGroup.add(frontPlate);
+// 2. 頬の装甲（左右に突き出させる）
+const cheekPlate = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.0, 1.0), matArmor);
+cheekPlate.position.set(0, -0.3, 0.5);
+maskGroup.add(cheekPlate);
 
-        // eyeMatが未定義の場合のエラー回避策として直接指定
-        const eye = new THREE.Mesh(
-            new THREE.SphereGeometry(0.22, 12, 12), 
-            new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.8 })
-        );
-        eye.position.set(side * 1.5, 0.5, 1.2); 
-        maskGroup.add(eye);
-
-        const uTooth = new THREE.Mesh(new THREE.ConeGeometry(0.25, 3.0, 4), matTooth);
-        uTooth.scale.set(1.2, 1.0, 0.3);
-        uTooth.position.set(side * 0.8, -0.4, 2.0);
-        uTooth.rotation.x = Math.PI + 0.15;
-        maskGroup.add(uTooth);
-    }
+// 3. 牙を「板状」にしてガチガチ感を出す
+const toothGeom = new THREE.BoxGeometry(0.3, 1.5, 0.5); // 円錐ではなく箱型
+for (let side of [-1, 1]) {
+    const uTooth = new THREE.Mesh(toothGeom, matTooth);
+    uTooth.position.set(side * 0.5, -0.5, 1.5);
+    uTooth.rotation.x = 0.2; // 少し前傾させる
+    maskGroup.add(uTooth);
+}
 
     // ============================================
     // --- データ紐付け ---
