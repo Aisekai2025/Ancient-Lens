@@ -1149,80 +1149,57 @@ function buildDalmanites() {
 
 function buildHorseshoeCrab() {
     const g = new THREE.Group();
-    const segs = []; 
+    const segs = [];
     
-    // マテリアル：少し光沢のある甲羅（深緑〜茶系）
-    const shellMat = new THREE.MeshStandardMaterial({ color: 0x554433, roughness: 0.4, metalness: 0.3 });
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x443322 });
+    const shellColor = 0x554433;
 
     // 1. 前体 (Prosoma) - 巨大な半円ドーム
     const head = new THREE.Group();
     const headShell = new THREE.Mesh(
-        new THREE.SphereGeometry(1.5, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), 
-        shellMat
+        new THREE.SphereGeometry(1.5, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+        mat(shellColor, 0.4, 0.3)
     );
-    headShell.scale.set(1.2, 0.4, 1.0); // 横に広く、扁平なドーム
+    headShell.scale.set(1.2, 0.4, 1.0);
     head.add(headShell);
 
-    // 複眼 (三葉虫譲りの側眼)
+    // 側眼
     for (let side of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), { color: 0x111111 });
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), eyeMat);
         eye.position.set(side * 0.7, 0.25, 0.2);
         head.add(eye);
     }
-
     g.add(head);
     segs.push(head);
 
-    // 2. 後体 (Opisthosoma) - 六角形状にまとまった節
+    // 2. 後体 (Opisthosoma)
     const body = new THREE.Group();
-    body.position.z = -1.0; // 頭の後ろに配置
+    body.position.z = -1.0;
     const bodyShell = new THREE.Mesh(
         new THREE.SphereGeometry(1.2, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
-        shellMat
+        mat(shellColor, 0.4, 0.3)
     );
     bodyShell.scale.set(0.9, 0.3, 1.2);
     body.add(bodyShell);
 
-    // 側縁のトゲ (カブトガニらしいギザギザ)
+    // 側縁のトゲ
     for (let i = 0; i < 6; i++) {
         for (let side of [-1, 1]) {
-            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.4, 8), shellMat);
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.4, 8), mat(shellColor));
             spike.rotation.x = -Math.PI / 2;
             spike.position.set(side * 0.9, 0, -i * 0.15 + 0.3);
             body.add(spike);
         }
     }
-
-    head.add(body); // 頭に連結
+    head.add(body);
     segs.push(body);
 
-    // 3. 尾剣 (Telson) - 長く鋭い棒状
-    const telson = new THREE.Mesh(
-        new THREE.ConeGeometry(0.06, 2.5, 8),
-        shellMat
-    );
+    // 3. 尾剣 (Telson)
+    const telson = new THREE.Mesh(new THREE.ConeGeometry(0.06, 2.5, 8), mat(shellColor));
     telson.rotation.x = -Math.PI / 2;
-    telson.position.z = -1.2; 
+    telson.position.z = -1.2;
     body.add(telson);
-    segs.push(telson);
 
-    // 4. 脚 (甲羅の下に隠れるように配置)
-    const legGeo = new THREE.BoxGeometry(0.05, 0.5, 0.05);
-    legGeo.translate(0, -0.25, 0);
-    const legs = [];
-    for (let i = 0; i < 5; i++) {
-        for (let side of [-1, 1]) {
-            const leg = new THREE.Mesh(legGeo, legMat);
-            leg.position.set(side * 0.4, -0.1, -i * 0.2 + 0.3);
-            head.add(leg);
-            legs.push(leg);
-        }
-    }
-
-    g.scale.set(0.8, 0.8, 0.8); // 全体サイズ調整
-    
-    // ダルマニテスと同じ 'crawl' タイプで動かす
+    g.scale.set(0.8, 0.8, 0.8);
     return { mesh: g, segments: segs, type: 'crawl', offset: 0.2 };
 }
 
