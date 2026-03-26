@@ -1148,135 +1148,164 @@ function buildDalmanites() {
 }
 
 // ========================================================
-// --- 【古生物×3D造形】 カブトガニ：不透明・ワサワサ脚版 ---
+// --- 【古生物×3D造形】 ブンストデラ（初期カブトガニ類・ダルマニテス参照） ---
 // ========================================================
-function buildHorseshoeCrab() {
+function buildBunstodera() {
     const g = new THREE.Group();
     const segs = [];
     
-    // 【透け防止マテリアル】
-    // metalnessを抑え、不透明度を物理的に固定。裏面を見せない設定
+    // 【透け防止・マット化】ダルマニテスにも通じる重厚な甲殻
     const matShell = new THREE.MeshStandardMaterial({ 
-        color: 0x554433, 
-        roughness: 0.8, 
-        metalness: 0.2,
+        color: 0x5a4a3a, // ベリヌスより少し黄みがかった泥色
+        roughness: 0.9, 
+        metalness: 0.0,
         transparent: false,
         depthWrite: true,
         side: THREE.FrontSide
     });
 
+    const matLeg = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 1.0, metalness: 0.0 });
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.1 });
-    const matLeg = new THREE.MeshStandardMaterial({ color: 0x443322, roughness: 1.0 });
 
-    // 1. 前体 (Prosoma) - 巨大な半円ドーム
+    // --- 【ダルマニテス参照】関節付きの細身の脚 ---
+    const legGeo = new THREE.BoxGeometry(0.03, 0.45, 0.03);
+
+    // 1. 前体 (Prosoma) - ブンストデラ特有の丸みを帯びたドーム
     const head = new THREE.Group();
     const headShell = new THREE.Mesh(
-        new THREE.SphereGeometry(1.5, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.SphereGeometry(1.4, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2),
         matShell
     );
-    headShell.scale.set(1.2, 0.4, 1.0);
+    headShell.scale.set(1.0, 0.4, 0.9); // ベリヌスより前後が詰まった丸い形状
     head.add(headShell);
 
-    // 側眼 (より生物らしく少し埋め込む)
+    // 【ブンストデラの特徴】ベリヌスよりも短く、丸っこい頬棘
     for (let side of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), eyeMat);
-        eye.position.set(side * 0.75, 0.22, 0.2);
-        head.add(eye);
+        const genalSpine = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.5, 8), matShell);
+        genalSpine.rotation.x = -Math.PI / 2;
+        genalSpine.rotation.z = side * 0.15; 
+        genalSpine.position.set(side * 1.15, 0, -0.2); // 突き出しを控えめに
+        head.add(genalSpine);
     }
 
-    // ------------------------------------------
-    // 【新機能】 歩行脚 (Walking Legs)
-    // ------------------------------------------
-    const legs = [];
-    // 5対の脚を配置
-    for (let i = 0; i < 5; i++) {
-        for (let side of [-1, 1]) {
-            const legRoot = new THREE.Group();
-            // ドームの下に配置
-            legRoot.position.set(side * 0.4, -0.1, 0.4 - i * 0.25);
-            
-            const legMesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.6), matLeg);
-            legMesh.position.z = 0.25; // 支点を端に寄せる
-            legMesh.rotation.y = side * (Math.PI / 4); // ハの字に広げる
-            
-            legRoot.add(legMesh);
-            head.add(legRoot);
-            legs.push(legRoot);
-        }
+    // 側眼 (ダルマニテスのクローンを意識)
+    for (let side of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), eyeMat);
+        eye.position.set(side * 0.6, 0.25, 0.3);
+        head.add(eye);
     }
 
     g.add(head);
     segs.push(head);
 
-    // 2. 後体 (Opisthosoma)
+    // 2. 後体 (Opisthosoma) - 体節感を強調
     const body = new THREE.Group();
-    // Zファイティングを防ぐため、わずかに垂直オフセット
-    body.position.set(0, -0.05, -1.0); 
+    body.position.set(0, -0.02, -0.8); 
+    
     const bodyShell = new THREE.Mesh(
-        new THREE.SphereGeometry(1.2, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.SphereGeometry(1.0, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
         matShell
     );
-    bodyShell.scale.set(0.9, 0.3, 1.2);
+    bodyShell.scale.set(0.85, 0.35, 1.0); 
     body.add(bodyShell);
 
-    // 側縁のトゲ
+    // 側縁棘（ダルマニテスのように規則正しく並べる）
     for (let i = 0; i < 6; i++) {
         for (let side of [-1, 1]) {
             const spike = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.4, 8), matShell);
             spike.rotation.x = -Math.PI / 2;
-            spike.position.set(side * 0.9, 0, -i * 0.15 + 0.3);
+            spike.rotation.z = side * (0.2 + i * 0.05); 
+            spike.position.set(side * (0.7 - i * 0.05), -0.05, -i * 0.15 + 0.3);
             body.add(spike);
         }
     }
+
     head.add(body);
     segs.push(body);
 
     // 3. 尾剣 (Telson)
     const telsonGroup = new THREE.Group();
-    telsonGroup.position.z = -1.2;
+    telsonGroup.position.z = -1.0; 
     body.add(telsonGroup);
 
-    const telson = new THREE.Mesh(new THREE.ConeGeometry(0.06, 2.5, 8), matShell);
+    const telson = new THREE.Mesh(new THREE.ConeGeometry(0.06, 2.0, 8), matShell);
     telson.rotation.x = -Math.PI / 2;
-    telson.position.z = -1.2;
+    telson.position.z = -1.0; 
     telsonGroup.add(telson);
 
-    // データ紐付け
-    g.userData = { head, body, telson: telsonGroup, legs };
-    g.scale.set(0.8, 0.8, 0.8);
+    // 4. 【ダルマニテス参照】 多関節の脚群 (ワサワサ感の極み)
+    const legs = [];
+    const numLegs = 7; // カブトガニより多めにし、三葉虫的な密集感を出す
+    for (let i = 0; i < numLegs; i++) {
+        for (let side of [-1, 1]) {
+            const legRoot = new THREE.Group();
+            legRoot.position.set(side * (0.3 + i * 0.02), -0.1, 0.5 - i * 0.15);
+            
+            // 上部（腿関節）
+            const femur = new THREE.Mesh(legGeo, matLeg);
+            femur.position.y = -0.2;
+            femur.rotation.z = side * -0.2; // 少し内股気味に落とす
+            
+            // 下部（脛関節：ダルマニテス的な二重関節の表現）
+            const tibia = new THREE.Mesh(legGeo, matLeg);
+            tibia.position.set(0, -0.4, 0); // 腿の先に接続
+            tibia.rotation.z = side * 0.3; // 外側に開く
+            femur.add(tibia);
 
-    return { mesh: g, segments: segs, type: 'crawl', offset: 0.2 };
+            legRoot.add(femur);
+            legRoot.rotation.y = side * (Math.PI / 8); 
+            
+            head.add(legRoot);
+            
+            // アニメーション用に各関節を保存
+            legs.push({ root: legRoot, femur: femur, tibia: tibia });
+        }
+    }
+
+    g.userData = { head, body, telson: telsonGroup, legs };
+    g.scale.set(0.75, 0.75, 0.75); 
+    
+    return { mesh: g, segments: segs, type: 'crawl', offset: 0.15 };
 }
 
 // ========================================================
-// --- アニメーション：ワサワサ動く脚と尾剣のしなり ---
+// --- アニメーション：ダルマニテス式 メタクロナル・ウェーブ ---
 // ========================================================
-function animateHorseshoeCrab(crab, clock) {
+function animateBunstodera(crab, clock) {
     const time = clock.getElapsedTime();
     const { head, body, telson, legs } = crab.userData;
 
-    // 1. 全体の這い進む動き（少し上下に揺れる）
-    head.position.y = Math.sin(time * 2.0) * 0.02;
+    // 1. 全体のピッチ（少し重たげに揺れる）
+    head.position.y = Math.sin(time * 2.5) * 0.015;
+    head.rotation.z = Math.sin(time * 1.5) * 0.01; // わずかなローリング（横揺れ）
 
-    // 2. 脚の「ワサワサ」運動
-    legs.forEach((leg, index) => {
-        // 左右・前後で位相をずらして、波打つような動きを作る
-        const phase = (index % 2 === 0) ? 0 : Math.PI;
-        const wave = Math.sin(time * 8.0 + (index * 0.5) + phase);
+    // 2. 【ダルマニテス参照】 複雑な波状運動（メタクロナル・ウェーブ）
+    legs.forEach((legData, index) => {
+        // 前から後ろへ、流れるような波を作る（phaseシフト）
+        const phase = index * 0.6; 
+        const speed = 8.0; // 三葉虫のように細かく速いピッチ
+        const wave = Math.sin(time * speed - phase);
+        const waveCos = Math.cos(time * speed - phase);
         
-        // 脚の前後回転
-        leg.rotation.z = wave * 0.2; 
-        // 少し上下にも動かす
-        leg.rotation.x = Math.abs(wave) * 0.2;
+        // 根元の前後スイング（歩行のストローク）
+        legData.root.rotation.z = wave * 0.2; 
+        
+        // 根元の上下（脚を持ち上げる動き）
+        // マイナス方向（地面にめり込む動き）をカットし、上にだけ持ち上げる
+        legData.root.rotation.x = Math.max(0, waveCos) * 0.25;
+
+        // 関節の屈曲（地面を蹴る時に脛が曲がるリアルな表現）
+        legData.tibia.rotation.x = -Math.max(0, wave) * 0.3;
     });
 
     // 3. 後体と尾剣の連動
     if (body) {
-        body.rotation.x = Math.sin(time * 2.0 - 0.5) * 0.05;
+        body.rotation.x = Math.sin(time * 2.5 - 0.5) * 0.03; // 硬い甲羅の微細なブレ
     }
     if (telson) {
-        // 尾剣は地面を叩くように、あるいはバランスをとるように上下する
-        telson.rotation.x = Math.sin(time * 2.0 - 1.0) * 0.15;
+        // 尾剣は少し硬めに、しかし左右にもわずかに振ってバランスを取る
+        telson.rotation.x = Math.sin(time * 2.5 - 1.0) * 0.08;
+        telson.rotation.y = Math.sin(time * 1.2) * 0.05; 
     }
 }
 
@@ -1828,85 +1857,74 @@ function buildSchinderhannes() {
     return { mesh: g, segments: segs, type: 'swim_anomalocaris' };
 }
 
-/**
- * デボン紀：ベリヌス (Belinurus)
- * カブトガニ（剣尾類）の初期の代表格。鋭い棘と融合した後体が特徴。
- * 【修正】不透明化、脚のアニメーション対応
- */
+// ========================================================
+// --- 【古生物×3D造形】 ベリヌス（鋭利な初期剣尾類・ダルマニテス式駆動） ---
+// ========================================================
 function buildBelinurus() {
     const g = new THREE.Group();
     const segs = [];
     
-    // マテリアル：海底の泥に馴染む、少し赤みの強い茶褐色の甲羅
-    // 【透け防止・マット化】反射を極限まで抑え、不透明度を保証
+    // 【透け防止・マット化】海底の泥に溶け込む、赤みの強い重装甲
     const matShell = new THREE.MeshStandardMaterial({ 
-        color: 0x664433, 
-        roughness: 0.9, // ザラザラした質感
-        metalness: 0.0, // 反射をゼロにして「透け」を解消
+        color: 0x663a22, // ブンストデラより少し赤褐色を強める
+        roughness: 0.9, 
+        metalness: 0.0,
         transparent: false,
-        depthWrite: true, // 描画順序を固定
+        depthWrite: true,
         side: THREE.FrontSide
     });
 
-    const matLeg = new THREE.MeshStandardMaterial({ 
-        color: 0x443322, 
-        roughness: 1.0, 
-        metalness: 0.0,
-        transparent: false 
-    });
-
+    const matLeg = new THREE.MeshStandardMaterial({ color: 0x3a2211, roughness: 1.0, metalness: 0.0 });
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.1 });
 
-    // --- 共通パーツ (ダルマニテスの legGeo を流用し、支点を調整) ---
-    // カブトガニと同様に、Group（ピボット）を使って制御するためtranslateは不要
-    const legGeo = new THREE.BoxGeometry(0.04, 0.4, 0.04);
-    // legGeo.translate(0, -0.2, 0); // 削除：ピボットで制御
+    // --- 歩行脚の基本パーツ ---
+    const legGeo = new THREE.BoxGeometry(0.03, 0.45, 0.03);
 
-    // 1. 前体 (Prosoma) - 巨大な半円ドーム
+    // 1. 前体 (Prosoma) - 扁平で鋭い流線形のドーム
     const head = new THREE.Group();
     const headShell = new THREE.Mesh(
         new THREE.SphereGeometry(1.5, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2),
-        matShell // 新しいマットマテリアル
+        matShell
     );
-    headShell.scale.set(1.1, 0.35, 1.0); // 扁平なドーム
+    headShell.scale.set(1.1, 0.35, 1.0); 
     head.add(headShell);
 
-    // 【ベリヌスの特徴】鋭く発達した頬棘 (Genal spine)
+    // 【ベリヌス最大の特徴】長大で鋭い頬棘 (Genal spine)
     for (let side of [-1, 1]) {
-        const genalSpine = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.2, 8), matShell);
+        const genalSpine = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.4, 8), matShell);
         genalSpine.rotation.x = -Math.PI / 2;
-        genalSpine.rotation.z = side * 0.2; // 少し外側に開く
-        genalSpine.position.set(side * 1.3, 0, -0.4);
+        genalSpine.rotation.z = side * 0.15; // 後方へ鋭く伸びる
+        genalSpine.position.set(side * 1.3, 0, -0.4); // ブンストデラより長く、外側に配置
         head.add(genalSpine);
     }
 
-    // 側眼
+    // 側眼 (少し後方に配置して流線形を強調)
     for (let side of [-1, 1]) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), eyeMat);
-        eye.position.set(side * 0.65, 0.2, 0.3);
+        eye.position.set(side * 0.7, 0.22, 0.2);
         head.add(eye);
     }
 
     g.add(head);
     segs.push(head);
 
-    // 2. 後体 (Opisthosoma) - 【ベリヌスの特徴】節が完全に融合したドーム
+    // 2. 後体 (Opisthosoma) - 【特徴】節が完全に融合したシールド
     const body = new THREE.Group();
-    // Zファイティングを防ぐため、わずかに垂直オフセット
     body.position.set(0, -0.02, -0.9); 
+    
     const bodyShell = new THREE.Mesh(
         new THREE.SphereGeometry(1.1, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
         matShell
     );
-    bodyShell.scale.set(0.9, 0.3, 1.1); // 前体より少し小さく
+    bodyShell.scale.set(0.9, 0.3, 1.1); 
     body.add(bodyShell);
 
-    // 可動性のトゲ (側縁棘)
+    // 側縁棘（融合した甲羅の周囲に鋭く配置）
     for (let i = 0; i < 5; i++) {
         for (let side of [-1, 1]) {
-            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.6, 8), matShell);
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.6, 8), matShell);
             spike.rotation.x = -Math.PI / 2;
-            spike.rotation.z = side * (0.3 + i * 0.1); // 後ろほど外側へ
+            spike.rotation.z = side * (0.2 + i * 0.1); 
             spike.position.set(side * (0.8 - i * 0.05), -0.05, -i * 0.2 + 0.2);
             body.add(spike);
         }
@@ -1915,83 +1933,99 @@ function buildBelinurus() {
     head.add(body);
     segs.push(body);
 
-    // 3. 尾剣 (Telson) - 長く棒状
+    // 3. 尾剣 (Telson) - 長く鋭い槍
     const telsonGroup = new THREE.Group();
-    telsonGroup.position.z = -1.1; // 根本の支点
+    telsonGroup.position.z = -1.1; 
     body.add(telsonGroup);
 
-    const telson = new THREE.Mesh(new THREE.ConeGeometry(0.07, 2.2, 8), matShell);
+    const telson = new THREE.Mesh(new THREE.ConeGeometry(0.06, 2.4, 8), matShell);
     telson.rotation.x = -Math.PI / 2;
-    telson.position.z = -1.1; // 先端方向へ伸ばす
+    telson.position.z = -1.2; 
     telsonGroup.add(telson);
 
-    // 4. 【新機能】 脚 (甲羅の下で動くワサワサ脚)
+    // 4. 【ダルマニテス式＋ベリヌス進化】 多関節脚 ＆ パドル脚
     const legs = [];
-    // 6対の脚を配置
-    for (let i = 0; i < 6; i++) {
+    const numLegs = 6; 
+    for (let i = 0; i < numLegs; i++) {
         for (let side of [-1, 1]) {
             const legRoot = new THREE.Group();
-            // ドームの下に配置
-            legRoot.position.set(side * (0.4 + i * 0.02), -0.15, 0.4 - i * 0.18);
+            legRoot.position.set(side * (0.3 + i * 0.02), -0.1, 0.4 - i * 0.18);
             
-            // 脚のメッシュ。支点を上部に持ってくるため、 BoxGeometryのtranslateは使わず
-            // グループ（ピボット）に対して相対位置を設定
-            const legMesh = new THREE.Mesh(legGeo, matLeg);
-            legMesh.position.y = -0.2; // 支点から下に伸ばす
-            // ハの字に広げる
-            legMesh.rotation.y = side * (Math.PI / 6); 
-
-            // 一番後ろのパドル脚を再現（提供コードを流用）
+            // 腿関節 (Femur)
+            const femur = new THREE.Mesh(legGeo, matLeg);
+            femur.position.y = -0.2;
+            femur.rotation.z = side * -0.2; 
+            
+            let tibia;
+            // 【進化の証】最後尾の脚（i === 5）を、泥を掻く「パドル状」に変形
             if (i === 5) {
-                legRoot.scale.set(2.0, 1.0, 2.0); 
+                tibia = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, 0.02), matLeg); // 平たく広い
+                tibia.position.set(0, -0.3, 0); 
+                tibia.rotation.z = side * 0.6; // 大きく外側に張り出す
+            } else {
+                // 通常の歩行用・脛関節 (Tibia)
+                tibia = new THREE.Mesh(legGeo, matLeg);
+                tibia.position.set(0, -0.4, 0); 
+                tibia.rotation.z = side * 0.3; 
             }
             
-            legRoot.add(legMesh);
+            femur.add(tibia);
+            legRoot.add(femur);
+            legRoot.rotation.y = side * (Math.PI / 8); 
+            
             head.add(legRoot);
-            legs.push(legRoot);
+            
+            // アニメーション用にパドル脚かどうかのフラグを保存
+            legs.push({ root: legRoot, femur: femur, tibia: tibia, isPaddle: (i === 5) });
         }
     }
 
-    // データ紐付け（アニメーション用）
     g.userData = { head, body, telson: telsonGroup, legs };
-
-    // デボン紀の巨大魚たちの中で目立たないよう、少し小ぶりに
     g.scale.set(0.7, 0.7, 0.7); 
     
-    // 三葉虫と同じ 'crawl' タイプで海底を這わせる
     return { mesh: g, segments: segs, type: 'crawl', offset: 0.15 };
 }
 
 // ========================================================
-// --- アニメーション：ワサワサ動く脚と尾剣のしなり ---
+// --- アニメーション：パドル脚による力強い推進とメタクロナル・ウェーブ ---
 // ========================================================
 function animateBelinurus(crab, clock) {
     const time = clock.getElapsedTime();
     const { head, body, telson, legs } = crab.userData;
 
-    // 1. 全体の這い進む動き（少し上下に揺れる）
-    head.position.y = Math.sin(time * 2.0) * 0.015;
+    // 1. 全体のピッチ（ブンストデラより少し前傾姿勢で素早く進むイメージ）
+    head.position.y = Math.sin(time * 3.0) * 0.015;
+    head.rotation.z = Math.sin(time * 1.5) * 0.01; 
 
-    // 2. 脚の「ワサワサ」運動
-    legs.forEach((leg, index) => {
-        // カブトガニと同様に、左右・前後で位相（タイミング）をずらして波打たせる
-        const phase = (index % 2 === 0) ? 0 : Math.PI;
-        const wave = Math.sin(time * 8.0 + (index * 0.4) + phase);
+    // 2. メタクロナル・ウェーブ ＆ パドル駆動
+    legs.forEach((legData, index) => {
+        const phase = index * 0.5; 
+        const speed = 9.0; // ブンストデラよりわずかに脚の回転を速く
+        const wave = Math.sin(time * speed - phase);
+        const waveCos = Math.cos(time * speed - phase);
         
-        // 脚の前後回転（ワサワサ）
-        leg.rotation.z = wave * 0.15; 
-        // 少し上下にも動かす（歩行の蹴り出し）
-        leg.rotation.x = Math.abs(wave) * 0.15;
+        if (legData.isPaddle) {
+            // 【最後尾：パドル脚の動き】
+            // 歩くのではなく、泥を力強く「後ろに掻き出す」ストローク運動
+            legData.root.rotation.z = wave * 0.3; // 前後の振幅を大きく
+            legData.root.rotation.x = Math.max(0, waveCos) * 0.1; // 上下動は控えめに
+            legData.tibia.rotation.x = -Math.max(0, wave) * 0.5; // 水を掴むように大きく曲げる
+        } else {
+            // 【通常：ダルマニテス式歩行脚の動き】
+            legData.root.rotation.z = wave * 0.2; 
+            legData.root.rotation.x = Math.max(0, waveCos) * 0.25; // 持ち上げて
+            legData.tibia.rotation.x = -Math.max(0, wave) * 0.3;   // 蹴り出す
+        }
     });
 
     // 3. 後体と尾剣の連動
     if (body) {
-        // 後体が少し上下にしなる
-        body.rotation.x = Math.sin(time * 2.0 - 0.5) * 0.04;
+        body.rotation.x = Math.sin(time * 3.0 - 0.5) * 0.02; // 癒合した硬い甲羅なのでブレは最小限
     }
     if (telson) {
-        // 尾剣は根本から上下にバランスをとるように動く
-        telson.rotation.x = Math.sin(time * 2.0 - 1.0) * 0.12;
+        // パドルの推進力を殺さないよう、尾剣で真っ直ぐ舵を取る
+        telson.rotation.x = Math.sin(time * 3.0 - 1.0) * 0.05;
+        telson.rotation.y = Math.sin(time * 1.5) * 0.08; // 左右に振って推進を補助
     }
 }
 
@@ -2592,7 +2626,7 @@ const DB = {
             { id: 'pteraspis', jp: 'プテラスピス', en: 'Pteraspis', latin: 'Pteraspis rostrata', desc: '馬蹄形の頭部装甲と翼のような突起を持つ無顎類。素早く泳ぎ回ります。', build: buildPteraspis, count: 5, speed: 0.15, yRange: [0, 20] },
             { id: 'ortho', jp: 'チョッカクガイ', en: 'Orthoceras', latin: 'Orthoceras regulare', desc: '殻を持つハンター。水を噴射して後ろ向きに泳ぎます。', build: buildOrthoceras, count: 3, speed: 0.02, yRange: [-15, 10] },
             { id: 'dalm', jp: 'ダルマニテス', en: 'Dalmanites', latin: 'Dalmanites', desc: 'シルル紀に生息していた、長い尾剣を持つ三葉虫。', build: buildDalmanites, count: 5, speed: 0.04, yRange: [bottomY, bottomY] },
-            { id: 'bunst', jp: 'ブンストデラ', en: 'Bunstdorella', latin: 'Bunstdorella sp.', desc: 'カブトガニの最古の親戚の一つ。現代のカブトガニと異なり、体節がまだ三葉虫のように少し分かれています。', build: buildHorseshoeCrab, count: 4, speed: 0.03, yRange: [bottomY, bottomY] }
+            { id: 'bunst', jp: 'ブンストデラ', en: 'Bunstdorella', latin: 'Bunstdorella sp.', desc: 'カブトガニの最古の親戚の一つ。現代のカブトガニと異なり、体節がまだ三葉虫のように少し分かれています。', build: buildBunstodera, count: 4, speed: 0.03, yRange: [bottomY, bottomY] }
         ],
         rare: { jp: 'プテリゴトゥス', en: 'Pterygotus', latin: 'Pterygotus anglicus', desc: '【希少】体長2メートルを超える史上最大級の節足動物（巨大ウミサソリ）。', build: buildPterygotus, speed: 0.18, yRange: [-20, 5] }
     },
