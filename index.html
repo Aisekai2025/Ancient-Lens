@@ -1372,12 +1372,13 @@ function buildEusthenopteron() {
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
 
-    // 共通マテリアル (鱗用)
+    // --- 【修正】共通マテリアル (鱗用) ---
+    // flatShadingを取り除き、ツルッとした生々しい流線型の質感を表現
+    // 泥や水底を泳ぐため、少しウェットな光沢（metalness/roughness）に調整
     const mat = (color) => new THREE.MeshStandardMaterial({
         color: color, 
-        roughness: 0.7, 
-        metalness: 0.2, 
-        flatShading: true
+        roughness: 0.5, // 0.7から下げて少し濡れた生物感に
+        metalness: 0.1
     });
 
     // 目専用のマテリアル
@@ -1387,24 +1388,24 @@ function buildEusthenopteron() {
         metalness: 0.8   // 濡れたような光沢
     });
 
-    // 1. 胴体
-    const torso = new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 20), mat(0x556655));
-    torso.scale.set(0.8, 1.0, 3.0);
+    // 1. 胴体（流線形で滑らかなボディ）
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(1.0, 32, 24), mat(0x556655));
+    torso.scale.set(0.8, 1.0, 3.2); // 少し後ろに長く
     bodyGroup.add(torso);
 
-    // 2. 頭部
+    // 2. 頭部（両生類へ続く、やや平たい頭骨を意識）
     const headGroup = new THREE.Group();
-    headGroup.position.z = 1.8;
+    headGroup.position.z = 1.9;
     bodyGroup.add(headGroup);
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), mat(0x556655));
-    head.scale.set(1.0, 0.9, 1.4);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.8, 24, 24), mat(0x556655));
+    head.scale.set(1.0, 0.85, 1.4); // 上下を少しだけ潰して平たい顔立ちに
     headGroup.add(head);
 
-    // 【修正】 左右の目（スコープを正しく修正して配置）
+    // 左右の目（頭部のやや上側、前方を睨むように）
     for (let side of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), eyeMat);
-        eye.position.set(side * 0.45, 0.25, 0.4);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
+        eye.position.set(side * 0.45, 0.3, 0.4);
         headGroup.add(eye);
     }
 
@@ -1413,68 +1414,87 @@ function buildEusthenopteron() {
     jaw.position.set(0, -0.2, -0.1);
     headGroup.add(jaw);
 
-    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), mat(0x445544));
-    jawMesh.scale.set(1.0, 0.35, 1.6);
+    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 16), mat(0x445544));
+    jawMesh.scale.set(0.95, 0.35, 1.5);
     jawMesh.position.z = 0.5;
     jaw.add(jawMesh);
 
-    // 4. 肉鰭 (Lobe-fins) - 先端を自然な楕円形にブラッシュアップ
+    // 4. 肉鰭 (Lobe-fins) - 腕や脚の起源となる筋肉質なヒレ
     const fins = [];
-    const createLobeFin = (x, y, z, ry, rz) => {
+    const createLobeFin = (x, y, z, ry, rz, scaleMult = 1.0) => {
         const f = new THREE.Group();
         f.position.set(x, y, z);
         f.rotation.y = ry;
         f.rotation.z = rz;
 
-        // 関節のベース部分
-        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.8, 8), mat(0x445544));
-        base.position.y = -0.4;
+        // 関節のベース部分（筋肉のふくらみ）
+        const base = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), mat(0x445544));
+        base.scale.set(1.0, 2.0, 1.0);
+        base.position.y = -0.3;
         f.add(base);
 
-        // ヒレの先端（SphereGeometryを使って有機的な形に）
+        // ヒレの先端（水掻き部分）
         const fin = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), mat(0x334433));
-        fin.position.y = -1.0;
-        fin.scale.set(0.8, 2.5, 0.2); // 薄く伸ばした楕円
+        fin.position.y = -0.9;
+        fin.scale.set(0.6, 2.5, 0.15); // より薄く、しなやかな面に
         f.add(fin);
 
+        f.scale.setScalar(scaleMult);
         f.userData.origRot = f.rotation.clone();
         return f;
     };
 
-    // 左右対称になるようにZ座標を補正
-    const fL = createLobeFin(0.7, -0.4, 0.8, -0.3, 1.0);
-    const fR = createLobeFin(-0.7, -0.4, 0.8, 0.3, -1.0);
-    const pL = createLobeFin(0.5, -0.4, -1.2, -0.2, 0.8);
-    const pR = createLobeFin(-0.5, -0.4, -1.2, 0.2, -0.8); 
+    // 胸びれ (Pectoral fins)
+    const fL = createLobeFin(0.7, -0.3, 1.0, -0.3, 1.0);
+    const fR = createLobeFin(-0.7, -0.3, 1.0, 0.3, -1.0);
+    // 腹びれ (Pelvic fins) - 少し小さめ
+    const pL = createLobeFin(0.5, -0.3, -1.0, -0.2, 0.8, 0.8);
+    const pR = createLobeFin(-0.5, -0.3, -1.0, 0.2, -0.8, 0.8); 
 
     [fL, fR, pL, pR].forEach(f => { 
         bodyGroup.add(f); 
         fins.push(f); 
     });
 
-    // 5. 尾部 (三葉状) - 座標を補正
+    // 5. 【考古学的追加】背びれと尻びれ
+    // 第1背びれ（前方）
+    const dFin1 = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), mat(0x334433));
+    dFin1.scale.set(0.15, 1.5, 1.0);
+    dFin1.position.set(0, 0.9, -0.5);
+    dFin1.rotation.x = -0.4;
+    bodyGroup.add(dFin1);
+
+    // 第2背びれ（後方、尾びれに近い位置）
+    const dFin2 = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), mat(0x334433));
+    dFin2.scale.set(0.15, 1.8, 1.2);
+    dFin2.position.set(0, 0.8, -1.8);
+    dFin2.rotation.x = -0.5;
+    bodyGroup.add(dFin2);
+
+    // 尻びれ (Anal fin)
+    const aFin = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), mat(0x334433));
+    aFin.scale.set(0.15, 1.6, 1.0);
+    aFin.position.set(0, -0.8, -1.6);
+    aFin.rotation.x = 0.5; // 後ろ向きに流れるように
+    bodyGroup.add(aFin);
+
+    // 6. 尾部 (原正尾：Diphycercal / 三葉状)
     const tailGroup = new THREE.Group();
-    tailGroup.position.z = -3.0;
+    tailGroup.position.z = -3.2; // 胴体を伸ばした分、少し後ろへ
     g.add(tailGroup);
 
     const createLeaf = (h, pz, py, rx) => {
-        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), mat(0x334433));
-        leaf.scale.set(0.08, h, 1.5);
+        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 16), mat(0x334433));
+        leaf.scale.set(0.08, h, 1.8);
         leaf.position.set(0, py, pz);
         leaf.rotation.x = rx;
         return leaf;
     };
 
-    // 葉が後ろ（マイナス方向）に向かって伸びるように pz を修正
-    tailGroup.add(createLeaf(0.8, -1.8, 0, 0));        // 中央
-    tailGroup.add(createLeaf(1.5, -1.2, 0.8, 0.6));    // 上
-    tailGroup.add(createLeaf(1.5, -1.2, -0.8, -0.6));  // 下
-
-    // 背びれ
-    const dFin = new THREE.Mesh(new THREE.SphereGeometry(0.4), mat(0x334433));
-    dFin.scale.set(0.1, 1.2, 0.8);
-    dFin.position.set(0, 0.9, -1.8);
-    bodyGroup.add(dFin);
+    // 三葉状の美しい広がり
+    tailGroup.add(createLeaf(0.8, -1.2, 0, 0));        // 中央葉（まっすぐ伸びる）
+    tailGroup.add(createLeaf(1.4, -0.8, 0.6, 0.5));    // 上葉
+    tailGroup.add(createLeaf(1.4, -0.8, -0.6, -0.5));  // 下葉
 
     // データ紐付け
     g.userData.body = bodyGroup;
@@ -1485,6 +1505,133 @@ function buildEusthenopteron() {
 
     return { mesh: g, type: 'fish_lobe' };
 }
+function buildCoelacanth() {
+    const g = new THREE.Group();
+    const bodyGroup = new THREE.Group();
+    g.add(bodyGroup);
+
+    // 深海や岩礁を思わせるブルーグレー系の滑らかなマテリアル
+    const mat = (color) => new THREE.MeshStandardMaterial({
+        color: color, 
+        roughness: 0.5, 
+        metalness: 0.2
+    });
+
+    const eyeMat = new THREE.MeshStandardMaterial({
+        color: 0x050505, 
+        roughness: 0.1, 
+        metalness: 0.9 // 光を反射するタペータムを意識
+    });
+
+    // 1. 胴体（ユーステノプテロンより体高があり、ふっくらした流線形）
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 24), mat(0x2c3e50));
+    torso.scale.set(0.7, 1.1, 2.8);
+    bodyGroup.add(torso);
+
+    // 2. 頭部（丸みを帯びた鈍重な顔つき）
+    const headGroup = new THREE.Group();
+    headGroup.position.z = 2.0;
+    bodyGroup.add(headGroup);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.9, 24, 24), mat(0x2c3e50));
+    head.scale.set(0.85, 0.9, 1.2);
+    headGroup.add(head);
+
+    // 目（大きめでどんぐり眼）
+    for (let side of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), eyeMat);
+        eye.position.set(side * 0.5, 0.3, 0.6);
+        headGroup.add(eye);
+    }
+
+    // 3. 下顎
+    const jaw = new THREE.Group();
+    jaw.position.set(0, -0.3, 0.0);
+    headGroup.add(jaw);
+    
+    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(0.8, 24, 16), mat(0x1f2b38));
+    jawMesh.scale.set(0.8, 0.4, 1.3);
+    jawMesh.position.z = 0.4;
+    jaw.add(jawMesh);
+
+    // 4. 肉鰭 (Lobe-fins) - シーラカンスの最大の特徴である「柄（え）」の長いヒレ
+    const fins = [];
+    const createLobeFin = (x, y, z, ry, rz, scaleMult = 1.0) => {
+        const f = new THREE.Group();
+        f.position.set(x, y, z);
+        f.rotation.y = ry;
+        f.rotation.z = rz;
+
+        // 長く突き出た筋肉の柄
+        const base = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), mat(0x1f2b38));
+        base.scale.set(0.8, 2.5, 0.8);
+        base.position.y = -0.4;
+        f.add(base);
+
+        // 先端の丸く広いヒレ膜（団扇のように）
+        const fin = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), mat(0x34495e));
+        fin.position.y = -1.0;
+        fin.scale.set(0.4, 2.0, 1.5); 
+        f.add(fin);
+
+        f.scale.setScalar(scaleMult);
+        f.userData.origRot = f.rotation.clone();
+        return f;
+    };
+
+    // 胸びれ
+    const fL = createLobeFin(0.6, -0.4, 1.2, -0.2, 0.8);
+    const fR = createLobeFin(-0.6, -0.4, 1.2, 0.2, -0.8);
+    // 腹びれ
+    const pL = createLobeFin(0.5, -0.5, -0.8, -0.1, 0.6, 0.9);
+    const pR = createLobeFin(-0.5, -0.5, -0.8, 0.1, -0.6, 0.9);
+    
+    // 【重要】第2背びれと尻びれも「肉鰭」の構造を持つ
+    const dFin2 = createLobeFin(0, 0.8, -1.2, 0, 0, 0.9);
+    dFin2.rotation.z = Math.PI; // 上に向ける
+    const aFin = createLobeFin(0, -0.8, -1.6, 0, 0, 0.9);
+
+    [fL, fR, pL, pR, dFin2, aFin].forEach(f => { bodyGroup.add(f); fins.push(f); });
+
+    // 【重要】第1背びれ（これだけは肉鰭ではなく、扇状の条鰭）
+    const dFin1 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), mat(0x34495e));
+    dFin1.scale.set(0.1, 1.8, 1.2);
+    dFin1.position.set(0, 1.2, 0.5);
+    dFin1.rotation.x = -0.2;
+    bodyGroup.add(dFin1);
+
+    // 5. 特徴的な「三葉尾」（上葉・下葉・中央の副尾びれ）
+    const tailGroup = new THREE.Group();
+    tailGroup.position.z = -3.2;
+    g.add(tailGroup);
+
+    const createLeaf = (h, pz, py, rx) => {
+        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 16), mat(0x34495e));
+        leaf.scale.set(0.08, h, 1.5);
+        leaf.position.set(0, py, pz);
+        leaf.rotation.x = rx;
+        return leaf;
+    };
+
+    tailGroup.add(createLeaf(1.5, -0.8, 0.8, 0.4));    // 上葉
+    tailGroup.add(createLeaf(1.5, -0.8, -0.8, -0.4));  // 下葉
+
+    // 中央の副尾びれ（エピカウダル・ローブ：シーラカンスの象徴！）
+    const centerLobe = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), mat(0x1f2b38));
+    centerLobe.scale.set(0.5, 0.8, 3.0);
+    centerLobe.position.set(0, 0, -1.5);
+    tailGroup.add(centerLobe);
+
+    g.userData.body = bodyGroup;
+    g.userData.tail = tailGroup;
+    g.userData.jaw = jaw;
+    g.userData.fins = fins; 
+    g.scale.set(1.4, 1.4, 1.4);
+
+    // ユーステノプテロンと同じアニメーションタイプを流用可能
+    return { mesh: g, type: 'fish_lobe' }; 
+}
+
 function buildSchinderhannes() {
     const g = new THREE.Group(); const segs = []; let parent = g;
     const headGroup = new THREE.Group(); g.add(headGroup);
@@ -2092,6 +2239,7 @@ const DB = {
             { id: 'schin', jp: 'シンダーハンネス', en: 'Schinderhannes', latin: 'Schinderhannes bartelsi', desc: 'デボン紀まで生き延びた最後のアノマロカリス類。巨大な胸ビレで泳ぎます。', build: buildSchinderhannes, count: 2, speed: 0.14, yRange: [5, 20] },
             { id: 'cheiro', jp: 'ケイロレピス', en: 'Cheirolepis', latin: 'Cheirolepis trailli', desc: '現生の魚類に近い最初期の「条鰭類」。サメのような尾ビレで素早く泳ぎます。', build: buildCheirolepis, count: 6, speed: 0.18, yRange: [0, 25] },
             { id: 'eusthen', jp: 'ユーステノプテロン', en: 'Eusthenopteron', latin: 'Eusthenopteron foordi', desc: '四肢動物への進化の過程を示す、強力な肉鰭を持つ硬骨魚類。', build: buildEusthenopteron, count: 4, speed: 0.12, yRange: [0, 20] },
+            { id: 'coela', jp: 'シーラカンス', en: 'Coelacanth', latin: 'Miguashaia bureaui', desc: '「生きた化石」のデボン紀の姿。特徴的な柄のついたヒレと、中央に小さな突起がある三葉状の尾を持ちます。', build: buildCoelacanth, count: 3, speed: 0.08, yRange: [0, 15] },
             { id: 'goniatite', jp: 'ゴニアタイト', en: 'Goniatite', latin: 'Goniatitida', desc: 'アンモナイトの祖先。渦巻状の殻を持ち、中層を漂います。', build: buildGoniatite, count: 4, speed: 0.01, yRange: [0, 15] }
         ],
         rare: { jp: 'ステタカントゥス', en: 'Stethacanthus', latin: 'Stethacanthus altonensis', desc: '【希少】背びれが「アイロン台」の形をした奇妙な古代ザメ。奥を優雅に過ぎます。', build: buildStethacanthus, speed: 0.12, yRange: [0, 15] }
