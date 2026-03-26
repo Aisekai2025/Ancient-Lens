@@ -1751,6 +1751,105 @@ function buildSchinderhannes() {
     return { mesh: g, segments: segs, type: 'swim_anomalocaris' };
 }
 
+/**
+ * デボン紀：ベリヌス (Belinurus)
+ * カブトガニ（剣尾類）の初期の代表格。鋭い棘と融合した後体が特徴。
+ */
+function buildBelinurus() {
+    const g = new THREE.Group();
+    const segs = [];
+    
+    // マテリアル：海底の泥に馴染む、少し赤みの強い茶褐色の甲羅
+    const shellColor = 0x664433;
+    const legColor = 0x443322;
+
+    // --- 共通パーツ (ダルマニテスの legGeo [cite: 421-422] を流用) ---
+    const legGeo = new THREE.BoxGeometry(0.04, 0.4, 0.04);
+    legGeo.translate(0, -0.2, 0);
+
+    // 1. 前体 (Prosoma) - 巨大な半円ドーム
+    const head = new THREE.Group();
+    const headShell = new THREE.Mesh(
+        new THREE.SphereGeometry(1.5, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+        mat(shellColor, 0.5, 0.2) // 共通ヘルパーmatを使用 [cite: 5-8]
+    );
+    headShell.scale.set(1.1, 0.35, 1.0); // 扁平なドーム
+    head.add(headShell);
+
+    // 【ベリヌスの特徴】鋭く発達した頬棘 (Genal spine)
+    // ブンストデラよりも長く、後ろ向きに突き出る
+    for (let side of [-1, 1]) {
+        const genalSpine = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.2, 8), mat(shellColor));
+        genalSpine.rotation.x = -Math.PI / 2;
+        genalSpine.rotation.z = side * 0.2; // 少し外側に開く
+        genalSpine.position.set(side * 1.3, 0, -0.4);
+        head.add(genalSpine);
+    }
+
+    // 側眼 (eyeL [cite: 440] のclone)
+    for (let side of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), eyeMat);
+        eye.position.set(side * 0.65, 0.2, 0.3);
+        head.add(eye);
+    }
+
+    g.add(head);
+    segs.push(head);
+
+    // 2. 後体 (Opisthosoma) - 【ベリヌスの特徴】節が完全に融合したドーム
+    const body = new THREE.Group();
+    body.position.z = -0.9;
+    const bodyShell = new THREE.Mesh(
+        new THREE.SphereGeometry(1.1, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+        mat(shellColor, 0.5, 0.2)
+    );
+    bodyShell.scale.set(0.9, 0.3, 1.1); // 前体より少し小さく
+    body.add(bodyShell);
+
+    // 可動性のトゲ (側縁棘)
+    // 融合した甲羅の周りに、後方へ向かう鋭い棘を配置
+    for (let i = 0; i < 5; i++) {
+        for (let side of [-1, 1]) {
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.6, 8), mat(shellColor));
+            spike.rotation.x = -Math.PI / 2;
+            spike.rotation.z = side * (0.3 + i * 0.1); // 後ろほど外側へ
+            spike.position.set(side * (0.8 - i * 0.05), -0.05, -i * 0.2 + 0.2);
+            body.add(spike);
+        }
+    }
+
+    head.add(body);
+    segs.push(body);
+
+    // 3. 尾剣 (Telson) - 長く棒状
+    const telson = new THREE.Mesh(new THREE.ConeGeometry(0.07, 2.2, 8), mat(shellColor));
+    telson.rotation.x = -Math.PI / 2;
+    telson.position.z = -1.1; 
+    body.add(telson);
+    // 尾剣は単独では動かさず、bodyに追従
+
+    // 4. 脚 (甲羅の下に隠れるように)
+    const legs = [];
+    for (let i = 0; i < 6; i++) { // 1対増やす
+        for (let side of [-1, 1]) {
+            const leg = new THREE.Mesh(legGeo, mat(legColor));
+            leg.position.set(side * (0.4 + i * 0.02), -0.15, -i * 0.18 + 0.4);
+            // 泳ぐためのパドル状の脚を1対追加（一番後ろ）
+            if (i === 5) {
+                leg.scale.set(2.0, 1.0, 2.0); 
+            }
+            head.add(leg);
+            legs.push(leg);
+        }
+    }
+
+    // デボン紀の巨大魚たちの中で目立たないよう、少し小ぶりに
+    g.scale.set(0.7, 0.7, 0.7); 
+    
+    // 三葉虫と同じ 'crawl' タイプで海底を這わせる
+    return { mesh: g, segments: segs, type: 'crawl', offset: 0.15 };
+}
+
 // ============================================
 // --- 【考古学的最凶モデル】 ダンクルオステウス生成---
 // ============================================
@@ -1759,227 +1858,184 @@ function buildDunkleosteus() {
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
 
-    // --- 【超・重装甲】 頭部ユニット (装甲強化)---
-    const headGroup = new THREE.Group();
-    headGroup.position.z = 2.0;
-    bodyGroup.add(headGroup);
+    // マテリアル設定
+    const matArmor = mat(0x444444, 0.4, 0.8); // 重厚な甲冑
+    const matBody = mat(0x555566, 0.7, 0.1);  // しなやかな皮膚
+    const matTooth = mat(0xeeeeee, 0.8, 0.2); // 骨の牙（実際は顎の骨）
 
-    // 1. メインの頭蓋装甲 (前端): Sphereの分割数を減らして「ポリゴン感」のある骨
-    const skullGeom = new THREE.SphereGeometry(2.1, 8, 8); // 分割数 8x8でカクカク
-    const skullMat = mat(0x444444, 0.5, 0.8); // 重厚な金属光沢
-    const skull = new THREE.Mesh(skullGeom, skullMat);
-    skull.scale.set(0.85, 0.9, 1.1);
-    headGroup.add(skull);
-
-    // 前面の「追加装甲プレート」 (角材ベース)
-    for (let side of [-1, 1]) {
-        const frontPlate = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.3), mat(0x333333, 0.5, 0.9));
-        frontPlate.position.set(side * 1.0, 0.0, 1.5);
-        frontPlate.rotation.y = side * -0.5; // 前方へ絞る
-        frontPlate.rotation.z = side * -0.2;
-        headGroup.add(frontPlate);
-    }
-
-    // 2. 首周りの背側装甲 (Nuchal plates:超 重機感)
-    // 襟足の「メインプレート」(分厚い角材)
-    const mainNuchal = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.8, 1.8), mat(0x555555, 0.5, 1.0));
-    mainNuchal.position.set(0, 1.2, -0.6);
-    mainNuchal.rotation.x = -0.3; // 後ろへ傾斜
-    headGroup.add(mainNuchal);
-
-    // その上に重ねる「追加の背鰭装甲 (リベット風の凸形)」
-    for (let side of [-1, 1]) {
-        const spineArmor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 2.0), mat(0x666666, 0.6, 1.0));
-        spineArmor.position.set(side * 0.4, 1.6, -0.6);
-        spineArmor.rotation.x = -0.3;
-        headGroup.add(spineArmor);
-    }
-
-    // 側面プレート (首を囲む分厚い角材)
-    for (let side of [-1, 1]) {
-        const sideNuchal = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.2, 1.5), mat(0x555555, 0.5, 1.0));
-        sideNuchal.position.set(side * 1.8, 0.4, -0.7);
-        sideNuchal.rotation.z = side * 0.5; // 傾けて囲う
-        sideNuchal.rotation.y = side * 0.3;
-        headGroup.add(sideNuchal);
-    }
-
-    // 3. 頬の装甲 (Opercular plates:超・重機感)
-    // ここも分厚い Box で構成
-    for (let side of [-1, 1]) {
-        const checkPlate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.8, 2.2), mat(0x333333, 0.5, 0.9));
-        checkPlate.position.set(side * 2.0, -0.2, 0.4);
-        checkPlate.rotation.y = side * 0.4; // 前方へ絞る
-        checkPlate.rotation.z = side * 0.1;
-        headGroup.add(checkPlate);
-    }
-
-    // 4. 装甲に守られた目 (Sphere の分割数を減らす)
-    const eyeGeom = new THREE.SphereGeometry(0.25, 8, 8); // 目もカクカクに
-    const eyeL = new THREE.Mesh(eyeGeom, eyeMat);
-    eyeL.position.set(1.4, 0.5, 1.4); // 装甲のスリットから覗く
-    headGroup.add(eyeL);
-    const eyeR = eyeL.clone(); 
-    eyeR.position.x = -1.4; 
-    headGroup.add(eyeR);
-
-    // --- 【尖鋭牙】(顎骨:gnathal plates) ---
-    // マテリアル: 骨の色(ddddcc)で、少し金属光沢を持たせて「凶器」感を
-    const toothMat = mat(0xddddcc, 0.6, 0.9);
-
-    // 【考古学的微調整】 上顎の固定された「牙」 (ハサミの刃のように外側へ傾ける)
-    const upperToothGeom = new THREE.ConeGeometry(0.25, 3.5, 4); // 円錐(4面体)で尖らせる
-    const teethTopL = new THREE.Mesh(upperToothGeom, toothMat);
-    teethTopL.scale.set(1.4, 1.2, 0.4); // 前後に薄く
-    teethTopL.position.set(0.85, -0.6, 2.0);
-    
-    // X軸で180度回転させて、先端を下に向ける (Math.PI)
-    // さらに、少し前斜め下を向くように角度を調整 (+0.2)
-    teethTopL.rotation.x = Math.PI + 0.2;
-    // 【重要】 少し外側に傾けて、下牙の内側とすれ違うようにする
-    teethTopL.rotation.y = 0.1;
-    headGroup.add(teethTopL);
-    
-    const teethTopR = teethTopL.clone();
-    teethTopR.position.x = -0.85;
-    // 右側は対称に外側へ
-    teethTopR.rotation.y = -0.1;
-    headGroup.add(teethTopR);
-
-    // 下顎ユニット (ごつごつした Box ベースに)
-    const jaw = new THREE.Group();
-    // 下顎の回転軸 (pivot) を少し後ろに設定 (吸引捕食に有利な構造)
-    jaw.position.set(0, -0.7, 0.8);
-    headGroup.add(jaw);
-
-    // 下顎のベース (Box を組み合わせる)
-    const jawMesh = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 1.8), mat(0x333333));
-    jawMesh.position.set(0, -0.3, 1.0);
-    jawMesh.rotation.x = -0.2; // 少し開く角度に
-    jaw.add(jawMesh);
-
-    // 【考古学的微調整】 下顎の「牙」 (ここも Cone: 上顎の内側を擦るように内側へ傾ける)
-    const lowerToothGeom = new THREE.ConeGeometry(0.22, 2.8, 4);
-    const teethBotL = new THREE.Mesh(lowerToothGeom, toothMat);
-    teethBotL.scale.set(1.1, 1.1, 0.3);
-    teethBotL.position.set(0.7, 0.4, 1.9);
-    
-    // 下顎の牙は、少し後ろ向きに(上顎と噛み合うように)
-    teethBotL.rotation.x = 0.3;
-    // 【重要】少し内側に傾けて、上牙の内側を擦るようにする
-    teethBotL.rotation.y = -0.1;
-    jaw.add(teethBotL);
-    
-    const teethBotR = teethBotL.clone();
-    teethBotR.position.x = -0.7;
-    // 右側は対称に内側へ
-    teethBotR.rotation.y = 0.1;
-    jaw.add(teethBotR);
-
-    // アニメーション用にデータを保存
-    g.userData.head = headGroup; // 頭部全体 (跳ね上げ用)
-    g.userData.jaw = jaw; // 下顎(下降用)
-
-    // --- 【肉体】 胴体と尾部(軟骨魚類のしなやかな筋肉) ---
-    // 装甲の直後から、筋肉質な巨体が続く
-    const torso = new THREE.Mesh(new THREE.SphereGeometry(2.5, 24, 24), mat(0x50555a)); // 少し青みがかったサメ肌色
-    torso.scale.set(0.75, 1.15, 2.5); // 深い体高 (胸幅より縦幅がある)
-    torso.position.z = -2.2;
+    // ① 胴部＋尾部：引き延ばした球
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 24), matBody);
+    torso.scale.set(1.0, 1.2, 3.5);
     bodyGroup.add(torso);
 
-    // 胸鰭(剛健な推進力。付け根を太く)
+    // --- 頭部ユニット（跳ね上げの支点） ---
+    const headPivot = new THREE.Group();
+    headPivot.position.set(0, 0, 2.0); // 胴体前方に配置
+    bodyGroup.add(headPivot);
+
+    // ⑤ 甲冑：台形やプレートの重ね合わせ
+    const armorGroup = new THREE.Group();
+    headPivot.add(armorGroup);
+
+    // メインの頭蓋プレート（上部）
+    const topPlate = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.3, 2.0), matArmor);
+    topPlate.position.set(0, 0.8, -0.5);
+    topPlate.rotation.x = 0.2;
+    armorGroup.add(topPlate);
+
+    // 左右の装甲プレート
     for (let side of [-1, 1]) {
-        const pFin = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x40454a));
-        pFin.scale.set(1.5, 0.15, 1.0); // 少し厚みを持たせる
-        pFin.position.set(side * 1.6, -1.4, -0.5); // 装甲の真下付近から生える
-        pFin.rotation.z = side * 0.6;
-        pFin.rotation.y = side * 0.5;
-        pFin.rotation.x = 0.2; // 少し後ろに流す(後退角)
+        const sidePlate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.5, 1.8), matArmor);
+        sidePlate.position.set(side * 0.9, 0, -0.2);
+        sidePlate.rotation.y = side * 0.2;
+        armorGroup.add(sidePlate);
+
+        // くりぬいた目玉の表現（装甲の隙間に配置）
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), eyeMat);
+        eye.position.set(side * 0.8, 0.3, 0.4);
+        armorGroup.add(eye);
+    }
+
+    // 上アゴの牙（円錐：実際は骨の突出）
+    for (let side of [-1, 1]) {
+        const uTooth = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 8), matTooth);
+        uTooth.position.set(side * 0.5, -0.2, 0.8);
+        uTooth.rotation.x = Math.PI; // 下向き
+        armorGroup.add(uTooth);
+    }
+
+    // ④ 下顎：薄い円盤＋円錐の牙
+    const jawGroup = new THREE.Group();
+    jawGroup.position.set(0, -0.4, 0.2); // 口の奥に支点
+    headPivot.add(jawGroup);
+
+    const jawBase = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.2, 1.5), matArmor);
+    jawBase.position.z = 0.6;
+    jawGroup.add(jawBase);
+
+    for (let side of [-1, 1]) {
+        const lTooth = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.8, 8), matTooth);
+        lTooth.position.set(side * 0.5, 0.4, 1.2);
+        jawGroup.add(lTooth);
+    }
+
+    // ② 尾びれ & ③ 左右のヒレ（円盤の変形）
+    const tailGroup = new THREE.Group();
+    tailGroup.position.z = -3.8;
+    bodyGroup.add(tailGroup);
+
+    const tailFin = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), matBody);
+    tailFin.scale.set(0.1, 2.0, 1.2);
+    tailGroup.add(tailFin);
+
+    // 胸ビレ
+    for (let side of [-1, 1]) {
+        const pFin = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), matBody);
+        pFin.scale.set(1.0, 0.1, 1.5);
+        pFin.position.set(side * 1.5, -0.5, 1.0);
+        pFin.rotation.z = side * 0.3;
         bodyGroup.add(pFin);
     }
 
-    // 尾部(力強く水を蹴る異尾)
-    const tailGroup = new THREE.Group();
-    tailGroup.position.set(0, 0, -6.5); // 胴体を伸ばした分、後ろへ
-    g.add(tailGroup);
+    // --- アニメーション連動用のデータを保持 ---
+    g.userData.head = headPivot; // 頭部（上アゴ）
+    g.userData.jaw = jawGroup;   // 下顎
+    g.userData.tail = tailGroup; // 尾
 
-    // 筋肉質な尾筒
-    const tailStalk = new THREE.Mesh(new THREE.SphereGeometry(1.4, 16, 16), mat(0x50555a));
-    tailStalk.scale.set(0.5, 0.8, 2.5);
-    tailStalk.position.z = -1.2;
-    tailGroup.add(tailStalk);
-
-    // 鋭く伸びる尾びれ上葉 (サメのように)
-    const tailTop = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 16), mat(0x40454a));
-    tailTop.scale.set(0.1, 2.6, 1.4);
-    tailTop.position.set(0, 2.0, -2.8);
-    tailTop.rotation.x = 0.6;
-    tailGroup.add(tailTop);
-
-    // 推進力を生む下葉
-    const tailBot = new THREE.Mesh(new THREE.SphereGeometry(1.3, 16, 16), mat(0x40454a));
-    tailBot.scale.set(0.08, 1.6, 0.9);
-    tailBot.position.set(0, -0.8, -2.0);
-    tailBot.rotation.x = -0.6;
-    tailGroup.add(tailBot);
-
-    // 立派な背びれ
-    const dFin = new THREE.Mesh(new THREE.SphereGeometry(1.2), mat(0x40454a));
-    dFin.scale.set(0.1, 1.8, 1.0);
-    dFin.position.set(0, 2.4, -3.0); // 胴体のピークに配置
-    dFin.rotation.x = -0.3; // 後ろへ流す
-    bodyGroup.add(dFin);
-
-    g.userData.body = bodyGroup;
-    g.userData.tail = tailGroup;
-    g.scale.set(1.2, 1.2, 1.2);
-    
-    // アニメーションタイプを 「fish_dunk」に設定
-    return { mesh: g, segments: [], type: 'fish_dunk' };
+    return { mesh: g, type: 'fish_dunk' };
 }
 
-// ============================================
-// --- ダンクルオステウス専用アニメーション ---
-// ============================================
-function animateDunkleosteus(fish, clock) {
-    const time = clock.getElapsedTime();
-    const head = fish.userData.head; // 頭部跳ね上げ
-    const jaw = fish.userData.jaw; // 下顎下降
-    
-    // 動きの周期設定 (ゆっくり開けて、一瞬で閉じる)
-    const period = 2.0; // 2秒周期
-    const phase = (time % period) / period; // 0~1
-    
-    let jawAngle, headAngle;
-    
-    if (phase < 0.75) {
-        // --- ゆっくり口を開ける (0~1.5秒)---
-        // 0から1へなだらかに変化させる(正弦波の半分)
-        const p = Math.sin((phase / 0.75) * Math.PI / 2);
-        jawAngle = -0.5 * p; // 下顎は下がる (0から-0.5)
-        headAngle = 0.1 * p; // 頭部は跳ね上がる (0から0.1)
-    } else if (phase < 0.8) {
-        // --- 一瞬で口を閉じる (1.5~1.6秒)---
-        // 1から0へ急激に落とす (Math.powで加速)
-        const p = 1 - Math.pow(((phase - 0.75) / 0.05), 3);
-        jawAngle = -0.5 * p;
-        headAngle = 0.1 * p;
-    } else {
-        // --- 口を閉じたまま停止 (1.6~2.0秒)---
-        jawAngle = 0;
-        headAngle = 0;
+/**
+ * デボン紀：コッコテウス (Coccosteus)
+ * ダンクルオステウスの親戚。小ぶりだが機敏。Vercelのプロジェクト名でも話題。
+ */
+function buildCoccosteus() {
+    const g = new THREE.Group();
+    const bodyGroup = new THREE.Group();
+    g.add(bodyGroup);
+
+    // マテリアル：ダンクルより少し明るめの、大理石のような質感の装甲
+    const matArmor = mat(0x555555, 0.4, 0.6); 
+    const matBody = mat(0x667766, 0.6, 0.1); 
+    const matTooth = mat(0xffffff, 0.9, 0.1); // 鋭い骨の牙
+
+    // ① 胴部＋尾部：引き延ばした球（ダンクルより細身に）
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(1.0, 32, 24), matBody);
+    torso.scale.set(0.6, 0.8, 4.0);
+    bodyGroup.add(torso);
+
+    // --- 頭部ユニット (Head Pivot) ---
+    const headPivot = new THREE.Group();
+    headPivot.position.set(0, 0, 2.2); 
+    bodyGroup.add(headPivot);
+
+    // ⑤ 甲冑：プレート構成（コッコテウスは少し鋭角にする）
+    const armorGroup = new THREE.Group();
+    headPivot.add(armorGroup);
+
+    // 頭蓋プレート
+    const topPlate = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 1.8), matArmor);
+    topPlate.position.set(0, 0.6, -0.4);
+    topPlate.rotation.x = 0.15;
+    armorGroup.add(topPlate);
+
+    for (let side of [-1, 1]) {
+        // 側面装甲
+        const sidePlate = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, 1.5), matArmor);
+        sidePlate.position.set(side * 0.6, 0, -0.1);
+        armorGroup.add(sidePlate);
+
+        // 目（装甲の隙間）
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), eyeMat);
+        eye.position.set(side * 0.5, 0.2, 0.5);
+        armorGroup.add(eye);
+
+        // 上アゴの牙（骨の突出）
+        const uTooth = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.4, 8), matTooth);
+        uTooth.position.set(side * 0.35, -0.15, 0.7);
+        uTooth.rotation.x = Math.PI;
+        armorGroup.add(uTooth);
     }
-    
-    // 角度を適用
-    jaw.rotation.x = jawAngle;
-    head.rotation.x = headAngle;
-    
-    // --- 尾のアニメーションは共通ロジックを流用 ---
-    const tail = fish.userData.tail;
-    if (tail) {
-        // 力強く泳ぐダンクルオステウスは、尾の振りを大きく、周波数を低めに
-        tail.rotation.y = Math.sin(time * 3.0) * 0.3;
+
+    // ④ 下顎：下降するユニット
+    const jawGroup = new THREE.Group();
+    jawGroup.position.set(0, -0.3, 0.2);
+    headPivot.add(jawGroup);
+
+    const jawBase = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.15, 1.2), matArmor);
+    jawBase.position.z = 0.5;
+    jawGroup.add(jawBase);
+
+    for (let side of [-1, 1]) {
+        const lTooth = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.6, 8), matTooth);
+        lTooth.position.set(side * 0.3, 0.3, 1.0);
+        jawGroup.add(lTooth);
     }
+
+    // ② 尾びれ：薄い円盤（よりシャープなV字型を意識）
+    const tailGroup = new THREE.Group();
+    tailGroup.position.z = -3.8;
+    bodyGroup.add(tailGroup);
+
+    const tailFin = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matBody);
+    tailFin.scale.set(0.05, 1.8, 1.0);
+    tailGroup.add(tailFin);
+
+    // ③ 左右のヒレ（胸ビレ）
+    for (let side of [-1, 1]) {
+        const pFin = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), matBody);
+        pFin.scale.set(0.8, 0.05, 1.2);
+        pFin.position.set(side * 1.0, -0.4, 0.8);
+        pFin.rotation.z = side * 0.4;
+        bodyGroup.add(pFin);
+    }
+
+    // データ保持（アニメーション連動用）
+    g.userData.head = headPivot; 
+    g.userData.jaw = jawGroup;   
+    g.userData.tail = tailGroup; 
+
+    return { mesh: g, type: 'fish_dunk' }; // アニメーションはダンクルと同じロジックを使用
 }
 
 function buildBothriolepis() {
@@ -2290,6 +2346,7 @@ const DB = {
         bg: 0x051a25,
         creatures: [
             { id: 'dunk', jp: 'ダンクルオステウス', en: 'Dunkleosteus', latin: 'Dunkleosteus terrelli', desc: 'アゴを開閉して威嚇する流線型の巨大魚。デボン紀の海の支配者です。', build: buildDunkleosteus, count: 3, speed: 0.16, yRange: [-10, 20] },
+            { id: 'cocc', jp: 'コッコテウス', en: 'Coccosteus', latin: 'Coccosteus cuspidatus', desc: 'ダンクルオステウスの小柄な親戚。上アゴを跳ね上げて獲物を捕らえる、デボン紀の機敏なハンターです。', build: buildCoccosteus, count: 5, speed: 0.22, yRange: [0, 25] },
             { id: 'tikt', jp: 'ティクターリク', en: 'Tiktaalik', latin: 'Tiktaalik roseae', desc: '肉鰭を持つ、魚と四肢動物の中間。浅瀬(上層)を泳ぎます。', build: buildTiktaalik, count: 4, speed: 0.08, yRange: [15, 30] },
             { id: 'both', jp: 'ボトリオレピス', en: 'Bothriolepis', latin: 'Bothriolepis canadensis', desc: '多関節の腕を持つドーム型の装甲魚。腕を使って海底を這います。', build: buildBothriolepis, count: 6, speed: 0.03, yRange: [bottomY, bottomY] },
             { id: 'clim', jp: 'クリマティウス', en: 'Climatius', latin: 'Climatius reticulatus', desc: 'トゲだらけの小さな魚。アゴをパクパクさせながら群れを作って泳ぎます。', build: buildClimatius, count: 12, speed: 0.1, yRange: [-10, 10] },
@@ -2297,7 +2354,8 @@ const DB = {
             { id: 'cheiro', jp: 'ケイロレピス', en: 'Cheirolepis', latin: 'Cheirolepis trailli', desc: '現生の魚類に近い最初期の「条鰭類」。サメのような尾ビレで素早く泳ぎます。', build: buildCheirolepis, count: 6, speed: 0.18, yRange: [0, 25] },
             { id: 'eusthen', jp: 'ユーステノプテロン', en: 'Eusthenopteron', latin: 'Eusthenopteron foordi', desc: '四肢動物への進化の過程を示す、強力な肉鰭を持つ硬骨魚類。', build: buildEusthenopteron, count: 4, speed: 0.12, yRange: [0, 20] },
             { id: 'coela', jp: 'シーラカンス', en: 'Coelacanth', latin: 'Miguashaia bureaui', desc: '「生きた化石」のデボン紀の姿。特徴的な柄のついたヒレと、中央に小さな突起がある三葉状の尾を持ちます。', build: buildCoelacanth, count: 3, speed: 0.08, yRange: [0, 15] },
-            { id: 'goniatite', jp: 'ゴニアタイト', en: 'Goniatite', latin: 'Goniatitida', desc: 'アンモナイトの祖先。渦巻状の殻を持ち、中層を漂います。', build: buildGoniatite, count: 4, speed: 0.01, yRange: [0, 15] }
+            { id: 'goniatite', jp: 'ゴニアタイト', en: 'Goniatite', latin: 'Goniatitida', desc: 'アンモナイトの祖先。渦巻状の殻を持ち、中層を漂います。', build: buildGoniatite, count: 4, speed: 0.01, yRange: [0, 15] },
+            { id: 'belin', jp: 'ベリヌス', en: 'Belinurus', latin: 'Belinurus sp.', desc: 'デボン紀に登場した初期のカブトガニ。シルル紀の祖先よりも装甲が強化され、鋭い棘を持ちます。海底の掃除屋です。', build: buildBelinurus, count: 5, speed: 0.03, yRange: [bottomY, bottomY] }
         ],
         rare: { jp: 'ステタカントゥス', en: 'Stethacanthus', latin: 'Stethacanthus altonensis', desc: '【希少】背びれが「アイロン台」の形をした奇妙な古代ザメ。奥を優雅に過ぎます。', build: buildStethacanthus, speed: 0.12, yRange: [0, 15] }
     }
