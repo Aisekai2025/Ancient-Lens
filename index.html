@@ -1856,54 +1856,50 @@ function buildBelinurus() {
 function buildDunkleosteus() {
     const g = new THREE.Group();
 
-    // 【マテリアル修正】透け感を無くし、重厚な「鋳鉄」の質感へ
-    // metalnessを少し下げ、roughnessを上げて「光を反射しすぎない分厚い鉄」に
-    const matArmor = mat(0x222222, 0.6, 0.5); 
-    const matBody = mat(0x3a453f, 0.8, 0.1);  // 生身は光沢を抑えたサメ肌
-    const matTooth = mat(0xdadad0, 0.5, 0.4); 
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.2, metalness: 0.8 });
+    // 【マテリアル修正】透過を防ぎ、質感を「鋳鉄（キャストアイアン）」へ
+    // metalnessを下げ、roughnessを上げることで、反射による「透け」を解消
+    const matArmor = mat(0x1a1a1a, 0.7, 0.3); // 漆黒の重装甲
+    const matBody = mat(0x2d3631, 0.9, 0.1);  // 深緑の厚い皮膚
+    const matTooth = mat(0xdadad0, 0.5, 0.4); // 骨の牙
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.1, metalness: 0.5 });
 
     const fishBodyGroup = new THREE.Group();
     g.add(fishBodyGroup);
 
     // ==========================================
-    // 1. 【生身】胴体・ヒレ・尾部ユニット
+    // 1. 【生身】胴体・ヒレ・尾部
     // ==========================================
-    // 【修正】胴体を少し「後ろ」に下げて、仮面との間に首の空間を作る
+    // 胴体：仮面との重なり（Z-fighting）を防ぐため、さらに後ろへオフセット
     const torso = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 24), matBody);
-    torso.scale.set(0.75, 1.2, 3.2); 
-    torso.position.z = -0.5; // ←胴体を後ろにオフセット
+    torso.scale.set(0.75, 1.2, 3.0); 
+    torso.position.z = -0.8; // ← 後ろに下げて仮面の中身を空洞にする
     fishBodyGroup.add(torso);
 
     // 背びれ
     const dFin = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), matBody);
     dFin.scale.set(0.15, 1.8, 1.2);
-    dFin.position.set(0, 1.8, -1.5);
+    dFin.position.set(0, 1.8, -1.8);
     dFin.rotation.x = -0.4;
     fishBodyGroup.add(dFin);
 
-    // 胸びれ
+    // 逞しい胸びれ
     for (let side of [-1, 1]) {
         const pFin = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), matBody);
         pFin.scale.set(1.4, 0.15, 1.6);
-        pFin.position.set(side * 1.2, -1.2, 0.0);
+        pFin.position.set(side * 1.3, -1.2, -0.2);
         pFin.rotation.z = side * 0.4;
-        pFin.rotation.y = side * 0.2;
-        pFin.rotation.x = 0.2;
         fishBodyGroup.add(pFin);
     }
 
-    // 尾部ユニット
+    // 尾部（サメ型の異尾）
     const tailGroup = new THREE.Group();
-    tailGroup.position.set(0, 0, -4.3); // 胴体を下げた分、尾も後ろへ
+    tailGroup.position.set(0, 0, -4.5);
     fishBodyGroup.add(tailGroup);
-
     const tailTop = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), matBody);
     tailTop.scale.set(0.1, 2.4, 1.2);
     tailTop.position.set(0, 1.5, -1.5);
     tailTop.rotation.x = 0.5;
     tailGroup.add(tailTop);
-
     const tailBot = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matBody);
     tailBot.scale.set(0.1, 1.5, 1.0);
     tailBot.position.set(0, -0.8, -1.0);
@@ -1911,66 +1907,60 @@ function buildDunkleosteus() {
     tailGroup.add(tailBot);
 
     // ==========================================
-    // 2. 【生身】下顎ユニット（支点と牙の強調）
+    // 2. 【生身】下顎ユニット（牙の露出強化）
     // ==========================================
     const jawGroup = new THREE.Group();
-    // 【修正】支点をグッと前に出し、仮面の位置に合わせる
-    jawGroup.position.set(0, -0.4, 1.6); 
+    // 支点をさらに前方に移動
+    jawGroup.position.set(0, -0.4, 1.8); 
     fishBodyGroup.add(jawGroup);
 
-    // 下顎ベース
     const jawBase = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), matBody);
-    jawBase.scale.set(0.9, 0.3, 1.4);
-    jawBase.position.set(0, -0.1, 1.2); // さらに前に伸ばす
+    jawBase.scale.set(0.9, 0.3, 1.5);
+    jawBase.position.set(0, -0.1, 1.3);
     jawGroup.add(jawBase);
 
-    // 【修正】下顎の牙：長さを出し、前方にせり出して「見せつける」配置に
+    // 下顎の牙：仮面から完全にはみ出すように配置
     const lowerToothGeom = new THREE.ConeGeometry(0.25, 2.5, 16);
     for (let side of [-1, 1]) {
         const lTooth = new THREE.Mesh(lowerToothGeom, matTooth);
-        lTooth.position.set(side * 0.65, 0.8, 2.4); // Z軸を大きく前に
-        lTooth.rotation.x = 0.3; // 前傾させて牙の切っ先を強調
-        lTooth.rotation.y = side * -0.1; 
+        lTooth.position.set(side * 0.65, 0.8, 2.5); // Z軸を最前面へ
+        lTooth.rotation.x = 0.4; // より攻撃的な角度に
         jawGroup.add(lTooth);
     }
 
     // ==========================================
-    // 3. 【装甲】頭部仮面ユニット（前方配置）
+    // 3. 【装甲】頭部仮面ユニット（跳ね上げ式）
     // ==========================================
     const maskGroup = new THREE.Group();
-    // 【修正】仮面の支点も前に押し出し、胴体とのめり込みを完全に解消
-    maskGroup.position.set(0, 0.8, 1.6); 
+    maskGroup.position.set(0, 0.8, 1.8); // 支点も前方へ
     g.add(maskGroup);
 
     // 鉄のマスク本体
     const skullPlate = new THREE.Mesh(new THREE.SphereGeometry(2.0, 7, 7), matArmor);
-    skullPlate.scale.set(0.9, 0.9, 1.2);
-    skullPlate.position.set(0, 0, 1.0); // 仮面自体をさらに前へ
+    skullPlate.scale.set(0.92, 0.95, 1.3); // 胴体を包み込むようにわずかに大きく
+    skullPlate.position.set(0, 0, 1.0);
     skullPlate.rotation.x = -0.2;
     maskGroup.add(skullPlate);
 
-    // 頬の追加装甲
     for (let side of [-1, 1]) {
+        // 頬の追加装甲
         const cheekArmor = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.2, 2.5), matArmor);
         cheekArmor.position.set(side * 1.5, -0.6, 0.8);
         cheekArmor.rotation.y = side * -0.2;
-        cheekArmor.rotation.z = side * 0.2;
         maskGroup.add(cheekArmor);
 
-        // 目玉
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), eyeMat);
+        // 装甲のスリットから覗く目
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 16), eyeMat);
         eye.position.set(side * 1.4, 0.2, 1.8);
         maskGroup.add(eye);
     }
 
-    // 【修正】上顎の牙：下牙の位置に合わせて前に出し、完璧な噛み合わせを構築
-    const upperToothGeom = new THREE.ConeGeometry(0.28, 2.8, 16);
+    // 上顎の牙（ギロチン）
+    const upperToothGeom = new THREE.ConeGeometry(0.3, 2.8, 16);
     for (let side of [-1, 1]) {
         const uTooth = new THREE.Mesh(upperToothGeom, matTooth);
-        // 上の牙は確実に下向き（Math.PI）
-        uTooth.rotation.x = Math.PI + 0.1; // わずかに後ろに傾け、前傾した下牙を迎え撃つ
-        uTooth.rotation.z = side * -0.05; 
-        uTooth.position.set(side * 0.85, -1.2, 2.3); // 下牙の外側を滑る配置
+        uTooth.rotation.x = Math.PI + 0.1;
+        uTooth.position.set(side * 0.9, -1.2, 2.4); // 下牙と噛み合う絶妙な位置
         maskGroup.add(uTooth);
     }
 
@@ -1982,7 +1972,7 @@ function buildDunkleosteus() {
     g.userData.head = maskGroup; 
     g.userData.tail = tailGroup; 
 
-    g.scale.set(1.3, 1.3, 1.3); 
+    g.scale.set(1.4, 1.4, 1.4); // さらなる巨大化
     
     return { mesh: g, type: 'fish_dunk' };
 }
