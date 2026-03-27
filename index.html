@@ -687,97 +687,106 @@ function buildSidneyia() {
 }
 
 // --- オルドビス紀 ---
-// --- 【古生物学×3D造形×SE】 アストラスピス：視認性改善＆装甲強化版 ---
+// --- 【古生物学×3D造形×SE】 アストラスピス：テッセラ装甲＆実体口実装版 ---
 
 function buildAstraspis() {
     const g = new THREE.Group();
+
+    // 1. 【SE施策】テッセラ（装甲板）を表現する動的テクスチャの生成
+    // 編み目（ワイヤーフレーム）を使わず、表面の質感として詳細を描き込みます
+    const createTesseraeTexture = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512; canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#887755';
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.strokeStyle = '#665544';
+        ctx.lineWidth = 2;
+        // ランダムな多角形（テッセラ）を描画
+        for (let i = 0; i < 200; i++) {
+            ctx.beginPath();
+            ctx.arc(Math.random() * 512, Math.random() * 512, 5 + Math.random() * 10, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(4, 2);
+        return tex;
+    };
+
+    const armorMat = new THREE.MeshStandardMaterial({
+        map: createTesseraeTexture(),
+        bumpMap: createTesseraeTexture(), // 凹凸感も追加
+        bumpScale: 0.02,
+        roughness: 0.8,
+        metalness: 0.1
+    });
+
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.1, metalness: 0.9 });
+    const fleshMat = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 0.9 });
+
+    // 2. 胴部シールド (造形維持)
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
 
-    // マテリアル定義：アストラスピス特有の「ざらついた骨板」の質感
-    const mat = (color, emissive = 0x000000) => new THREE.MeshStandardMaterial({
-        color: color,
-        roughness: 0.8,
-        metalness: 0.1,
-        emissive: emissive,
-        side: THREE.FrontSide
-    });
-    
-    const eyeMat = new THREE.MeshStandardMaterial({ 
-        color: 0x000000, 
-        roughness: 0.1, 
-        metalness: 0.9,
-        emissive: 0x111111 // わずかに発光させて存在感を出す
-    });
-
-    // 1. 胴体シールド (Head Shield)
-    const torsoGeom = new THREE.SphereGeometry(1.4, 32, 24);
-    const torso = new THREE.Mesh(torsoGeom, mat(0x887755));
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 24), armorMat);
     torso.scale.set(1.1, 0.7, 1.8);
     bodyGroup.add(torso);
 
-    // 【ディティールアップ】 テッセラ（小装甲板）の質感をワイヤーフレームのオーバーレイで表現
-    // 完全に別のジオメトリを重ねることで、幾何学的な密度感を演出
-    const detailGeom = new THREE.SphereGeometry(1.41, 20, 16); // わずかに大きく
-    const detailMesh = new THREE.Mesh(detailGeom, new THREE.MeshStandardMaterial({
-        color: 0x665544,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.2
-    }));
-    detailMesh.scale.copy(torso.scale);
-    bodyGroup.add(detailMesh);
-
-    // 2. 【改善】 目 (Eyes)：位置を前方にオフセットし、埋没を回避
-    const eyeGeom = new THREE.SphereGeometry(0.15, 16, 16);
+    // 3. 【修正】目と眼窩（がんか）の追加
     for (let side of [-1, 1]) {
-        const eye = new THREE.Mesh(eyeGeom, eyeMat);
-        // シールドのカーブに合わせて、Z値を1.3から1.5へ、X値を外側へ調整
-        eye.position.set(side * 0.95, 0.25, 1.45); 
+        // 目（埋没しないよう前方にオフセット）
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
+        eye.position.set(side * 0.9, 0.25, 1.4); 
         bodyGroup.add(eye);
         
-        // 目の周囲の装甲（眼窩）を表現する小さなリング
-        const eyeRing = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.05, 8, 16), mat(0x554433));
-        eyeRing.position.copy(eye.position);
-        eyeRing.rotation.y = side * 0.5;
-        bodyGroup.add(eyeRing);
+        // 眼窩（装甲の縁取り）
+        const socket = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 8, 16), armorMat);
+        socket.position.copy(eye.position);
+        socket.rotation.y = side * 0.4;
+        bodyGroup.add(socket);
     }
 
-    // 3. 【改善】 口 (Mouth)：吸い込み口状の立体構造へ
-    // 無顎類特有の「顎のない口」を、単なるスリットから「漏斗状の凹み」に変更
+    // 4. 【修正】口（吸い込み口の実体化）
+    // スリットではなく、無顎類特有の丸い開口部を造形
     const mouthGroup = new THREE.Group();
-    mouthGroup.position.set(0, -0.3, 1.75); // シールドの最前端かつ下部へ
+    mouthGroup.position.set(0, -0.3, 1.7);
     bodyGroup.add(mouthGroup);
 
-    const mouthInner = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.1, 12, 24), mat(0x332211));
-    mouthInner.rotation.x = Math.PI / 2.5; // 少し下を向かせる
-    mouthGroup.add(mouthInner);
-    
-    // 口の奥の暗がりを表現
-    const mouthDark = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), eyeMat);
-    mouthDark.scale.set(1, 0.5, 1);
-    mouthGroup.add(mouthDark);
+    const mouthRim = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.08, 12, 24), armorMat);
+    mouthRim.rotation.x = Math.PI / 2.2;
+    mouthGroup.add(mouthRim);
 
-    // 4. 尾部 (Tail) 以降の構造は維持
+    const mouthInside = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), fleshMat);
+    mouthInside.scale.set(1, 0.2, 1);
+    mouthInside.position.y = 0.05;
+    mouthGroup.add(mouthInside);
+
+    // 5. 尾部と尾びれ (造形維持)
     const tailGroup = new THREE.Group();
     tailGroup.position.z = -1.8;
     g.add(tailGroup);
 
-    // 尾部の節（セグメント）を維持
     const segments = [];
     let parent = tailGroup;
     for (let i = 0; i < 5; i++) {
         const seg = new THREE.Group();
         seg.position.z = -0.6;
         parent.add(seg);
-        const sMesh = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12), mat(0x776644));
+        const sMesh = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12), armorMat);
         sMesh.scale.set(0.8 - i * 0.1, 0.6 - i * 0.08, 0.8);
         seg.add(sMesh);
         segments.push(seg);
         parent = seg;
     }
 
-    // データ紐付け（アニメーション互換性を維持）
+    // 尾びれ (造形維持：楕円状)
+    const tailFin = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), armorMat);
+    tailFin.scale.set(0.05, 1.2, 0.8);
+    tailFin.position.z = -0.5;
+    parent.add(tailFin);
+
+    // データ紐付け（既存アニメーション維持）
     g.userData = { 
         body: bodyGroup, 
         segments: segments,
