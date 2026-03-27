@@ -1996,27 +1996,23 @@ function buildBelinurus() {
             const legRoot = new THREE.Group();
             legRoot.position.set(side * (0.3 + i * 0.02), -0.1, 0.4 - i * 0.18); 
             
-            // --- buildBelinurus内の脚の部分を少しリアルに ---
             const femur = new THREE.Mesh(femurGeo, matLeg);
-            // 少し外側に傾けることで、重厚感を出す
+            // 腿（もも）のリアルな角度調整
             femur.rotation.z = side * -0.4; 
-            femur.rotation.x = 0.2; // 少し前傾させる
+            femur.rotation.x = 0.2; 
 
-             // 脛（すね）の角度を急にする
-             tibia.rotation.z = side * 0.5; 
+            let tibia; // ここで宣言
             
-            let tibia;
-            // 【進化】 最後尾 (i === 5) は泥を掻くパドル状
+            // 【進化】 最後尾 (i === 5) はパドル状、それ以外は歩行脚
             if (i === 5) {
                 tibia = new THREE.Mesh(paddleGeo, matLeg);
-                tibia.scale.set(1.0, 1.0, 0.2); // 薄く平たい刃のように潰す
+                tibia.scale.set(1.0, 1.0, 0.2);
                 tibia.position.set(0, -0.35, 0); 
-                tibia.rotation.z = side * 0.6; // 外側に張り出す
+                tibia.rotation.z = side * 0.6; // パドルを外に広げる
             } else {
-                // 歩行用・脛関節と爪
                 tibia = new THREE.Mesh(tibiaGeo, matLeg);
                 tibia.position.set(0, -0.45, 0); 
-                tibia.rotation.z = side * 0.3; 
+                tibia.rotation.z = side * 0.5; // 膝を深く曲げる
 
                 const claw = new THREE.Mesh(new THREE.ConeGeometry(0.01, 0.08, 4), matLeg);
                 claw.position.set(0, -0.4, 0);
@@ -2024,11 +2020,13 @@ function buildBelinurus() {
                 tibia.add(claw);
             }
             
+            // 重要：ここで親子関係を作る
             femur.add(tibia); 
             legRoot.add(femur); 
             legRoot.rotation.y = side * (Math.PI / 8); 
             
             head.add(legRoot); 
+            // アニメーション用にデータを保存
             legs.push({ root: legRoot, femur: femur, tibia: tibia, isPaddle: (i === 5) }); 
         }
     }
