@@ -3440,16 +3440,21 @@ function animate() {
     camera.position.z = camRadius * Math.cos(camAngleX) * Math.cos(camAngleY);
     camera.lookAt(0, focusY, 0);
 
-    // --- クリーチャーごとの更新処理（1つのループにまとめます） ---
-    entities.forEach(ent => {
-        // 1. 位置や向きの更新（これは全クリーチャー共通で1回だけ！）
-        try {
+    // --- クリーチャーごとの更新処理 ---
+entities.forEach(ent => {
+    // 1. 位置や向きの更新
+    try {
         ent.update(time, dummyObj);
-    } catch (e) {
-        // エラーが出ても止まらないようにする
-    }
+    } catch (e) { }
 
-    // ティクターリク専用のアニメーション
+    // --- 【追加】アストラスピス専用のアニメーション呼び出し ---
+    if (ent.type === 'fish_astraspis') {
+        // 前回のV3.0で作成した「不器用なふらふら泳ぎ」を呼び出す
+        animateAstraspis(ent.mesh, time);
+    }
+    // --------------------------------------------------
+
+    // ティクターリク専用
     if (ent.type === 'swim_tiktaalik') {
         animateTiktaalik(ent.mesh, time);
     }
