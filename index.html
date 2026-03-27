@@ -2452,17 +2452,22 @@ function buildCoccosteus() {
     torso.scale.set(0.7, 0.8, 1.8);
     fishBodyGroup.add(torso);
 
-    // --- 【修正1】 胸びれ（Pectoral Fins）の追加 ---
-    for (let side of [-1, 1]) {
-        const pecFin = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), matBody);
-        pecFin.scale.set(0.8, 0.1, 1.5); // 平たく引き伸ばす
-        pecFin.position.set(side * 0.7, -0.2, 0.5); // 胴体の側面・やや下部に配置
-        pecFin.rotation.y = side * -0.3; // 少し外側へ開く
-        pecFin.rotation.x = -0.2; // 少し後ろへ流す
-        fishBodyGroup.add(pecFin);
+    // 1. 【ここが重要！】ヒレを格納するための空の配列を先に定義する
+const fins = []; 
+
+// 2. 胸びれの作成ループ
+for (let side of [-1, 1]) {
+    const pecFin = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), matBody);
+    pecFin.scale.set(0.8, 0.1, 1.5);
+    pecFin.position.set(side * 0.7, -0.2, 0.5);
+    pecFin.rotation.y = side * -0.3;
+    pecFin.rotation.x = -0.2;
     
-        fins.push(pecFin); // 追加：配列に入れる
-    }
+    fishBodyGroup.add(pecFin);
+    
+    // 作ったヒレを配列に追加する
+    fins.push(pecFin); 
+}
 
     // 2. 【頭甲】
     const headGroup = new THREE.Group();
