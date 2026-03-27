@@ -2586,7 +2586,7 @@ function buildClimatius() {
     return { mesh: g, segments: [], type: 'fish_climatius' }; 
 }
 
-// --- 【古生物学×3D造形】 ティクターリク（Tiktaalik）完全版 ---
+// --- 【古生物学×SE】 ティクターリク：三部構成＆顎開閉実装版 ---
 
 function buildTiktaalik() {
     const g = new THREE.Group();
@@ -2595,103 +2595,123 @@ function buildTiktaalik() {
     });
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.8 });
 
-    // 1. 頭部ユニット (肩帯から独立)
+    // 1. 【頭部ユニット】 肩帯から完全に独立した「首」を持つ構造
     const headGroup = new THREE.Group();
-    headGroup.position.z = 1.0;
+    headGroup.position.z = 1.2;
     g.add(headGroup);
 
     const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), mat(0x667744));
-    head.scale.set(0.8, 0.3, 1.4);
+    head.scale.set(0.85, 0.35, 1.4); // 扁平な頭部
     headGroup.add(head);
 
+    // 【現状維持】 目
     for (let side of [-1, 1]) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12), eyeMat);
         eye.position.set(side * 0.4, 0.3, 0.5);
         headGroup.add(eye);
     }
 
+    // 【ブラッシュアップ】 下顎（jaw）の構造を強化
     const jaw = new THREE.Group();
-    jaw.position.set(0, -0.15, -0.2);
+    jaw.position.set(0, -0.15, 0.1); // 支点を後方に
     headGroup.add(jaw);
+    
     const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x556633));
     jawMesh.rotation.x = Math.PI;
     jawMesh.scale.set(1.0, 0.2, 1.3);
-    jawMesh.position.set(0, 0, 0.9);
+    jawMesh.position.set(0, 0, 0.7);
     jaw.add(jawMesh);
 
-    // 2. 胴体セグメント (ここを CreatureObj が読めるように配列化)
-    const segments = [];
-    let parent = g;
-    for (let i = 0; i < 4; i++) {
-        const seg = new THREE.Group();
-        seg.position.z = (i === 0) ? -0.5 : -1.2;
-        parent.add(seg);
-        const mesh = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x667744));
-        mesh.scale.set(1.0 - i * 0.1, 0.7 - i * 0.05, 1.4);
-        seg.add(mesh);
-        segments.push(seg);
-        parent = seg;
-    }
+    // 2. 【胴部（Torso）】 内臓と強力な前肢を支える中心部
+    const torsoGroup = new THREE.Group();
+    torsoGroup.position.z = 0;
+    g.add(torsoGroup);
 
-    // 3. 肉鰭 (Lobe-fins)
+    const torsoMesh = new THREE.Mesh(new THREE.SphereGeometry(1.3, 20, 16), mat(0x667744));
+    torsoMesh.scale.set(0.9, 0.7, 1.6);
+    torsoGroup.add(torsoMesh);
+
+    // 3. 【尾部（Tail）】 推進力を生むテーパリング構造
+    const tailGroup = new THREE.Group();
+    tailGroup.position.z = -1.8;
+    torsoGroup.add(tailGroup); // 胴体の子にする
+
+    const tailMesh = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), mat(0x556633));
+    tailMesh.scale.set(0.6, 0.5, 2.0); // 後方に細長く
+    tailGroup.add(tailMesh);
+
+    // 尾鰭（おびれ：三葉状のニュアンス）
+    const tailFin = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.2, 0.8), mat(0x445522));
+    tailFin.position.z = -1.5;
+    tailGroup.add(tailFin);
+
+    // 【現状維持】 肉鰭 (Lobe-fins)
     const fins = [];
     const finPositions = [
-        { x: 1.0, z: -0.5, isFront: true },  { x: -1.0, z: -0.5, isFront: true },
-        { x: 0.6, z: -2.5, isFront: false }, { x: -0.6, z: -2.5, isFront: false }
+        { x: 1.1, z: 0.2, isFront: true },  { x: -1.1, z: 0.2, isFront: true },
+        { x: 0.7, z: -1.2, isFront: false }, { x: -0.7, z: -1.2, isFront: false }
     ];
 
     finPositions.forEach(pos => {
         const f = new THREE.Group();
-        f.position.set(pos.x, -0.2, pos.z);
-        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.1, 0.8), mat(0x556633));
-        base.position.y = -0.4;
+        f.position.set(pos.x, -0.3, pos.z);
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.8), mat(0x556633));
+        base.position.y = -0.3;
         f.add(base);
-        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), mat(0x445522));
-        tip.position.y = -1.0;
-        tip.scale.set(0.8, 2.5, 0.2);
+        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), mat(0x445522));
+        tip.position.y = -0.8;
+        tip.scale.set(0.8, 2.0, 0.15);
         f.add(tip);
         f.userData.origRot = f.rotation.clone();
         f.userData.isFront = pos.isFront;
-        g.add(f); // メイングループに直接追加
+        
+        // 前肢は胴体に、後肢は尾部の付け根に配置
+        if (pos.isFront) torsoGroup.add(f); else tailGroup.add(f);
         fins.push(f);
     });
 
-    // クラス(CreatureObj)側でエラーにならないよう、全プロパティを確実に定義
+    // クラス側でのエラーを防ぐため、segments配列には[胴部, 尾部]を格納
     g.userData = { 
         head: headGroup, 
         jaw: jaw, 
-        segments: segments, 
-        fins: fins,
-        body: g // bodyプロパティを要求された場合へのフォールバック
+        segments: [torsoGroup, tailGroup], 
+        fins: fins 
     };
 
     return { mesh: g, type: 'swim_tiktaalik' };
 }
 
-// --- 完全防弾版：ティクターリクのアニメーション ---
+// --- アニメーション関数（顎の開閉と三部連動） ---
+
 function animateTiktaalik(mesh, clock) {
     if (!mesh || !mesh.userData) return;
     const time = (typeof clock === 'object') ? clock.getElapsedTime() : clock;
     const data = mesh.userData;
 
-    // 1. 首の可動 (ifチェックで安全を確保)
+    // 1. 【ブラッシュアップ】 顎の開閉（ゆっくりとした呼吸動作）
+    if (data.jaw) {
+        data.jaw.rotation.x = Math.max(0, Math.sin(time * 1.2) * 0.15);
+    }
+
+    // 2. 【首の動き】 独立して周囲を見渡す
     if (data.head) {
-        data.head.rotation.y = Math.sin(time * 0.8) * 0.15;
+        data.head.rotation.y = Math.sin(time * 0.6) * 0.1;
     }
 
-    // 2. 胴体のしなり (forEachの前に実在チェック)
-    if (Array.isArray(data.segments)) {
-        data.segments.forEach((seg, i) => {
-            seg.rotation.y = Math.sin(time * 2.5 - (i + 1) * 0.6) * 0.15;
-        });
+    // 3. 【三部構造のうねり】 イモムシではなく、大きな関節としての動き
+    if (data.segments && data.segments.length >= 2) {
+        // 胴体のわずかな揺れ
+        data.segments[0].rotation.y = Math.sin(time * 2.0) * 0.05;
+        // 尾部の大きな振り（胴体から遅れて動く）
+        data.segments[1].rotation.y = Math.sin(time * 2.0 - 0.8) * 0.25;
     }
 
-    // 3. 肉鰭の歩行
-    if (Array.isArray(data.fins)) {
+    // 4. 【現状維持】 肉鰭の歩行/遊泳
+    if (data.fins) {
         data.fins.forEach((fin) => {
-            const phase = (fin.position.x > 0 ? 0 : Math.PI) + (fin.userData.isFront ? 0 : Math.PI / 2);
-            fin.rotation.x = Math.sin(time * 3.0 + phase) * 0.3;
-            fin.rotation.z = (fin.position.x > 0 ? 1 : -1) + (Math.cos(time * 3.0 + phase) * 0.1);
+            const phase = (fin.position.x > 0 ? 0 : Math.PI) + (fin.userData.isFront ? 0 : 0.5);
+            fin.rotation.x = Math.sin(time * 2.0 + phase) * 0.2;
+            fin.rotation.z = (fin.position.x > 0 ? 0.8 : -0.8) + Math.cos(time * 2.0 + phase) * 0.1;
         });
     }
 }
