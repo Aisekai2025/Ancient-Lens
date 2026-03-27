@@ -1194,22 +1194,39 @@ function buildBunstodera() {
 
     // --- 【アップデート】 眼瞼隆起と楕円形の複眼 ---
     for (let side of [-1, 1]) {
+        // 1. グループを作成（変数の重複を避けるため、1回だけ宣言）
         const eyeGroup = new THREE.Group();
         
-        // 眼瞼隆起（Ocular ridge：眼の下にある甲羅のふくらみ）
-        const ridge = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.15, 4, 8), matShell);
+        // 2. メインのふくらみ（ridge）を作成
+        const ridge = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.06, 0.1, 0.2, 8), 
+            matShell
+        );
         ridge.rotation.z = Math.PI / 2;
-        ridge.rotation.y = side * 0.2;
 
-        // 複眼（楕円形に潰して生物らしいカーブを出す）
+        // 3. 両端を丸めるための球（cap）を作成して追加
+        const capGeo = new THREE.SphereGeometry(0.06, 8, 8);
+        const cap1 = new THREE.Mesh(capGeo, matShell);
+        const cap2 = new THREE.Mesh(capGeo, matShell);
+        cap1.position.x = 0.1;
+        cap2.position.x = -0.1;
+
+        // 4. 複眼（eye）を作成
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), eyeMat);
-        eye.scale.set(0.6, 1.0, 1.4); // 前後に細長い楕円
-        eye.position.set(0, 0.04, 0); // 隆起の上に乗せる
+        eye.scale.set(0.6, 1.0, 1.4); 
+        eye.position.set(0, 0.04, 0); 
         eye.rotation.y = side * -0.1;
 
+        // --- 全てを eyeGroup にまとめる ---
         eyeGroup.add(ridge);
+        eyeGroup.add(cap1);
+        eyeGroup.add(cap2);
         eyeGroup.add(eye);
+
+        // 配置の調整
+        eyeGroup.rotation.y = side * 0.2; // 隆起自体の向き
         eyeGroup.position.set(side * 0.6, 0.25, 0.3);
+        
         head.add(eyeGroup);
     }
 
@@ -3197,17 +3214,26 @@ function animate() {
     camera.position.z = camRadius * Math.cos(camAngleX) * Math.cos(camAngleY);
     camera.lookAt(0, focusY, 0);
 
-    // クリーチャーごとの更新処理
+    // --- クリーチャーごとの更新処理（1つのループにまとめます） ---
     entities.forEach(ent => {
-        // 1. 位置や向きの更新（既存の処理）
+        // 1. 位置や向きの更新（これは全クリーチャー共通で1回だけ！）
         ent.update(time, dummyObj);
 
-        // 2. ベリヌス専用の「脚のワサワサ」を実行
-        // ent.type が 'crawl' または 'belinurus' の場合に実行するようにします
+        // 2. 個別の脚アニメーションの呼び出し
         if (ent.mesh && ent.mesh.userData && ent.mesh.userData.legs) {
-            // ここであなたが作ったアニメーション関数を呼び出す！
-            // timeをclockオブジェクトに見せかけて渡します
-            animateBelinurus(ent.mesh, { getElapsedTime: () => time });
+            
+            // 型チェックをして、適切なアニメーション関数を呼ぶ
+            // ent.type や ent.creatureType の値に合わせて条件を調整してください
+            if (ent.type === 'belinurus' || ent.creatureType === 'belinurus') {
+                
+                animateBelinurus(ent.mesh, { getElapsedTime: () => time });
+                
+            } else if (ent.type === 'crawl' || ent.creatureType === 'bunstodera') {
+                
+                // ブンストデラの判定。buildBunstoderaで type: 'crawl' としていた場合はこちら
+                animateBunstodera(ent.mesh, { getElapsedTime: () => time });
+                
+            }
         }
     });
 
