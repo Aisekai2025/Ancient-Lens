@@ -2586,29 +2586,25 @@ function buildClimatius() {
     return { mesh: g, segments: [], type: 'fish_climatius' }; 
 }
 
+// --- 【古生物学×3D】 ティクターリク V2.2 (アニメーション修正版) ---
+
 function buildTiktaalik() {
     const g = new THREE.Group();
     
-    // マテリアル：ユーステノプテロンの鱗の質感を参考に、より生物的に
-    const mat = (color) => new THREE.MeshStandardMaterial({
-        color: color,
-        roughness: 0.7,
-        metalness: 0.2,
-        flatShading: false // 滑らかに
-    });
+    // マテリアル（内部で定義してエラーを回避）
+    const matBody = new THREE.MeshStandardMaterial({ color: 0x667744, roughness: 0.7 });
+    const matFin = new THREE.MeshStandardMaterial({ color: 0x778855, roughness: 0.8 });
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.8 });
 
-    // 1. 頭部ユニット（独立可動のためにGroupを分ける）
+    // 1. 頭部ユニット
     const headGroup = new THREE.Group();
     headGroup.position.z = 1.0;
     g.add(headGroup);
 
-    // 扁平な頭部（ワニのような形状）
-    const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), mat(0x667744));
+    const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), matBody);
     head.scale.set(0.9, 0.35, 1.5);
     headGroup.add(head);
 
-    // 目：上向きに配置（浅瀬を覗くため）
     const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat);
     eyeL.position.set(0.4, 0.25, 0.6);
     headGroup.add(eyeL);
@@ -2620,48 +2616,43 @@ function buildTiktaalik() {
     const jaw = new THREE.Group();
     jaw.position.set(0, -0.1, 0.2);
     headGroup.add(jaw);
-    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(1.15, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x556633));
+    const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(1.15, 16, 12, 0, Math.PI*2, 0, Math.PI/2), matBody);
     jawMesh.rotation.x = Math.PI;
     jawMesh.scale.set(1.0, 0.2, 1.4);
     jaw.add(jawMesh);
 
-    // 2. 胴体（ユーステノプテロンのように複数のセグメントでしなりを表現）
-    const bodyGroup = new THREE.Group();
-    g.add(bodyGroup);
-    
+    // 2. 胴体（多段セグメント化して「しなり」を表現）
     const segments = [];
-    let parent = bodyGroup;
+    let parent = g; // 胴体のベース
     for (let i = 0; i < 4; i++) {
         const seg = new THREE.Group();
-        seg.position.z = i === 0 ? -0.5 : -1.2;
+        seg.position.z = (i === 0) ? -0.5 : -1.2;
         parent.add(seg);
         
-        const mesh = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), mat(0x667744));
-        mesh.scale.set(1.0 - i*0.1, 0.7 - i*0.05, 1.4);
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matBody);
+        mesh.scale.set(1.0 - i * 0.1, 0.7 - i * 0.05, 1.4);
         seg.add(mesh);
         
         segments.push(seg);
-        parent = seg;
+        parent = seg; // 次の節を繋げる
     }
 
-    // 3. 前肢（腕立て伏せが可能な頑丈な鰭）
+    // 3. 前肢（腕立て伏せができる頑丈な肉質の鰭）
     const arms = [];
     for (let side of [-1, 1]) {
         const armBase = new THREE.Group();
         armBase.position.set(1.1 * side, -0.2, -0.2);
-        bodyGroup.add(armBase);
+        g.add(armBase); // 胴体に固定
 
-        // 上腕
-        const humerus = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.8), mat(0x667744));
+        const humerus = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.8), matBody);
         humerus.rotation.z = side * Math.PI / 2.5;
         armBase.add(humerus);
 
-        // 前腕と手首（ここがユーステノプテロンより進化したポイント）
         const forearm = new THREE.Group();
         forearm.position.set(0.6 * side, -0.1, 0);
         armBase.add(forearm);
         
-        const wrist = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.7), mat(0x778855));
+        const wrist = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.7), matFin);
         wrist.position.set(0.3 * side, -0.1, 0.2);
         wrist.rotation.y = side * 0.3;
         forearm.add(wrist);
@@ -2669,37 +2660,42 @@ function buildTiktaalik() {
         arms.push({ armBase, forearm });
     }
 
+    // データの紐付け（fish.userDataとしてアクセス可能にする）
     g.userData = { headGroup, segments, arms, jaw };
+    
     return { mesh: g, type: 'tiktaalik' };
 }
-function animateTiktaalik(ent, clock) {
-    const time = clock.getElapsedTime();
-    const data = ent.mesh.userData;
 
-    // 1. 首の独立した動き（移行型特有の左右確認）
+// --- アニメーション関数（fish = mesh を受け取る形式に修正） ---
+
+function animateTiktaalik(fish, clock) {
+    if (!fish || !fish.userData || !fish.userData.segments) return;
+
+    // clockがTHREE.Clockインスタンスか、生の時間(number)か判定
+    const time = (typeof clock === 'object') ? clock.getElapsedTime() : clock;
+    const data = fish.userData;
+
+    // 1. 首の独立可動
     data.headGroup.rotation.y = Math.sin(time * 0.5) * 0.2;
     data.headGroup.rotation.x = Math.cos(time * 0.8) * 0.05;
 
-    // 2. 胴体のしなり（後方に行くほど遅れて動く）
+    // 2. 胴体の滑らかなしなり
     data.segments.forEach((seg, i) => {
-        seg.rotation.y = Math.sin(time * 2.0 - i * 0.5) * 0.15;
+        seg.rotation.y = Math.sin(time * 2.0 - i * 0.4) * 0.12;
     });
 
-    // 3. 腕立て伏せのような前肢の動作
+    // 3. 前肢の「踏み込み」動作
     data.arms.forEach((arm, i) => {
-        const side = i === 0 ? -1 : 1;
+        const side = (i === 0) ? -1 : 1;
         const wave = Math.sin(time * 2.0 + (side * 0.5));
         
-        // 肩の回転
         arm.armBase.rotation.x = wave * 0.2;
         arm.armBase.rotation.z = (side * 1.0) + (wave * 0.1);
-        
-        // 手首の接地（waveに合わせて角度を変え、踏ん張りを表現）
-        arm.forearm.rotation.z = wave * side * 0.3;
+        arm.forearm.rotation.z = wave * side * 0.3; // 手首の返し
     });
 
-    // 4. 呼吸を思わせる顎の動き
-    data.jaw.rotation.x = (Math.sin(time * 1.0) * 0.05) + 0.05;
+    // 4. 呼吸（顎の微動）
+    data.jaw.rotation.x = (Math.sin(time * 1.2) * 0.05) + 0.05;
 }
 
 function buildStethacanthus() { 
