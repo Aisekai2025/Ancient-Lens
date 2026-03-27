@@ -2588,12 +2588,16 @@ function animateCoccosteus(mesh, clock) {
         // 水流による細かな揺れ
         data.body.position.y += Math.sin(time * 1.2) * 0.003;
     
-        // 4. 【追加】胸びれのパタパタ運動
+        // 4. 【ここを追加！】胸びれのパタパタ運動
         if (data.fins) {
             data.fins.forEach((fin, index) => {
-                // index 0 が左、1 が右。左右で動きを同期させる
-                // Z軸を回転させて、上下に羽ばたくような動きにする
-                fin.rotation.z = Math.sin(time * 3.0) * 0.2;
+                // 左右で逆方向に動かす（外側から見ると上下に羽ばたく）ために
+                // 片方にマイナスをかけるのがコツです
+                const side = (index === 0) ? 1 : -1; 
+            
+                // Z軸を回転させて上下に動かす
+                // time * 3.0 の数字を小さくするとゆっくり動きます
+                fin.rotation.z = Math.sin(time * 3.0) * 0.3 * side;
             });
         }
     }    
