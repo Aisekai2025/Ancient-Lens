@@ -687,61 +687,104 @@ function buildSidneyia() {
 }
 
 // --- オルドビス紀 ---
+// --- 【古生物学×3D造形×SE】 アストラスピス：視認性改善＆装甲強化版 ---
+
 function buildAstraspis() {
-    const g = new THREE.Group(); 
-    const bodyGroup = new THREE.Group(); 
+    const g = new THREE.Group();
+    const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
+
+    // マテリアル定義：アストラスピス特有の「ざらついた骨板」の質感
+    const mat = (color, emissive = 0x000000) => new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.8,
+        metalness: 0.1,
+        emissive: emissive,
+        side: THREE.FrontSide
+    });
     
-    // 1. 胴体：単なる半球ではなく、厚みのある「盾」の形に
-    // Sphereの半分ではなく、全体を使って上下の厚みを出す
-    const torsoGeom = new THREE.SphereGeometry(1.4, 24, 20);
-    const torso = new THREE.Mesh(torsoGeom, mat(0x887755, 0, 0.6));
-    // Y(高さ)を0.7程度にすることで、底面を少し平らにしつつ、尾部と繋がる厚みを確保
-    torso.scale.set(1.1, 0.7, 1.8); 
+    const eyeMat = new THREE.MeshStandardMaterial({ 
+        color: 0x000000, 
+        roughness: 0.1, 
+        metalness: 0.9,
+        emissive: 0x111111 // わずかに発光させて存在感を出す
+    });
+
+    // 1. 胴体シールド (Head Shield)
+    const torsoGeom = new THREE.SphereGeometry(1.4, 32, 24);
+    const torso = new THREE.Mesh(torsoGeom, mat(0x887755));
+    torso.scale.set(1.1, 0.7, 1.8);
     bodyGroup.add(torso);
 
-    // 2. 目と口（装甲の前端、左右に離れた位置に配置）
-    const eyeGeom = new THREE.SphereGeometry(0.12, 16, 16);
-    const eyeL = new THREE.Mesh(eyeGeom, eyeMat);
-    // 胴体のカーブに合わせて少し外側・上側に配置
-    eyeL.position.set(0.85, 0.2, 1.3); 
-    bodyGroup.add(eyeL);
+    // 【ディティールアップ】 テッセラ（小装甲板）の質感をワイヤーフレームのオーバーレイで表現
+    // 完全に別のジオメトリを重ねることで、幾何学的な密度感を演出
+    const detailGeom = new THREE.SphereGeometry(1.41, 20, 16); // わずかに大きく
+    const detailMesh = new THREE.Mesh(detailGeom, new THREE.MeshStandardMaterial({
+        color: 0x665544,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.2
+    }));
+    detailMesh.scale.copy(torso.scale);
+    bodyGroup.add(detailMesh);
+
+    // 2. 【改善】 目 (Eyes)：位置を前方にオフセットし、埋没を回避
+    const eyeGeom = new THREE.SphereGeometry(0.15, 16, 16);
+    for (let side of [-1, 1]) {
+        const eye = new THREE.Mesh(eyeGeom, eyeMat);
+        // シールドのカーブに合わせて、Z値を1.3から1.5へ、X値を外側へ調整
+        eye.position.set(side * 0.95, 0.25, 1.45); 
+        bodyGroup.add(eye);
+        
+        // 目の周囲の装甲（眼窩）を表現する小さなリング
+        const eyeRing = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.05, 8, 16), mat(0x554433));
+        eyeRing.position.copy(eye.position);
+        eyeRing.rotation.y = side * 0.5;
+        bodyGroup.add(eyeRing);
+    }
+
+    // 3. 【改善】 口 (Mouth)：吸い込み口状の立体構造へ
+    // 無顎類特有の「顎のない口」を、単なるスリットから「漏斗状の凹み」に変更
+    const mouthGroup = new THREE.Group();
+    mouthGroup.position.set(0, -0.3, 1.75); // シールドの最前端かつ下部へ
+    bodyGroup.add(mouthGroup);
+
+    const mouthInner = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.1, 12, 24), mat(0x332211));
+    mouthInner.rotation.x = Math.PI / 2.5; // 少し下を向かせる
+    mouthGroup.add(mouthInner);
     
-    const eyeR = eyeL.clone(); 
-    eyeR.position.x = -0.85; 
-    bodyGroup.add(eyeR);
+    // 口の奥の暗がりを表現
+    const mouthDark = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), eyeMat);
+    mouthDark.scale.set(1, 0.5, 1);
+    mouthGroup.add(mouthDark);
 
-    // 口：無顎類なので、あごのない「吸い込み口」のようなスリット
-    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 12), eyeMat);
-    mouth.scale.set(1.8, 0.4, 0.5); 
-    // 目よりも低い位置、先端近くに配置
-    mouth.position.set(0, -0.25, 1.55);
-    bodyGroup.add(mouth);
-
-    // 3. 尾部への自然な接続
-    const tailGroup = new THREE.Group(); 
-    // 胴体の後ろ(Zマイナス方向)に配置
-    tailGroup.position.z = -1.2;
+    // 4. 尾部 (Tail) 以降の構造は維持
+    const tailGroup = new THREE.Group();
+    tailGroup.position.z = -1.8;
     g.add(tailGroup);
 
-    // 尾筒（胴体の厚みからスムーズに繋がるようにスケールを調整）
-    const tailStalk = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 12), mat(0x776644));
-    // X, Yを胴体の断面に近づける（0.8, 0.7程度）
-    tailStalk.scale.set(0.8, 0.7, 2.5); 
-    tailStalk.position.z = -1.0;
-    tailGroup.add(tailStalk);
+    // 尾部の節（セグメント）を維持
+    const segments = [];
+    let parent = tailGroup;
+    for (let i = 0; i < 5; i++) {
+        const seg = new THREE.Group();
+        seg.position.z = -0.6;
+        parent.add(seg);
+        const sMesh = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12), mat(0x776644));
+        sMesh.scale.set(0.8 - i * 0.1, 0.6 - i * 0.08, 0.8);
+        seg.add(sMesh);
+        segments.push(seg);
+        parent = seg;
+    }
 
-    // 尾びれ（ヘラ状）
-    const tailFin = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16), mat(0x776644));
-    tailFin.scale.set(0.05, 1.4, 1.6); 
-    tailFin.position.set(0, 0, -2.5); 
-    tailGroup.add(tailFin);
+    // データ紐付け（アニメーション互換性を維持）
+    g.userData = { 
+        body: bodyGroup, 
+        segments: segments,
+        type: 'fish_astraspis'
+    };
 
-    g.userData.body = bodyGroup; 
-    g.userData.tail = tailGroup;
-    g.scale.set(1.2, 1.2, 1.2);
-    
-    return { mesh: g, segments: [], type: 'fish_dunk' };
+    return { mesh: g, type: 'fish_astraspis' };
 }
 
 function buildSacabambaspis() {
