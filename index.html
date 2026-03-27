@@ -687,12 +687,13 @@ function buildSidneyia() {
 }
 
 // --- オルドビス紀 ---
-// --- 【古生物学×3D造形×SE】 アストラスピス：三部構成＆視認性改善版 ---
+// --- 【古生物学×3D造形×SE】 アストラスピス：不器用な無顎類泳ぎ (V3.0) ---
 
+// buildAstraspis 関数は画像生成3の履歴（造形）を完全に維持
 function buildAstraspis() {
     const g = new THREE.Group();
 
-    // 1. テッセラ（装甲板）テクスチャの生成（以前の優れた質感を維持）
+    // 1. テッセラ（装甲板）テクスチャの生成（造形維持）
     const createTesseraeTexture = () => {
         const canvas = document.createElement('canvas');
         canvas.width = 512; canvas.height = 512;
@@ -723,7 +724,7 @@ function buildAstraspis() {
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.1, metalness: 0.9 });
     const fleshMat = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 0.9 });
 
-    // 2. 【胴部シールド】 前面の造形を維持しつつパーツ配置を最適化
+    // 2. 胴部シールド（造形維持）
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
 
@@ -731,47 +732,40 @@ function buildAstraspis() {
     torso.scale.set(1.1, 0.7, 1.8);
     bodyGroup.add(torso);
 
-    // 【修正】目と眼窩：シールドの表面（Z=1.8付近）に確実に露出させる
+    // 目と口（視認性維持）
     for (let side of [-1, 1]) {
-        const eyePos = { x: side * 0.85, y: 0.25, z: 1.8 }; // Z値を増やして前へ
-        
+        const eyePos = { x: side * 0.85, y: 0.25, z: 1.8 }; 
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
         eye.position.set(eyePos.x, eyePos.y, eyePos.z);
         bodyGroup.add(eye);
-        
         const socket = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 8, 16), armorMat);
         socket.position.set(eyePos.x, eyePos.y, eyePos.z);
         socket.rotation.y = side * 0.4;
         bodyGroup.add(socket);
     }
 
-    // 【修正】口：さらに先端かつ下部に配置して実体化
     const mouthGroup = new THREE.Group();
-    mouthGroup.position.set(0, -0.35, 2.3); // シールドの先端に配置
+    mouthGroup.position.set(0, -0.35, 2.3); 
     bodyGroup.add(mouthGroup);
-
     const mouthRim = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.08, 12, 24), armorMat);
     mouthRim.rotation.x = Math.PI / 2.2;
     mouthGroup.add(mouthRim);
-
     const mouthInside = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), fleshMat);
     mouthInside.scale.set(1, 0.2, 1);
     mouthGroup.add(mouthInside);
 
-    // 3. 【尾部・尾鰭】 イモムシ構造を廃止し、柔軟な一本の尾に
+    // 3. 尾部と尾びれ（造形維持：三部構成）
     const tailGroup = new THREE.Group();
-    tailGroup.position.z = -1.5; // シールドの後端から開始
+    tailGroup.position.z = -1.5; 
     g.add(tailGroup);
 
-    // 尾の本体（Tail Stem）
     const tailStem = new THREE.Mesh(new THREE.SphereGeometry(0.8, 24, 16), armorMat);
     tailStem.scale.set(0.7, 0.5, 2.0);
     tailStem.position.z = -1.0;
     tailGroup.add(tailStem);
 
-    // 尾鰭（Tail Fin）：楕円の造形を維持
     const tailFinGroup = new THREE.Group();
-    tailFinGroup.position.z = -2.5; // 尾の先端
+    tailFinGroup.position.z = -2.5; 
     tailGroup.add(tailFinGroup);
 
     const tailFin = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), armorMat);
@@ -779,7 +773,6 @@ function buildAstraspis() {
     tailFin.position.z = -0.5;
     tailFinGroup.add(tailFin);
 
-    // データ紐付け（アニメーション用）
     g.userData = { 
         body: bodyGroup, 
         tail: tailGroup,
@@ -790,27 +783,40 @@ function buildAstraspis() {
     return { mesh: g, type: 'fish_astraspis' };
 }
 
-// --- 【修正】アニメーション：尾を振って泳ぐ動き ---
+// --- 【完全差し替え】アニメーション：不器用なふらふら泳ぎ ---
 
 function animateAstraspis(mesh, clock) {
     if (!mesh || !mesh.userData) return;
     const time = (typeof clock === 'object') ? clock.getElapsedTime() : clock;
     const data = mesh.userData;
 
-    const swimSpeed = 2.5;
-    const swimAmp = 0.2;
+    // 不器用な遊泳のための設定
+    // ゆっくりとした、しかし大きな波
+    const baseSpeed = 1.8; 
+    const waveY = Math.sin(time * baseSpeed);
+    const waveZ = Math.cos(time * baseSpeed); // ロール用の波（位相をずらす）
 
-    // 1. 全体のわずかな揺れ（ピッチング）
-    mesh.position.y += Math.sin(time * 1.5) * 0.002;
+    // 1. 【全体のふらふら感 (Clumsy Rocking)】 対鰭を持たない不安定さを表現
+    
+    // 首振り (Yaw): 大きく振って推進力を稼ぐ
+    mesh.rotation.y = waveY * 0.08; 
+    
+    // 【注目】 ロール (Roll): 対鰭による安定化ができないため、尾を振ると体が左右に大きく傾く
+    // これがサカバンバスピスのような「ふらふら感」の正体
+    mesh.rotation.z = waveZ * 0.15; 
+    
+    // ピッチ (Pitch): 推進ベクトルがずれることによる鼻先の上下
+    mesh.rotation.x = Math.sin(time * baseSpeed * 2.0) * 0.02; // 少し速い周期で
 
-    // 2. 尾の大きな振り（左右のうねり）
+    // 2. 【尾の大きな振り (Hard Tail Push)】 有機的なしなりではなく、硬い尾を大きく振る
     if (data.tail) {
-        data.tail.rotation.y = Math.sin(time * swimSpeed) * swimAmp;
+        // 体幹の振り（mesh.rotation.y）に対して、より大きな角度で振る
+        data.tail.rotation.y = -waveY * 0.4; // 逆方向に大きく
     }
 
-    // 3. 尾鰭の遅れた動き（有機的なしなりを表現）
+    // 3. 【尾びれの連動 (Lagging Fin)】 尾全体の振りに遅れて動く（しなりを弱く、無骨に）
     if (data.fin) {
-        data.fin.rotation.y = Math.sin(time * swimSpeed - 0.8) * (swimAmp * 1.5);
+        data.fin.rotation.y = Math.sin(time * baseSpeed - 1.2) * 0.3; // 位相をさらに遅らせる
     }
 }
 
