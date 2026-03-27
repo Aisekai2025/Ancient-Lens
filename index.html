@@ -1991,45 +1991,43 @@ function buildBelinurus() {
     // 4. 【多関節脚 ＆ パドル脚の有機化】
     const legs = []; 
     const numLegs = 6;
-    for (let i = 0; i < numLegs; i++) { 
-        for (let side of [-1, 1]) { 
-            const legRoot = new THREE.Group();
-            legRoot.position.set(side * (0.3 + i * 0.02), -0.1, 0.4 - i * 0.18); 
-            
-            const femur = new THREE.Mesh(femurGeo, matLeg);
-            // 腿（もも）のリアルな角度調整
-            femur.rotation.z = side * -0.4; 
-            femur.rotation.x = 0.2; 
+    // --- buildBelinurus 内の脚ループ（決定版） ---
+for (let i = 0; i < numLegs; i++) { 
+    for (let side of [-1, 1]) { 
+        const legRoot = new THREE.Group();
+        legRoot.position.set(side * (0.3 + i * 0.02), -0.1, 0.4 - i * 0.18); 
+        
+        const femur = new THREE.Mesh(femurGeo, matLeg);
+        femur.rotation.z = side * -0.4; 
+        femur.rotation.x = 0.2; 
 
-            let tibia; // ここで宣言
-            
-            // 【進化】 最後尾 (i === 5) はパドル状、それ以外は歩行脚
-            if (i === 5) {
-                tibia = new THREE.Mesh(paddleGeo, matLeg);
-                tibia.scale.set(1.0, 1.0, 0.2);
-                tibia.position.set(0, -0.35, 0); 
-                tibia.rotation.z = side * 0.6; // パドルを外に広げる
-            } else {
-                tibia = new THREE.Mesh(tibiaGeo, matLeg);
-                tibia.position.set(0, -0.45, 0); 
-                tibia.rotation.z = side * 0.5; // 膝を深く曲げる
+        // 【重要】ここでまず tibia を宣言・作成します
+        let tibia; 
+        if (i === 5) {
+            tibia = new THREE.Mesh(paddleGeo, matLeg);
+            tibia.scale.set(1.0, 1.0, 0.2);
+            tibia.position.set(0, -0.35, 0); 
+            tibia.rotation.z = side * 0.6; 
+        } else {
+            tibia = new THREE.Mesh(tibiaGeo, matLeg);
+            tibia.position.set(0, -0.45, 0); 
+            tibia.rotation.z = side * 0.5; // ここで角度を設定
 
-                const claw = new THREE.Mesh(new THREE.ConeGeometry(0.01, 0.08, 4), matLeg);
-                claw.position.set(0, -0.4, 0);
-                claw.rotation.x = Math.PI;
-                tibia.add(claw);
-            }
-            
-            // 重要：ここで親子関係を作る
-            femur.add(tibia); 
-            legRoot.add(femur); 
-            legRoot.rotation.y = side * (Math.PI / 8); 
-            
-            head.add(legRoot); 
-            // アニメーション用にデータを保存
-            legs.push({ root: legRoot, femur: femur, tibia: tibia, isPaddle: (i === 5) }); 
+            const claw = new THREE.Mesh(new THREE.ConeGeometry(0.01, 0.08, 4), matLeg);
+            claw.position.set(0, -0.4, 0);
+            claw.rotation.x = Math.PI;
+            tibia.add(claw);
         }
+        
+        // tibia が確実に存在してから add する
+        femur.add(tibia); 
+        legRoot.add(femur); 
+        legRoot.rotation.y = side * (Math.PI / 8); 
+        
+        head.add(legRoot); 
+        legs.push({ root: legRoot, femur: femur, tibia: tibia, isPaddle: (i === 5) }); 
     }
+}
 
     g.userData = { head, body, telson: telsonGroup, legs }; 
     g.scale.set(0.7, 0.7, 0.7); 
@@ -3199,7 +3197,20 @@ function animate() {
     camera.position.z = camRadius * Math.cos(camAngleX) * Math.cos(camAngleY);
     camera.lookAt(0, focusY, 0);
 
-    entities.forEach(ent => ent.update(time, dummyObj));
+    // クリーチャーごとの更新処理
+    entities.forEach(ent => {
+        // 1. 位置や向きの更新（既存の処理）
+        ent.update(time, dummyObj);
+
+        // 2. ベリヌス専用の「脚のワサワサ」を実行
+        // ent.type が 'crawl' または 'belinurus' の場合に実行するようにします
+        if (ent.mesh && ent.mesh.userData && ent.mesh.userData.legs) {
+            // ここであなたが作ったアニメーション関数を呼び出す！
+            // timeをclockオブジェクトに見せかけて渡します
+            animateBelinurus(ent.mesh, { getElapsedTime: () => time });
+        }
+    });
+
     renderer.render(scene, camera);
 }
 animate();
