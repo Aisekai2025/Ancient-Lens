@@ -2118,107 +2118,119 @@ function animateBelinurus(crab, clock) {
 function buildDunkleosteus() {
     const g = new THREE.Group();
 
-    // 【マテリアル：透けを完全に防ぐ設定】
-    // metalnessを0に近づけ、不透明度を物理的に固定。
-    const matArmor = new THREE.MeshStandardMaterial({ 
-        color: 0x1a1a1a, 
-        roughness: 0.9,  // ザラザラした鋳鉄の質感
-        metalness: 0.1,  // 反射を抑えて「中が透けて見える」錯覚を消す
+    // 【マテリアル: 画像のくすんだ鉛色と生々しい皮膚感を再現】
+    const matArmor = new THREE.MeshStandardMaterial({
+        color: 0x8c8f8d, // 画像に近い、傷ついた鉛色
+        roughness: 0.8,
+        metalness: 0.2, // 鈍い反射を持たせる
         transparent: false,
-        depthWrite: true // 描画順序を固定
+        depthWrite: true
     });
 
-    const matBody = new THREE.MeshStandardMaterial({ 
-        color: 0x2d3631, 
-        roughness: 1.0, 
+    const matBody = new THREE.MeshStandardMaterial({
+        color: 0x3d4742, // 装甲より一段暗い魚体
+        roughness: 0.9,
         metalness: 0.0,
-        transparent: false 
+        transparent: false
     });
 
-    const matTooth = new THREE.MeshStandardMaterial({ color: 0xe0e0d5, roughness: 0.5 });
+    const matTooth = new THREE.MeshStandardMaterial({ color: 0xe0e0d5, roughness: 0.4 });
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.1 });
 
     const fishBodyGroup = new THREE.Group();
     g.add(fishBodyGroup);
 
-    // ==========================================
-    // 1. 【生身】胴体（魚体をくっきり見せる）
-    // ==========================================
-    // 胴体を少し細身にし、仮面の内側に隠れる部分を最小限に。
+    // 1.【生身】胴体とヒレ（より流線形に、筋肉質に）
     const torso = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 24), matBody);
-    torso.scale.set(0.7, 1.1, 2.8); 
-    torso.position.z = -1.0; // 仮面から距離を置く
+    torso.scale.set(0.65, 1.2, 3.2); // 画像のように後方へスッと伸びる形状
+    torso.position.z = -1.5; 
     fishBodyGroup.add(torso);
 
-    // 胸びれ（より大きく、逞しく）
+    // 背びれ（画像に見える盛り上がりを追加）
+    const dorsalFin = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.5, 8), matBody);
+    dorsalFin.rotation.x = -Math.PI / 3;
+    dorsalFin.position.set(0, 1.6, -1.8);
+    fishBodyGroup.add(dorsalFin);
+
+    // 胸びれ
     for (let side of [-1, 1]) {
         const pFin = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), matBody);
-        pFin.scale.set(1.6, 0.1, 1.8);
-        pFin.position.set(side * 1.4, -1.0, -0.2);
-        pFin.rotation.z = side * 0.5;
+        pFin.scale.set(1.5, 0.1, 1.8);
+        pFin.position.set(side * 1.2, 0.5, -0.5);
+        pFin.rotation.z = side * 0.4;
+        pFin.rotation.y = side * -0.2; // 水を掻く角度
         fishBodyGroup.add(pFin);
     }
 
-    // 尾部（力強い推進力を生む大型尾びれ）
+    // 尾部
     const tailGroup = new THREE.Group();
-    tailGroup.position.set(0, 0, -4.5);
+    tailGroup.position.set(0, 0, -5.5);
     fishBodyGroup.add(tailGroup);
-    const tailFin = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), matBody);
-    tailFin.scale.set(0.1, 3.0, 1.8); // 尾びれを上下に巨大化
-    tailGroup.add(tailFin);
+    
+    // 異尾（上葉が長いサメのような尾びれ）に変更し、遊泳力を強調
+    const tailFinUpper = new THREE.Mesh(new THREE.ConeGeometry(0.4, 2.5, 8), matBody);
+    tailFinUpper.rotation.x = -Math.PI / 4;
+    tailFinUpper.scale.set(0.2, 1.0, 1.0);
+    tailGroup.add(tailFinUpper);
+    
+    const tailFinLower = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.5, 8), matBody);
+    tailFinLower.rotation.x = Math.PI / 3;
+    tailFinLower.position.set(0, -0.8, -0.2);
+    tailFinLower.scale.set(0.2, 1.0, 1.0);
+    tailGroup.add(tailFinLower);
 
-    // ==========================================
-    // 2. 【生身】下顎ユニット（支点を完全に分離）
-    // ==========================================
+    // 2.【生身】下顎ユニット
     const jawGroup = new THREE.Group();
-    jawGroup.position.set(0, -0.6, 1.8); 
+    jawGroup.position.set(0, -0.6, 1.5);
     fishBodyGroup.add(jawGroup);
 
-    const jawBase = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), matBody);
-    jawBase.scale.set(0.85, 0.35, 1.6);
-    jawBase.position.z = 1.3;
+    const jawBase = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), matArmor); // 下顎も装甲化
+    jawBase.scale.set(0.8, 0.4, 1.4);
+    jawBase.position.set(0, -0.2, 0.5);
     jawGroup.add(jawBase);
 
-    // 下顎の牙（凶暴な露出）
-    const toothGeom = new THREE.ConeGeometry(0.28, 2.8, 16);
+    // 下の牙（前下方へ突き出す）
+    const toothGeom = new THREE.ConeGeometry(0.25, 1.8, 16);
     for (let side of [-1, 1]) {
         const lTooth = new THREE.Mesh(toothGeom, matTooth);
-        lTooth.position.set(side * 0.6, 0.8, 2.6);
-        lTooth.rotation.x = 0.4;
+        lTooth.position.set(side * 0.5, 0.5, 1.8);
+        lTooth.rotation.x = 0.5; // 前方に傾ける
         jawGroup.add(lTooth);
     }
 
-    // ==========================================
-    // 3. 【装甲】頭部仮面（完全に不透明な黒鉄）
-    // ==========================================
+    // 3.【装甲】頭部仮面（流線形の追求と上下逆の解消）
     const maskGroup = new THREE.Group();
-    maskGroup.position.set(0, 0.8, 1.8);
+    maskGroup.position.set(0, 0.8, 1.5);
     g.add(maskGroup);
 
-    const skullPlate = new THREE.Mesh(new THREE.SphereGeometry(2.1, 8, 8), matArmor);
-    skullPlate.scale.set(0.95, 0.95, 1.2);
-    skullPlate.position.z = 0.8;
+    const skullPlate = new THREE.Mesh(new THREE.SphereGeometry(2.0, 16, 16), matArmor);
+    skullPlate.scale.set(0.85, 0.9, 1.1);
+    skullPlate.position.z = 0.5;
     maskGroup.add(skullPlate);
 
     for (let side of [-1, 1]) {
-        const cheek = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.4, 2.6), matArmor);
-        cheek.position.set(side * 1.6, -0.8, 0.6);
+        // BoxからSphereへ変更し、積み木感を無くして生物らしい流線型の頬装甲へ
+        const cheek = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matArmor);
+        cheek.scale.set(0.4, 1.2, 1.4);
+        cheek.position.set(side * 1.5, -0.5, 0.5);
+        cheek.rotation.z = side * 0.2;
         maskGroup.add(cheek);
 
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), eyeMat);
-        eye.position.set(side * 1.4, 0.2, 1.8);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), eyeMat);
+        eye.position.set(side * 1.5, 0.3, 1.2);
         maskGroup.add(eye);
 
+        // 上の牙（絶対に上を向かないよう、角度と位置を厳密に計算）
         const uTooth = new THREE.Mesh(toothGeom, matTooth);
-        uTooth.rotation.x = Math.PI;
-        uTooth.position.set(side * 0.85, -1.4, 2.4);
+        uTooth.rotation.x = 0; // 基準をリセット
+        uTooth.position.set(side * 0.7, -1.2, 2.0); // 下顎の外側を通るように配置
+        uTooth.rotation.x = -0.2; // わずかに後方を向かせて「えぐり取る」角度に
         maskGroup.add(uTooth);
     }
 
-    // データ紐付け
     g.userData = { body: fishBodyGroup, jaw: jawGroup, head: maskGroup, tail: tailGroup };
     g.scale.set(1.5, 1.5, 1.5);
-    
+
     return { mesh: g, type: 'fish_dunk' };
 }
 
@@ -2229,36 +2241,33 @@ function animateDunkleosteus(fish, clock) {
     const time = clock.getElapsedTime();
     const data = fish.userData;
 
-    // 1. 全体のうねり（巨大生物らしい重い周期：約4秒で1往復）
-    const slowWave = Math.sin(time * 1.5);
-    fish.rotation.y = slowWave * 0.05; // わずかな首振り
-    fish.position.y += Math.cos(time * 0.8) * 0.005; // 浮力による上下
+    // 1. 全体のうねり（重装甲なので頭部はあまりブレさせない）
+    const slowWave = Math.sin(time * 2.0); // 少しだけ力強く
+    fish.rotation.y = slowWave * 0.03; 
+    fish.position.y += Math.cos(time * 1.2) * 0.005; 
 
-    // 2. 尾びれの力強い推進（体幹から遅れて動く波）
+    // 2. 尾びれの力強い推進
     if (data.tail) {
-        data.tail.rotation.y = Math.sin(time * 1.5 - 1.0) * 0.35;
+        data.tail.rotation.y = Math.sin(time * 2.0 - 1.2) * 0.4;
     }
 
-    // 3. 【注目】ギロチン・ジョー（ゆっくり開いて、一瞬でガチッ！）
-    // 0~1のサイクルを作り、0.8秒かけて開き、0.2秒で閉じる
-    const jawCycle = (time * 0.5) % 1.0; 
+    // 3. ギロチン・ジョー（元の優れたロジックをそのまま使用）
+    const jawCycle = (time * 0.5) % 1.0;
     let jawOpen = 0;
-    if (jawCycle < 0.8) {
-        // 徐々に開く（イージング）
+    if (jawCycle < 0.8) { // 0.8秒かけて開く [cite: 120]
         jawOpen = Math.pow(jawCycle / 0.8, 2);
-    } else {
-        // 急激に閉じる
+    } else { // 0.2秒で閉じる [cite: 123-125]
         jawOpen = 1.0 - (jawCycle - 0.8) / 0.2;
     }
 
-    const maxJawAngle = 0.5; // 最大開口角
-    if (data.jaw) data.jaw.rotation.x = -jawOpen * maxJawAngle;
-    if (data.head) data.head.rotation.x = jawOpen * (maxJawAngle * 0.4); // 上顎も少し上がる
+    const maxJawAngle = 0.6; // 少しだけ開口角を広げて迫力アップ
+    if (data.jaw) data.jaw.rotation.x = jawOpen * maxJawAngle; // 顎を下げる
+    if (data.head) data.head.rotation.x = -jawOpen * (maxJawAngle * 0.3); // 頭甲を少し上げる（板皮類特有の関節）
 
     // 4. 胸びれのバランス調整
     data.body.children.forEach(child => {
-        if (child.geometry.type === "SphereGeometry" && child.scale.y < 0.2) { // 胸びれを特定
-            child.rotation.x = 0.2 + Math.sin(time * 1.5) * 0.1;
+        if (child.geometry.type === "SphereGeometry" && child.scale.y < 0.2) { 
+            child.rotation.x = Math.sin(time * 2.0) * 0.15; // 力強く水をかく
         }
     });
 }
