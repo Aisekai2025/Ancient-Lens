@@ -2113,160 +2113,151 @@ function animateBelinurus(crab, clock) {
 
 
 //
-//--- 【古生物学×3D造形×システム】 ダンクルオステウス:完全不透明・強襲版 V2.0 ---
+//--- 【古生物学×3D造形×システム】 ダンクルオステウス:V2.1 牙の向き修正・強襲版 ---
 //
 function buildDunkleosteus() {
     const g = new THREE.Group();
 
-    // 【マテリアル: 重厚な鉛色と、生きている皮膚の質感】
+    // 【マテリアル: 重厚な鉛色と、生きている皮膚の質感】 [cite: 734]
     const matArmor = new THREE.MeshStandardMaterial({
-        color: 0x7c7f7d, // 鈍い鉛色
-        roughness: 0.7, // ザラつきと鈍い光沢
-        metalness: 0.3, // 鈍い反射を強調 [cite: 147]
+        color: 0x7c7f7d, 
+        roughness: 0.7, 
+        metalness: 0.3, 
         transparent: false,
         depthWrite: true
     });
 
     const matBody = new THREE.MeshStandardMaterial({
-        color: 0x3d4742, // 装甲より一段暗い、筋肉質の皮膚 [cite: 152]
+        color: 0x3d4742, 
         roughness: 0.9,
         metalness: 0.0,
         transparent: false
     });
 
     const matTooth = new THREE.MeshStandardMaterial({
-        color: 0xe0e0d5, // 鈍い骨の色 [cite: 158]
+        color: 0xe0e0d5, 
         roughness: 0.5,
-        metalness: 0.1, // 骨板にわずかな光沢
+        metalness: 0.1, 
     });
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.1 });
 
     const fishBodyGroup = new THREE.Group();
     g.add(fishBodyGroup);
 
-    // 1.【生身】胴体とヒレ（より長く、筋肉質に延長）
+    // 1.【生身】胴体とヒレ（延長・筋肉質モデル） [cite: 756]
     const torso = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 24), matBody);
-    torso.scale.set(0.65, 1.2, 3.5); // 画像のように後方へスッと伸びる形状 [cite: 165]、延長
-    torso.position.z = -1.5; // [cite: 166]
+    torso.scale.set(0.65, 1.2, 3.5); [cite: 758]
+    torso.position.z = -1.5; [cite: 759]
     fishBodyGroup.add(torso);
 
-    // 背びれ（画像に見える盛り上がりを追加）
     const dorsalFin = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.5, 8), matBody);
-    dorsalFin.rotation.x = Math.PI / 3; // [cite: 173]
-    dorsalFin.position.set(0, 1.6, -1.8); // [cite: 174]
+    dorsalFin.rotation.x = Math.PI / 3; [cite: 764]
+    dorsalFin.position.set(0, 1.6, -1.8); [cite: 765]
     fishBodyGroup.add(dorsalFin);
 
-    // 胸びれ
     for (let side of [-1, 1]) {
         const pFin = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), matBody);
-        pFin.scale.set(1.5, 0.1, 1.8); // [cite: 181]
-        pFin.position.set(side * 1.2, 0.5, -0.5); // [cite: 182]
-        pFin.rotation.z = side * 0.4; // [cite: 183]
-        pFin.rotation.y = side * -0.2; // 水を掻く角度 [cite: 184]
+        pFin.scale.set(1.5, 0.1, 1.8); [cite: 771]
+        pFin.position.set(side * 1.2, 0.5, -0.5); [cite: 772]
+        pFin.rotation.z = side * 0.4; [cite: 773]
+        pFin.rotation.y = side * -0.2; 
         fishBodyGroup.add(pFin);
     }
 
-    // --- 【アップデート】延長された尾部パーツ ---
+    // --- 延長された尾部パーツ（楕円形尾びれ） --- [cite: 777]
     const tailGroup = new THREE.Group();
-    tailGroup.position.set(0, 0, -5.0); // 胴体接続部 [cite: 189]
+    tailGroup.position.set(0, 0, -5.0); 
     fishBodyGroup.add(tailGroup);
 
-    // 尾の延長（しなりを生むための節）
     const tailStem = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 12), matBody);
-    tailStem.scale.set(0.4, 0.8, 1.5);
-    tailStem.position.z = -0.5;
+    tailStem.scale.set(0.4, 0.8, 1.5); [cite: 784]
+    tailStem.position.z = -0.5; [cite: 785]
     tailGroup.add(tailStem);
 
-    // 延長された尾びれユニット（支点をさらに後ろに）
     const tailFinGroup = new THREE.Group();
-    tailFinGroup.position.set(0, 0, -1.8); // tailStemからさらに離す
+    tailFinGroup.position.set(0, 0, -1.8); [cite: 789]
     tailStem.add(tailFinGroup);
 
-    // 【アップデート】楕円を用いた洗練された異尾びれ
-    // 上葉（サメのように長く、力強い）
+    // 上葉（楕円を用いた異尾びれ） [cite: 792]
     const tailFinUpper = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), matBody);
-    tailFinUpper.scale.set(0.08, 2.5, 1.5); // 上下に長く、薄い楕円
-    tailFinUpper.rotation.x = -Math.PI / 6; // 上向きの角度
-    tailFinUpper.position.set(0, 1.0, -0.5);
+    tailFinUpper.scale.set(0.08, 2.5, 1.5); 
+    tailFinUpper.rotation.x = -Math.PI / 6; 
+    tailFinUpper.position.set(0, 1.0, -0.5); [cite: 796]
     tailFinGroup.add(tailFinUpper);
 
-    // 下葉（推進力を安定させる）
+    // 下葉 [cite: 799]
     const tailFinLower = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 12), matBody);
-    tailFinLower.scale.set(0.08, 1.8, 1.2); // 上葉より小さく、薄い楕円
-    tailFinLower.rotation.x = Math.PI / 4; // 下向きの角度
-    tailFinLower.position.set(0, -0.8, -0.2);
+    tailFinLower.scale.set(0.08, 1.8, 1.2); 
+    tailFinLower.rotation.x = Math.PI / 4; 
+    tailFinLower.position.set(0, -0.8, -0.2); [cite: 803]
     tailFinGroup.add(tailFinLower);
 
-    // 2.【生身】下顎ユニット
+    // 2.【生身】下顎ユニット [cite: 805]
     const jawGroup = new THREE.Group();
-    jawGroup.position.set(0, -0.6, 1.5); // [cite: 205]
+    jawGroup.position.set(0, -0.6, 1.5); [cite: 807]
     fishBodyGroup.add(jawGroup);
 
-    const jawBase = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), matArmor); // 下顎も装甲化 [cite: 207]
-    jawBase.scale.set(0.8, 0.4, 1.4); // [cite: 208]
-    jawBase.position.set(0, -0.2, 0.5); // [cite: 209]
+    const jawBase = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), matArmor);
+    jawBase.scale.set(0.8, 0.4, 1.4); [cite: 810]
+    jawBase.position.set(0, -0.2, 0.5); [cite: 811]
     jawGroup.add(jawBase);
 
-    // 下顎の骨板（牙ではなくハサミの刃）
-    const toothGeom = new THREE.ConeGeometry(0.25, 1.8, 16); // [cite: 212]
+    // 下顎の牙（先端は上向き）
+    const toothGeom = new THREE.ConeGeometry(0.25, 1.8, 16); [cite: 814]
     for (let side of [-1, 1]) {
         const lTooth = new THREE.Mesh(toothGeom, matTooth);
-        lTooth.position.set(side * 0.5, 0.5, 1.8); // [cite: 216]
-        lTooth.rotation.x = 0.5; // 前方に傾ける 
-        // わずかに内側に傾けて、上顎装甲の内側に入り込むように配置
-        lTooth.rotation.z = side * 0.1;
+        lTooth.position.set(side * 0.55, 0.5, 1.8); 
+        lTooth.rotation.x = 0.5; 
+        lTooth.rotation.z = side * 0.1; 
         jawGroup.add(lTooth);
     }
 
-    // 3.【装甲】頭部仮面（滑らかな流線形と牙の自己研磨式の噛み合わせ）
+    // 3.【装甲】頭部仮面 [cite: 823]
     const maskGroup = new THREE.Group();
-    maskGroup.position.set(0, 0.8, 1.5); // [cite: 221]
+    maskGroup.position.set(0, 0.8, 1.5); [cite: 825]
     g.add(maskGroup);
 
-    const skullPlate = new THREE.Mesh(new THREE.SphereGeometry(2.0, 16, 16), matArmor); // [cite: 223]
-    skullPlate.scale.set(0.85, 0.9, 1.1); // [cite: 224]
-    skullPlate.position.z = 0.5; // [cite: 225]
+    const skullPlate = new THREE.Mesh(new THREE.SphereGeometry(2.0, 16, 16), matArmor);
+    skullPlate.scale.set(0.85, 0.9, 1.1); [cite: 828]
+    skullPlate.position.z = 0.5; [cite: 829]
     maskGroup.add(skullPlate);
 
-    // 【こだわり】装甲の継ぎ目（胸甲と頭甲の関節部）を表現するパーツを追加
-    const nuchalPlate = new THREE.Mesh(new THREE.SphereGeometry(2.1, 16, 12), matArmor);
-    nuchalPlate.scale.set(0.9, 0.6, 1.2);
-    nuchalPlate.position.set(0, -0.4, -0.2);
-    nuchalPlate.rotation.x = Math.PI / 8;
+    const nuchalPlate = new THREE.Mesh(new THREE.SphereGeometry(2.1, 16, 12), matArmor); [cite: 832]
+    nuchalPlate.scale.set(0.9, 0.6, 1.2); 
+    nuchalPlate.position.set(0, -0.4, -0.2); 
+    nuchalPlate.rotation.x = Math.PI / 8; 
     maskGroup.add(nuchalPlate);
 
     for (let side of [-1, 1]) {
-        // [cite: 228] BoxからSphereへ変更し、積み木感を無くして生物らしい流線型の頬装甲へ
-        const cheek = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matArmor); // [cite: 229]
-        cheek.scale.set(0.4, 1.2, 1.4); // [cite: 233]
-        cheek.position.set(side * 1.5, -0.5, 0.5); // [cite: 234]
-        cheek.rotation.z = side * 0.2; // [cite: 235]
+        const cheek = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matArmor); [cite: 840]
+        cheek.scale.set(0.4, 1.2, 1.4); [cite: 842]
+        cheek.position.set(side * 1.5, -0.5, 0.5); [cite: 843]
+        cheek.rotation.z = side * 0.2; [cite: 844]
         maskGroup.add(cheek);
 
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), eyeMat); // [cite: 237]
-        eye.position.set(side * 1.5, 0.3, 1.2); // [cite: 238]
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), eyeMat);
+        eye.position.set(side * 1.5, 0.3, 1.2); [cite: 849]
         maskGroup.add(eye);
 
-        // --- 【アップデート】上顎の骨板（上下逆の解消と、自己研磨式の噛み合わせ） ---
-        // 1. 上あごの牙（骨板）を作成
+        // --- 【修正箇所】上顎の牙：先端を下向きにフリップ ---
         const uTooth = new THREE.Mesh(toothGeom, matTooth);
-        uTooth.scale.set(0.8, 1.0, 1.0); // わずかに扁平にして「刃」の質感へ
+        uTooth.scale.set(0.8, 1.0, 1.0); 
 
-        // 2. 配置（cheek装甲の「内側」に根元をしっかり接続）
-        uTooth.position.set(side * 1.0, -1.0, 1.8);
+        // 1. 位置の調整（cheekの内側から下へ突き出すように）
+        uTooth.position.set(side * 0.8, -0.8, 1.9);
 
-        // 3. 角度（絶対に上を向かせず、完全に下を向いて下顎骨板と交差させる）
-        uTooth.rotation.x = 0; // 基準をリセット [cite: 242]
-        // わずかに後方を向かせて「えぐり取る」角度にし、下顎が入り込むスペースを作る
-        uTooth.rotation.x = -0.2; // 
-        // わずかに外側に傾けて、下顎骨板を外側からハサミのように挟み込む
-        uTooth.rotation.z = side * -0.15;
+        // 2. 角度の修正：Math.PI で上下を反転させ、先端を下に向けます
+        uTooth.rotation.x = Math.PI; 
+        
+        // 3. 噛み合わせ調整：わずかに後方へ傾け、下顎と交差するように微調整
+        uTooth.rotation.x += 0.2; 
+        uTooth.rotation.z = side * -0.1;
 
         maskGroup.add(uTooth);
     }
 
     g.userData = { body: fishBodyGroup, jaw: jawGroup, head: maskGroup, tailStem, tailFin: tailFinGroup };
-    g.scale.set(1.5, 1.5, 1.5); // [cite: 244]
+    g.scale.set(1.5, 1.5, 1.5); 
 
     return { mesh: g, type: 'fish_dunk' };
 }
