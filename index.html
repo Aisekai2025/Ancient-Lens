@@ -2427,129 +2427,150 @@ function animateDunkleosteus(fish, clock) {
     });
 }
 
-//
-//--- 【古生物学×3D造形×システム】 コッコテウス: 機動・中型板皮類モデル ---
-//
+// --- 【古生物学×3D造形×SE】 コッコテウス: シャープ＆強襲フォルム版 ---
+
 function buildCoccosteus() {
     const g = new THREE.Group();
 
-    // 【マテリアル: デボン紀の海に溶け込む保護色と硬質な装甲】
+    // 【アースカラー・マテリアル】セージグリーン(装甲)とブラウン(生身)
     const matArmor = new THREE.MeshStandardMaterial({
-        color: 0x6e726b, // ダンクルよりやや明るい、岩礁に似た鉛色 [cite: 762]
-        roughness: 0.8,
-        metalness: 0.2,
-        transparent: false,
-        depthWrite: true
+        color: 0x5b7056, // セージグリーン（滑らかな装甲）
+        roughness: 0.6,
+        metalness: 0.4,
     });
-
     const matBody = new THREE.MeshStandardMaterial({
-        color: 0x4a544e, // 筋肉質な後体部 [cite: 769]
+        color: 0x4a3b32, // ダークブラウン（しなやかな生身）
         roughness: 0.9,
         metalness: 0.0,
-        transparent: false
     });
-
     const matTooth = new THREE.MeshStandardMaterial({
-        color: 0xd9d9ca, // 自己研磨される骨板 [cite: 776]
-        roughness: 0.5
+        color: 0xd0d0c8, // 鋭利な骨板の色
+        roughness: 0.4,
+        metalness: 0.2,
     });
-
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.1 });
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.1, metalness: 0.9 });
 
     const fishBodyGroup = new THREE.Group();
     g.add(fishBodyGroup);
 
-    // 1.【生身】胴体：ダンクルより細身で、後方へ長く伸びる 
-    const torso = new THREE.Mesh(new THREE.SphereGeometry(1.0, 32, 24), matBody);
-    torso.scale.set(0.5, 0.8, 4.0); 
-    torso.position.z = -1.8;
+    // 1. 【胴体】ダンクルよりスリムでシャープな流線型
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 20), matArmor);
+    torso.scale.set(0.7, 0.8, 1.8);
     fishBodyGroup.add(torso);
 
-    // 胸鰭：コッコテウスの特徴である、より大きく翼のような形状 [cite: 798]
+    // 2. 【頭甲】ウェッジ（楔）状に鋭く
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 0.2, 1.5);
+    fishBodyGroup.add(headGroup);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.8, 20, 16), matArmor);
+    head.scale.set(0.7, 0.5, 1.2); 
+    head.rotation.x = -0.1; // 少し下向きの鋭い顔つき
+    headGroup.add(head);
+
+    // 目
     for (let side of [-1, 1]) {
-        const pFin = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), matBody);
-        pFin.scale.set(1.8, 0.05, 1.2); 
-        pFin.position.set(side * 0.9, 0.2, -0.8);
-        pFin.rotation.z = side * 0.6;
-        fishBodyGroup.add(pFin);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
+        eye.position.set(side * 0.45, 0.15, 0.5);
+        headGroup.add(eye);
     }
 
-    // 2.【装甲】頭甲と胸甲の関節構造
-    const maskGroup = new THREE.Group();
-    maskGroup.position.set(0, 0.5, 1.2);
-    g.add(maskGroup);
+    // 3. 【修正】上あご（前上顎骨板）：飛び出しを抑え、頭甲に格納
+    // Z位置を1.0から0.6へ大幅に後退させ、頭甲のラインに沿わせる
+    const upperJaw = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.4, 4), matTooth);
+    upperJaw.rotation.x = Math.PI / 2.2; // 前に突き出さず、下に向ける
+    upperJaw.rotation.y = Math.PI / 4; 
+    upperJaw.scale.set(1.5, 1.0, 0.5);
+    upperJaw.position.set(0, -0.2, 0.6); // ← 【重要】頭甲(head)の内部に収める位置
+    headGroup.add(upperJaw);
 
-    // 頭甲 (Cranial shield)
-    const skullPlate = new THREE.Mesh(new THREE.SphereGeometry(1.4, 16, 16), matArmor);
-    skullPlate.scale.set(0.7, 0.8, 1.0);
-    maskGroup.add(skullPlate);
-
-    // 胸甲 (Thoracic shield)：コッコテウス特有の、胴体を囲む環状の装甲 [cite: 859]
-    const trunkArmor = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 12), matArmor);
-    trunkArmor.scale.set(0.75, 0.75, 1.0);
-    trunkArmor.position.z = -0.6;
-    maskGroup.add(trunkArmor);
-
-    for (let side of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), eyeMat);
-        eye.position.set(side * 0.8, 0.2, 0.8);
-        maskGroup.add(eye);
-
-        // 上顎の骨板：先端を下に向けた「ギロチン」構造を継承 
-        const toothGeom = new THREE.ConeGeometry(0.15, 1.0, 16);
-        const uTooth = new THREE.Mesh(toothGeom, matTooth);
-        uTooth.rotation.x = Math.PI; // 反転して下を向かせる
-        uTooth.position.set(side * 0.45, -0.6, 1.2);
-        maskGroup.add(uTooth);
-    }
-
-    // 3.【下顎】
+    // 4. 【下あご】シャープなギロチン・ジョー
     const jawGroup = new THREE.Group();
-    jawGroup.position.set(0, -0.3, 1.2);
-    fishBodyGroup.add(jawGroup);
+    jawGroup.position.set(0, -0.2, -0.2); // 支点を頭の後方下部に
+    headGroup.add(jawGroup);
 
-    const jawBase = new THREE.Mesh(new THREE.SphereGeometry(0.9, 24, 16), matArmor);
-    jawBase.scale.set(0.6, 0.3, 1.2);
-    jawGroup.add(jawBase);
+    const lowerJaw = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), matArmor);
+    lowerJaw.scale.set(0.6, 0.2, 1.0);
+    lowerJaw.position.set(0, -0.1, 0.6);
+    jawGroup.add(lowerJaw);
 
-    // 4.【尾部】しなやかに動く長い尾 [cite: 811]
+    const lowerTooth = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.35, 4), matTooth);
+    lowerTooth.rotation.x = -Math.PI / 2.5; // 上に向かって尖らせる
+    lowerTooth.rotation.y = Math.PI / 4;
+    lowerTooth.position.set(0, 0.15, 1.2); // 下あごの先端に配置
+    jawGroup.add(lowerTooth);
+
+    // 5. 【尾部】しなやかな遊泳のための多関節構造
     const tailGroup = new THREE.Group();
-    tailGroup.position.set(0, 0, -5.5);
+    tailGroup.position.z = -1.5;
     fishBodyGroup.add(tailGroup);
 
-    const tailFin = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matBody);
-    tailFin.scale.set(0.05, 1.8, 1.4); 
-    tailFin.rotation.x = Math.PI / 8;
+    const tailStem = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.1, 2.5, 16), matBody);
+    tailStem.rotation.x = Math.PI / 2;
+    tailStem.position.z = -1.25;
+    tailGroup.add(tailStem);
+
+    // 背びれと尾びれ
+    const dorsalFin = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 8), matBody);
+    dorsalFin.position.set(0, 0.8, -0.5);
+    dorsalFin.rotation.x = -0.5;
+    fishBodyGroup.add(dorsalFin);
+
+    const tailFin = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.2, 8), matBody);
+    tailFin.position.set(0, 0, -2.5);
+    tailFin.rotation.x = -Math.PI / 2;
+    tailFin.scale.set(0.1, 1, 1);
     tailGroup.add(tailFin);
 
-    g.userData = { body: fishBodyGroup, jaw: jawGroup, head: maskGroup, tail: tailGroup };
-    g.scale.set(1.2, 1.2, 1.2); 
+    // 【SE施策】アニメーション関数に渡すためのデータを厳密にバインド
+    g.userData = {
+        body: fishBodyGroup,
+        head: headGroup,
+        jaw: jawGroup,     // 下顎のヒンジ
+        tail: tailGroup,   // 尾の付け根
+        type: 'coccosteus' // タイプ判定用
+    };
 
-    return { mesh: g, type: 'fish_coccosteus' };
+    return { mesh: g, type: 'coccosteus' };
 }
 
-// --- アニメーション: 中型魚らしい、キビキビとした泳ぎ ---
-function animateCoccosteus(fish, clock) {
-    const time = clock.getElapsedTime();
-    const data = fish.userData;
+// --- 【完全版】コッコテウスのアニメーション ---
+function animateCoccosteus(mesh, clock) {
+    if (!mesh || !mesh.userData) return;
+    
+    // clockがオブジェクトか数値か両対応する安全設計
+    const time = (typeof clock === 'object' && clock.getElapsedTime) 
+                 ? clock.getElapsedTime() 
+                 : (typeof clock === 'number' ? clock : 0);
+                 
+    const data = mesh.userData;
 
-    // 1. 全体のうねり：ダンクルよりも速い周期でしなやかに [cite: 896]
-    const wave = Math.sin(time * 3.0);
-    fish.rotation.y = wave * 0.08;
-    fish.position.y += Math.cos(time * 2.0) * 0.01;
+    // 1. 全体のうねり（ダンクルより周期が速く、振幅も大きいキビキビとした動き）
+    // サイン波 $y = \sin(t \times 4.0)$ で高回転な遊泳を表現
+    const fastWave = Math.sin(time * 4.0);
+    mesh.rotation.y = fastWave * 0.06;
+    mesh.position.y += Math.cos(time * 3.0) * 0.008; // 上下の微細な揺れ
 
-    // 2. 尾びれの連動
+    // 2. 尾びれの連動（しなやかな鞭のような動き）
     if (data.tail) {
-        data.tail.rotation.y = Math.sin(time * 3.0 - 1.5) * 0.5;
+        // 全体のうねりから位相をずらすことで、波が後ろに伝わる表現
+        data.tail.rotation.y = Math.sin(time * 4.0 - 1.5) * 0.35;
     }
 
-    // 3. 顎の開閉：小刻みな捕食動作 [cite: 906]
-    const jawCycle = (time * 1.5) % 1.0;
-    let jawOpen = jawCycle < 0.8 ? Math.pow(jawCycle / 0.8, 2) : 1.0 - (jawCycle - 0.8) / 0.2;
-    if (data.jaw) data.jaw.rotation.x = -jawOpen * 0.3;
-    
-    // 水流による細かな揺れ
-    fish.position.y += Math.sin(time * 1.2) * 0.003;
+    // 3. 顎の開閉（ハンターらしい、小刻みで鋭いスナップ）
+    if (data.jaw) {
+        // 周期的な噛みつき: 1.5秒に1回、鋭く開いて閉じる
+        const jawCycle = (time * 1.5) % 1.0;
+        // jawCycleが0.8以上の時だけ口を開く（素早いパカッという動き）
+        let jawOpen = 0;
+        if (jawCycle > 0.8) {
+            jawOpen = Math.sin((jawCycle - 0.8) * 5 * Math.PI); 
+        }
+        // 下顎を下げる（マイナス回転）
+        data.jaw.rotation.x = -Math.max(0, jawOpen) * 0.4;
+        // 水流による細かな揺れ
+        data.body.position.y += Math.sin(time * 1.2) * 0.003;
+    }    
 }
 
 function buildBothriolepis() {
