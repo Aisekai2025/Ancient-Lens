@@ -3455,9 +3455,12 @@ entities.forEach(ent => {
     // --------------------------------------------------
 
     // --- 【追加】アストラスピス専用のアニメーション呼び出し ---
-    if (ent.type === 'fish_astraspis') {
-        // 前回のV3.0で作成した「不器用なふらふら泳ぎ」を呼び出す
-        animateAstraspis(ent.mesh, time);
+    // --- 【修正ポイント】clockオブジェクトをシミュレートして渡す ---
+    const clockSim = { getElapsedTime: () => time };
+
+    if (ent.type === 'coccosteus') {
+        // time ではなく clockSim を渡す
+        animateCoccosteus(ent.mesh, clockSim);
     }
     // --------------------------------------------------
 
