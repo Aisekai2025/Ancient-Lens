@@ -2247,20 +2247,22 @@ function buildDunkleosteus() {
         eye.position.set(side * 1.5, 0.3, 1.2); // [cite: 238]
         maskGroup.add(eye);
 
-        // --- 【アップデート】上顎の骨板（上下逆の解消と、自己研磨式の噛み合わせ） ---
-        // 1. 上あごの牙（骨板）を作成
+        // --- 【修正版】上顎の骨板（牙）：先端を下向きにする ---
         const uTooth = new THREE.Mesh(toothGeom, matTooth);
         uTooth.scale.set(0.8, 1.0, 1.0); // わずかに扁平にして「刃」の質感へ
 
-        // 2. 配置（cheek装甲の「内側」に根元をしっかり接続）
-        uTooth.position.set(side * 1.0, -1.0, 1.8);
+        // 1. 位置の調整（cheek装甲の「内側」から下へ突き出すように）
+        // Z位置を少し前に出すと、下あごとの噛み合わせが綺麗になります
+        uTooth.position.set(side * 0.8, -0.8, 1.9);
 
-        // 3. 角度（絶対に上を向かせず、完全に下を向いて下顎骨板と交差させる）
-        uTooth.rotation.x = 0; // 基準をリセット [cite: 242]
-        // わずかに後方を向かせて「えぐり取る」角度にし、下顎が入り込むスペースを作る
-        uTooth.rotation.x = -0.2; // 
-        // わずかに外側に傾けて、下顎骨板を外側からハサミのように挟み込む
-        uTooth.rotation.z = side * -0.15;
+        // 2. 【重要】角度の修正：Math.PI で上下を完全に反転させます
+        uTooth.rotation.x = Math.PI; 
+
+        // 3. 噛み合わせの微調整
+        // わずかに後方（0.2）へ傾け、下顎とハサミのように交差する角度にします
+        uTooth.rotation.x += 0.2; 
+        // わずかに内側に傾けて、下あごを外側から包み込むようにします
+        uTooth.rotation.z = side * -0.1;
 
         maskGroup.add(uTooth);
     }
