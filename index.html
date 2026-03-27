@@ -687,13 +687,12 @@ function buildSidneyia() {
 }
 
 // --- オルドビス紀 ---
-// --- 【古生物学×3D造形×SE】 アストラスピス：テッセラ装甲＆実体口実装版 ---
+// --- 【古生物学×3D造形×SE】 アストラスピス：三部構成＆視認性改善版 ---
 
 function buildAstraspis() {
     const g = new THREE.Group();
 
-    // 1. 【SE施策】テッセラ（装甲板）を表現する動的テクスチャの生成
-    // 編み目（ワイヤーフレーム）を使わず、表面の質感として詳細を描き込みます
+    // 1. テッセラ（装甲板）テクスチャの生成（以前の優れた質感を維持）
     const createTesseraeTexture = () => {
         const canvas = document.createElement('canvas');
         canvas.width = 512; canvas.height = 512;
@@ -702,7 +701,6 @@ function buildAstraspis() {
         ctx.fillRect(0, 0, 512, 512);
         ctx.strokeStyle = '#665544';
         ctx.lineWidth = 2;
-        // ランダムな多角形（テッセラ）を描画
         for (let i = 0; i < 200; i++) {
             ctx.beginPath();
             ctx.arc(Math.random() * 512, Math.random() * 512, 5 + Math.random() * 10, 0, Math.PI * 2);
@@ -716,7 +714,7 @@ function buildAstraspis() {
 
     const armorMat = new THREE.MeshStandardMaterial({
         map: createTesseraeTexture(),
-        bumpMap: createTesseraeTexture(), // 凹凸感も追加
+        bumpMap: createTesseraeTexture(),
         bumpScale: 0.02,
         roughness: 0.8,
         metalness: 0.1
@@ -725,7 +723,7 @@ function buildAstraspis() {
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.1, metalness: 0.9 });
     const fleshMat = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 0.9 });
 
-    // 2. 胴部シールド (造形維持)
+    // 2. 【胴部シールド】 前面の造形を維持しつつパーツ配置を最適化
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
 
@@ -733,24 +731,23 @@ function buildAstraspis() {
     torso.scale.set(1.1, 0.7, 1.8);
     bodyGroup.add(torso);
 
-    // 3. 【修正】目と眼窩（がんか）の追加
+    // 【修正】目と眼窩：シールドの表面（Z=1.8付近）に確実に露出させる
     for (let side of [-1, 1]) {
-        // 目（埋没しないよう前方にオフセット）
+        const eyePos = { x: side * 0.85, y: 0.25, z: 1.8 }; // Z値を増やして前へ
+        
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-        eye.position.set(side * 0.9, 0.25, 1.4); 
+        eye.position.set(eyePos.x, eyePos.y, eyePos.z);
         bodyGroup.add(eye);
         
-        // 眼窩（装甲の縁取り）
         const socket = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 8, 16), armorMat);
-        socket.position.copy(eye.position);
+        socket.position.set(eyePos.x, eyePos.y, eyePos.z);
         socket.rotation.y = side * 0.4;
         bodyGroup.add(socket);
     }
 
-    // 4. 【修正】口（吸い込み口の実体化）
-    // スリットではなく、無顎類特有の丸い開口部を造形
+    // 【修正】口：さらに先端かつ下部に配置して実体化
     const mouthGroup = new THREE.Group();
-    mouthGroup.position.set(0, -0.3, 1.7);
+    mouthGroup.position.set(0, -0.35, 2.3); // シールドの先端に配置
     bodyGroup.add(mouthGroup);
 
     const mouthRim = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.08, 12, 24), armorMat);
@@ -759,41 +756,62 @@ function buildAstraspis() {
 
     const mouthInside = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), fleshMat);
     mouthInside.scale.set(1, 0.2, 1);
-    mouthInside.position.y = 0.05;
     mouthGroup.add(mouthInside);
 
-    // 5. 尾部と尾びれ (造形維持)
+    // 3. 【尾部・尾鰭】 イモムシ構造を廃止し、柔軟な一本の尾に
     const tailGroup = new THREE.Group();
-    tailGroup.position.z = -1.8;
+    tailGroup.position.z = -1.5; // シールドの後端から開始
     g.add(tailGroup);
 
-    const segments = [];
-    let parent = tailGroup;
-    for (let i = 0; i < 5; i++) {
-        const seg = new THREE.Group();
-        seg.position.z = -0.6;
-        parent.add(seg);
-        const sMesh = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12), armorMat);
-        sMesh.scale.set(0.8 - i * 0.1, 0.6 - i * 0.08, 0.8);
-        seg.add(sMesh);
-        segments.push(seg);
-        parent = seg;
-    }
+    // 尾の本体（Tail Stem）
+    const tailStem = new THREE.Mesh(new THREE.SphereGeometry(0.8, 24, 16), armorMat);
+    tailStem.scale.set(0.7, 0.5, 2.0);
+    tailStem.position.z = -1.0;
+    tailGroup.add(tailStem);
 
-    // 尾びれ (造形維持：楕円状)
+    // 尾鰭（Tail Fin）：楕円の造形を維持
+    const tailFinGroup = new THREE.Group();
+    tailFinGroup.position.z = -2.5; // 尾の先端
+    tailGroup.add(tailFinGroup);
+
     const tailFin = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), armorMat);
-    tailFin.scale.set(0.05, 1.2, 0.8);
+    tailFin.scale.set(0.05, 1.4, 1.0);
     tailFin.position.z = -0.5;
-    parent.add(tailFin);
+    tailFinGroup.add(tailFin);
 
-    // データ紐付け（既存アニメーション維持）
+    // データ紐付け（アニメーション用）
     g.userData = { 
         body: bodyGroup, 
-        segments: segments,
+        tail: tailGroup,
+        fin: tailFinGroup,
         type: 'fish_astraspis'
     };
 
     return { mesh: g, type: 'fish_astraspis' };
+}
+
+// --- 【修正】アニメーション：尾を振って泳ぐ動き ---
+
+function animateAstraspis(mesh, clock) {
+    if (!mesh || !mesh.userData) return;
+    const time = (typeof clock === 'object') ? clock.getElapsedTime() : clock;
+    const data = mesh.userData;
+
+    const swimSpeed = 2.5;
+    const swimAmp = 0.2;
+
+    // 1. 全体のわずかな揺れ（ピッチング）
+    mesh.position.y += Math.sin(time * 1.5) * 0.002;
+
+    // 2. 尾の大きな振り（左右のうねり）
+    if (data.tail) {
+        data.tail.rotation.y = Math.sin(time * swimSpeed) * swimAmp;
+    }
+
+    // 3. 尾鰭の遅れた動き（有機的なしなりを表現）
+    if (data.fin) {
+        data.fin.rotation.y = Math.sin(time * swimSpeed - 0.8) * (swimAmp * 1.5);
+    }
 }
 
 function buildSacabambaspis() {
