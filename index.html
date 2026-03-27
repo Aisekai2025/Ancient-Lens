@@ -2696,42 +2696,60 @@ function buildTiktaalik() {
         fins.push(f); // [cite: 599]
     });
 
-    // データの紐付け [cite: 622-625]
+    // データの紐付け
     g.userData = { body: bodyGroup, head: headGroup, jaw: jaw, segments: segments, fins: fins };
     g.scale.set(1.2, 1.2, 1.2);
 
-    return { mesh: g, type: 'tiktaalik' };
+    // 【修正】type名を元の 'swim_tiktaalik' に戻す
+    return { mesh: g, type: 'swim_tiktaalik' }; 
 }
 
-function animateTiktaalik(ent, clock) {
-    const time = clock.getElapsedTime();
-    const data = ent.userData;
+// --- 完全防弾版：ティクターリクのアニメーション ---
+function animateTiktaalik(fish, clock) {
+    // 1. 引数がラッパー(ent)か、Mesh本体かを自動判定
+    const mesh = fish.mesh ? fish.mesh : fish;
+    
+    // データが読み込まれていない場合はスキップ（エラー落ちを防ぐ）
+    if (!mesh || !mesh.userData || !mesh.userData.fins) return;
 
-    // 1. 【首の独立可動】 体の動きとは別に、獲物を探して頭を振る
-    data.head.rotation.y = Math.sin(time * 0.8) * 0.15;
-    data.head.rotation.x = Math.sin(time * 1.5) * 0.05;
+    // 2. 時間(time)の取得方法を自動判定
+    const time = (typeof clock === 'object' && clock.getElapsedTime) 
+        ? clock.getElapsedTime() 
+        : (typeof clock === 'number' ? clock : 0);
+        
+    const data = mesh.userData;
 
-    // 2. 【胴体の波状運動】 セグメント化された体幹のしなり
-    data.segments.forEach((seg, i) => {
-        // 後方のセグメントほど遅れて、かつ大きく波打つ
-        seg.rotation.y = Math.sin(time * 2.5 - (i + 1) * 0.6) * 0.15;
-    });
+    // 【首の独立可動】
+    if (data.head) {
+        data.head.rotation.y = Math.sin(time * 0.8) * 0.15;
+        data.head.rotation.x = Math.sin(time * 1.5) * 0.05;
+    }
 
-    // 3. 【肉鰭のローイング（歩行）運動】
-    data.fins.forEach((fin) => {
-        const orig = fin.userData.origRot;
-        // 左右で位相をずらし、前肢と後肢でもタイミングを変える対角歩行
-        const phase = (fin.position.x > 0 ? 0 : Math.PI) + (fin.userData.isFront ? 0 : Math.PI / 2);
-        const wave = Math.sin(time * 3.0 + phase);
+    // 【胴体のしなり】
+    if (data.segments) {
+        data.segments.forEach((seg, i) => {
+            seg.rotation.y = Math.sin(time * 2.5 - (i + 1) * 0.6) * 0.15;
+        });
+    }
 
-        // 肩/股関節の回転運動（前後に水を掻く、あるいは泥を蹴る）
-        fin.rotation.x = orig.x + wave * 0.3;
-        // 体を押し上げるための上下の動き（腕立て伏せ）
-        fin.rotation.z = orig.z + (Math.cos(time * 3.0 + phase) * 0.1);
-    });
+    // 【肉鰭のローイング（対角歩行）】
+    if (data.fins) {
+        data.fins.forEach((fin) => {
+            const orig = fin.userData.origRot;
+            if (!orig) return; // 基準角度がない場合は安全にスキップ
+            
+            const phase = (fin.position.x > 0 ? 0 : Math.PI) + (fin.userData.isFront ? 0 : Math.PI / 2);
+            const wave = Math.sin(time * 3.0 + phase);
 
-    // 4. 【呼吸】 エラ呼吸と肺呼吸の過渡期を思わせる顎の動き
-    data.jaw.rotation.x = (Math.sin(time * 2.0) * 0.05) + 0.05;
+            fin.rotation.x = orig.x + wave * 0.3;
+            fin.rotation.z = orig.z + (Math.cos(time * 3.0 + phase) * 0.1);
+        });
+    }
+
+    // 【顎の呼吸】
+    if (data.jaw) {
+        data.jaw.rotation.x = (Math.sin(time * 2.0) * 0.05) + 0.05;
+    }
 }
 
 function buildStethacanthus() { 
@@ -3381,6 +3399,13 @@ function animate() {
     entities.forEach(ent => {
         // 1. 位置や向きの更新（これは全クリーチャー共通で1回だけ！）
         ent.update(time, dummyObj);
+
+        // --- ここから追加・確認 ---
+        if (ent.type === 'swim_tiktaalik') {
+            // time を clock オブジェクトに見せかけて渡す
+            animateTiktaalik(ent.mesh, { getElapsedTime: () => time });
+        }
+        // --------------------------
 
         // 2. 個別の脚アニメーションの呼び出し
         if (ent.mesh && ent.mesh.userData && ent.mesh.userData.legs) {
