@@ -2118,7 +2118,7 @@ function animateBelinurus(crab, clock) {
 function buildDunkleosteus() {
     const g = new THREE.Group();
 
-    // 【マテリアル: 重厚な鉛色と、生きている皮膚の質感】 [cite: 734]
+    // マテリアル設定
     const matArmor = new THREE.MeshStandardMaterial({
         color: 0x7c7f7d, 
         roughness: 0.7, 
@@ -2126,140 +2126,103 @@ function buildDunkleosteus() {
         transparent: false,
         depthWrite: true
     });
-
     const matBody = new THREE.MeshStandardMaterial({
         color: 0x3d4742, 
         roughness: 0.9,
         metalness: 0.0,
         transparent: false
     });
-
-    const matTooth = new THREE.MeshStandardMaterial({
-        color: 0xe0e0d5, 
-        roughness: 0.5,
-        metalness: 0.1, 
-    });
+    const matTooth = new THREE.MeshStandardMaterial({ color: 0xe0e0d5, roughness: 0.5 });
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.1 });
 
     const fishBodyGroup = new THREE.Group();
     g.add(fishBodyGroup);
 
-    // 1.【生身】胴体とヒレ（延長・筋肉質モデル） [cite: 756]
+    // 1. 胴体とヒレ（流線形）
     const torso = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 24), matBody);
-    torso.scale.set(0.65, 1.2, 3.5); [cite: 758]
-    torso.position.z = -1.5; [cite: 759]
+    torso.scale.set(0.65, 1.2, 3.5);
+    torso.position.z = -1.5;
     fishBodyGroup.add(torso);
 
-    const dorsalFin = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.5, 8), matBody);
-    dorsalFin.rotation.x = Math.PI / 3; [cite: 764]
-    dorsalFin.position.set(0, 1.6, -1.8); [cite: 765]
-    fishBodyGroup.add(dorsalFin);
-
-    for (let side of [-1, 1]) {
-        const pFin = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), matBody);
-        pFin.scale.set(1.5, 0.1, 1.8); [cite: 771]
-        pFin.position.set(side * 1.2, 0.5, -0.5); [cite: 772]
-        pFin.rotation.z = side * 0.4; [cite: 773]
-        pFin.rotation.y = side * -0.2; 
-        fishBodyGroup.add(pFin);
-    }
-
-    // --- 延長された尾部パーツ（楕円形尾びれ） --- [cite: 777]
+    // 延長された尾部
     const tailGroup = new THREE.Group();
-    tailGroup.position.set(0, 0, -5.0); 
+    tailGroup.position.set(0, 0, -5.0);
     fishBodyGroup.add(tailGroup);
 
     const tailStem = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 12), matBody);
-    tailStem.scale.set(0.4, 0.8, 1.5); [cite: 784]
-    tailStem.position.z = -0.5; [cite: 785]
+    tailStem.scale.set(0.4, 0.8, 1.5);
     tailGroup.add(tailStem);
 
     const tailFinGroup = new THREE.Group();
-    tailFinGroup.position.set(0, 0, -1.8); [cite: 789]
+    tailFinGroup.position.set(0, 0, -1.8);
     tailStem.add(tailFinGroup);
 
-    // 上葉（楕円を用いた異尾びれ） [cite: 792]
+    // 楕円形の尾びれ（上葉と下葉）
     const tailFinUpper = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), matBody);
-    tailFinUpper.scale.set(0.08, 2.5, 1.5); 
-    tailFinUpper.rotation.x = -Math.PI / 6; 
-    tailFinUpper.position.set(0, 1.0, -0.5); [cite: 796]
+    tailFinUpper.scale.set(0.08, 2.5, 1.5);
+    tailFinUpper.rotation.x = -Math.PI / 6;
+    tailFinUpper.position.set(0, 1.0, -0.5);
     tailFinGroup.add(tailFinUpper);
 
-    // 下葉 [cite: 799]
     const tailFinLower = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 12), matBody);
-    tailFinLower.scale.set(0.08, 1.8, 1.2); 
-    tailFinLower.rotation.x = Math.PI / 4; 
-    tailFinLower.position.set(0, -0.8, -0.2); [cite: 803]
+    tailFinLower.scale.set(0.08, 1.8, 1.2);
+    tailFinLower.rotation.x = Math.PI / 4;
+    tailFinLower.position.set(0, -0.8, -0.2);
     tailFinGroup.add(tailFinLower);
 
-    // 2.【生身】下顎ユニット [cite: 805]
+    // 2. 下顎ユニット
     const jawGroup = new THREE.Group();
-    jawGroup.position.set(0, -0.6, 1.5); [cite: 807]
+    jawGroup.position.set(0, -0.6, 1.5);
     fishBodyGroup.add(jawGroup);
 
     const jawBase = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), matArmor);
-    jawBase.scale.set(0.8, 0.4, 1.4); [cite: 810]
-    jawBase.position.set(0, -0.2, 0.5); [cite: 811]
+    jawBase.scale.set(0.8, 0.4, 1.4);
     jawGroup.add(jawBase);
 
-    // 下顎の牙（先端は上向き）
-    const toothGeom = new THREE.ConeGeometry(0.25, 1.8, 16); [cite: 814]
+    const toothGeom = new THREE.ConeGeometry(0.25, 1.8, 16);
     for (let side of [-1, 1]) {
         const lTooth = new THREE.Mesh(toothGeom, matTooth);
-        lTooth.position.set(side * 0.55, 0.5, 1.8); 
+        lTooth.position.set(side * 0.55, 0.5, 1.8);
         lTooth.rotation.x = 0.5; 
-        lTooth.rotation.z = side * 0.1; 
         jawGroup.add(lTooth);
     }
 
-    // 3.【装甲】頭部仮面 [cite: 823]
+    // 3. 頭部装甲と「逆向き」の上顎牙
     const maskGroup = new THREE.Group();
-    maskGroup.position.set(0, 0.8, 1.5); [cite: 825]
+    maskGroup.position.set(0, 0.8, 1.5);
     g.add(maskGroup);
 
     const skullPlate = new THREE.Mesh(new THREE.SphereGeometry(2.0, 16, 16), matArmor);
-    skullPlate.scale.set(0.85, 0.9, 1.1); [cite: 828]
-    skullPlate.position.z = 0.5; [cite: 829]
+    skullPlate.scale.set(0.85, 0.9, 1.1);
     maskGroup.add(skullPlate);
 
-    const nuchalPlate = new THREE.Mesh(new THREE.SphereGeometry(2.1, 16, 12), matArmor); [cite: 832]
-    nuchalPlate.scale.set(0.9, 0.6, 1.2); 
-    nuchalPlate.position.set(0, -0.4, -0.2); 
-    nuchalPlate.rotation.x = Math.PI / 8; 
-    maskGroup.add(nuchalPlate);
-
     for (let side of [-1, 1]) {
-        const cheek = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matArmor); [cite: 840]
-        cheek.scale.set(0.4, 1.2, 1.4); [cite: 842]
-        cheek.position.set(side * 1.5, -0.5, 0.5); [cite: 843]
-        cheek.rotation.z = side * 0.2; [cite: 844]
+        const cheek = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matArmor);
+        cheek.scale.set(0.4, 1.2, 1.4);
+        cheek.position.set(side * 1.5, -0.5, 0.5);
         maskGroup.add(cheek);
 
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), eyeMat);
-        eye.position.set(side * 1.5, 0.3, 1.2); [cite: 849]
+        eye.position.set(side * 1.5, 0.3, 1.2);
         maskGroup.add(eye);
 
-        // --- 【修正箇所】上顎の牙：先端を下向きにフリップ ---
+        // 【修正】上あごの牙：先端を下に向ける
         const uTooth = new THREE.Mesh(toothGeom, matTooth);
-        uTooth.scale.set(0.8, 1.0, 1.0); 
-
-        // 1. 位置の調整（cheekの内側から下へ突き出すように）
+        uTooth.rotation.x = Math.PI; // 上下反転
+        uTooth.rotation.x += 0.2;    // 角度の微調整
         uTooth.position.set(side * 0.8, -0.8, 1.9);
-
-        // 2. 角度の修正：Math.PI で上下を反転させ、先端を下に向けます
-        uTooth.rotation.x = Math.PI; 
-        
-        // 3. 噛み合わせ調整：わずかに後方へ傾け、下顎と交差するように微調整
-        uTooth.rotation.x += 0.2; 
-        uTooth.rotation.z = side * -0.1;
-
         maskGroup.add(uTooth);
     }
 
-    g.userData = { body: fishBodyGroup, jaw: jawGroup, head: maskGroup, tailStem, tailFin: tailFinGroup };
-    g.scale.set(1.5, 1.5, 1.5); 
-
+    g.userData = { body: fishBodyGroup, jaw: jawGroup, head: maskGroup, tail: tailGroup };
+    g.scale.set(1.5, 1.5, 1.5);
     return { mesh: g, type: 'fish_dunk' };
+}
+
+// switchEraエラー対策：とりあえず定義しておく
+function switchEra(eraName) {
+    console.log("時代を切り替え:", eraName);
+    // ここに背景やクリーチャーを切り替える処理を書く
 }
 
 // ========================================================
