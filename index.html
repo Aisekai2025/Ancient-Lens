@@ -1893,8 +1893,8 @@ function buildBelinurus() {
     // 【マテリアル】 海底の泥に溶け込む、赤みの強い重装甲
     const matShell = new THREE.MeshStandardMaterial({ 
         color: 0x663a22, // ブンストデラより赤褐色を強調
-        roughness: 0.9, 
-        metalness: 0.0,
+        roughness: 0.3, // 数値を下げるとツヤが出ます
+        metalness: 0.2, // ほんの少しだけ金属光沢を入れると甲羅っぽくなります
         transparent: false,
         depthWrite: true,
         side: THREE.FrontSide
@@ -1996,9 +1996,14 @@ function buildBelinurus() {
             const legRoot = new THREE.Group();
             legRoot.position.set(side * (0.3 + i * 0.02), -0.1, 0.4 - i * 0.18); 
             
-            // 腿関節 (Femur) 
+            // --- buildBelinurus内の脚の部分を少しリアルに ---
             const femur = new THREE.Mesh(femurGeo, matLeg);
-            femur.rotation.z = side * -0.2; 
+            // 少し外側に傾けることで、重厚感を出す
+            femur.rotation.z = side * -0.4; 
+            femur.rotation.x = 0.2; // 少し前傾させる
+
+             // 脛（すね）の角度を急にする
+             tibia.rotation.z = side * 0.5; 
             
             let tibia;
             // 【進化】 最後尾 (i === 5) は泥を掻くパドル状
