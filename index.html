@@ -3447,6 +3447,13 @@ entities.forEach(ent => {
         ent.update(time, dummyObj);
     } catch (e) { }
 
+    // --- 【追加】コッコテウスのアニメーション呼び出し ---
+    if (ent.type === 'coccosteus') {
+        // コッコテウス専用のアニメーション関数を呼び出す
+        animateCoccosteus(ent.mesh, time);
+    }
+    // --------------------------------------------------
+
     // --- 【追加】アストラスピス専用のアニメーション呼び出し ---
     if (ent.type === 'fish_astraspis') {
         // 前回のV3.0で作成した「不器用なふらふら泳ぎ」を呼び出す
