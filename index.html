@@ -1890,9 +1890,9 @@ function buildBelinurus() {
     const g = new THREE.Group();
     const segs = [];
     
-    // 【マテリアル】 海底の泥に溶け込む、赤みの強い重装甲 [cite: 774-781]
+    // 【マテリアル】 海底の泥に溶け込む、赤みの強い重装甲 [cite= 774-781]
     const matShell = new THREE.MeshStandardMaterial({ 
-        color: 0x663a22, // ブンストデラより赤褐色を強調 [cite: 775]
+        color: 0x663a22, // ブンストデラより赤褐色を強調 [cite= 775]
         roughness: 0.9, 
         metalness: 0.0,
         transparent: false,
@@ -1900,8 +1900,8 @@ function buildBelinurus() {
         side: THREE.FrontSide
     });
 
-    const matLeg = new THREE.MeshStandardMaterial({ color: 0x3a2211, roughness: 1.0, metalness: 0.0 }); [cite: 783]
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.2, metalness: 0.4 }); [cite: 784, 785]
+    const matLeg = new THREE.MeshStandardMaterial({ color: 0x3a2211, roughness: 1.0, metalness: 0.0 }); [cite= 783]
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 0.2, metalness: 0.4 }); [cite= 784, 785]
 
     // --- 【有機的な脚パーツ】 先細りのCylinderGeometry ---
     const femurGeo = new THREE.CylinderGeometry(0.025, 0.015, 0.45, 8);
@@ -1915,18 +1915,18 @@ function buildBelinurus() {
     // 1. 前体 (Prosoma) - 扁平で鋭い流線形 
     const head = new THREE.Group();
     const headShell = new THREE.Mesh(
-        new THREE.SphereGeometry(1.5, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), [cite: 791]
+        new THREE.SphereGeometry(1.5, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), [cite= 791]
         matShell
     );
     headShell.scale.set(1.1, 0.35, 1.0); // ブンストデラより横広で平たい 
     head.add(headShell);
 
-    // 【ベリヌスの証明】 長大で鋭い頬棘 (Genal spine) [cite: 795]
+    // 【ベリヌスの証明】 長大で鋭い頬棘 (Genal spine) [cite= 795]
     for (let side of [-1, 1]) {
-        const genalSpine = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.4, 8), matShell); [cite: 798]
-        genalSpine.rotation.x = -Math.PI / 2; [cite: 799]
-        genalSpine.rotation.z = side * 0.15; // 後方へ鋭く伸びる [cite: 800]
-        genalSpine.position.set(side * 1.3, 0, -0.4); [cite: 801]
+        const genalSpine = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.4, 8), matShell); [cite= 798]
+        genalSpine.rotation.x = -Math.PI / 2; [cite= 799]
+        genalSpine.rotation.z = side * 0.15; // 後方へ鋭く伸びる [cite= 800]
+        genalSpine.position.set(side * 1.3, 0, -0.4); [cite= 801]
         head.add(genalSpine);
     }
 
@@ -1947,70 +1947,70 @@ function buildBelinurus() {
 
         eyeGroup.add(ridge);
         eyeGroup.add(eye);
-        eyeGroup.position.set(side * 0.7, 0.22, 0.2); // 後方に配置 [cite: 807]
+        eyeGroup.position.set(side * 0.7, 0.22, 0.2); // 後方に配置 [cite= 807]
         head.add(eyeGroup);
     }
 
-    g.add(head); [cite: 810]
-    segs.push(head); [cite: 811]
+    g.add(head); [cite= 810]
+    segs.push(head); [cite= 811]
 
-    // 2. 後体 (Opisthosoma) - 完全に融合したシールド [cite: 812]
-    const body = new THREE.Group(); [cite: 813]
-    body.position.set(0, -0.02, -0.9);  [cite: 814]
+    // 2. 後体 (Opisthosoma) - 完全に融合したシールド [cite= 812]
+    const body = new THREE.Group(); [cite= 813]
+    body.position.set(0, -0.02, -0.9);  [cite= 814]
     
     const bodyShell = new THREE.Mesh(
-        new THREE.SphereGeometry(1.1, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), [cite: 817]
+        new THREE.SphereGeometry(1.1, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), [cite= 817]
         matShell
     );
-    bodyShell.scale.set(0.9, 0.3, 1.1); [cite: 819]
-    body.add(bodyShell); [cite: 820]
+    bodyShell.scale.set(0.9, 0.3, 1.1); [cite= 819]
+    body.add(bodyShell); [cite= 820]
 
-    // 側縁棘 [cite: 821]
-    for (let i = 0; i < 5; i++) { [cite: 822]
-        for (let side of [-1, 1]) { [cite: 823]
-            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.6, 8), matShell); [cite: 824]
-            spike.rotation.x = -Math.PI / 2; [cite: 826]
-            spike.rotation.z = side * (0.2 + i * 0.1); [cite: 827]
-            spike.position.set(side * (0.8 - i * 0.05), -0.05, -i * 0.2 + 0.2); [cite: 828]
-            body.add(spike); [cite: 829]
+    // 側縁棘 [cite= 821]
+    for (let i = 0; i < 5; i++) { [cite= 822]
+        for (let side of [-1, 1]) { [cite= 823]
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.6, 8), matShell); [cite= 824]
+            spike.rotation.x = -Math.PI / 2; [cite= 826]
+            spike.rotation.z = side * (0.2 + i * 0.1); [cite= 827]
+            spike.position.set(side * (0.8 - i * 0.05), -0.05, -i * 0.2 + 0.2); [cite= 828]
+            body.add(spike); [cite= 829]
         }
     }
-    head.add(body); [cite: 832]
-    segs.push(body); [cite: 833]
+    head.add(body); [cite= 832]
+    segs.push(body); [cite= 833]
 
-    // 3. 尾剣 (Telson) - 長く鋭い槍 [cite: 834]
-    const telsonGroup = new THREE.Group(); [cite: 835]
-    telsonGroup.position.z = -1.1; [cite: 836]
-    body.add(telsonGroup); [cite: 837]
-    const telson = new THREE.Mesh(new THREE.ConeGeometry(0.06, 2.4, 8), matShell); [cite: 838]
-    telson.rotation.x = -Math.PI / 2; [cite: 838]
-    telson.position.z = -1.2; [cite: 839]
-    telsonGroup.add(telson); [cite: 840]
+    // 3. 尾剣 (Telson) - 長く鋭い槍 [cite= 834]
+    const telsonGroup = new THREE.Group(); [cite= 835]
+    telsonGroup.position.z = -1.1; [cite= 836]
+    body.add(telsonGroup); [cite= 837]
+    const telson = new THREE.Mesh(new THREE.ConeGeometry(0.06, 2.4, 8), matShell); [cite= 838]
+    telson.rotation.x = -Math.PI / 2; [cite= 838]
+    telson.position.z = -1.2; [cite= 839]
+    telsonGroup.add(telson); [cite= 840]
 
-    // 4. 【多関節脚 ＆ パドル脚の有機化】 [cite: 841]
-    const legs = []; [cite: 842]
-    const numLegs = 6; [cite: 843]
-    for (let i = 0; i < numLegs; i++) { [cite: 844]
-        for (let side of [-1, 1]) { [cite: 845]
-            const legRoot = new THREE.Group(); [cite: 846]
-            legRoot.position.set(side * (0.3 + i * 0.02), -0.1, 0.4 - i * 0.18); [cite: 847]
+    // 4. 【多関節脚 ＆ パドル脚の有機化】 [cite= 841]
+    const legs = []; [cite= 842]
+    const numLegs = 6; [cite= 843]
+    for (let i = 0; i < numLegs; i++) { [cite= 844]
+        for (let side of [-1, 1]) { [cite= 845]
+            const legRoot = new THREE.Group(); [cite= 846]
+            legRoot.position.set(side * (0.3 + i * 0.02), -0.1, 0.4 - i * 0.18); [cite= 847]
             
-            // 腿関節 (Femur) [cite: 848]
+            // 腿関節 (Femur) [cite= 848]
             const femur = new THREE.Mesh(femurGeo, matLeg);
-            femur.rotation.z = side * -0.2; [cite: 851]
+            femur.rotation.z = side * -0.2; [cite= 851]
             
             let tibia;
-            // 【進化】 最後尾 (i === 5) は泥を掻くパドル状 [cite: 853-854]
+            // 【進化】 最後尾 (i === 5) は泥を掻くパドル状 [cite= 853-854]
             if (i === 5) {
                 tibia = new THREE.Mesh(paddleGeo, matLeg);
                 tibia.scale.set(1.0, 1.0, 0.2); // 薄く平たい刃のように潰す
                 tibia.position.set(0, -0.35, 0); 
-                tibia.rotation.z = side * 0.6; // 外側に張り出す [cite: 858]
+                tibia.rotation.z = side * 0.6; // 外側に張り出す [cite= 858]
             } else {
                 // 歩行用・脛関節と爪
                 tibia = new THREE.Mesh(tibiaGeo, matLeg);
                 tibia.position.set(0, -0.45, 0); 
-                tibia.rotation.z = side * 0.3; [cite: 863]
+                tibia.rotation.z = side * 0.3; [cite= 863]
 
                 const claw = new THREE.Mesh(new THREE.ConeGeometry(0.01, 0.08, 4), matLeg);
                 claw.position.set(0, -0.4, 0);
@@ -2018,42 +2018,42 @@ function buildBelinurus() {
                 tibia.add(claw);
             }
             
-            femur.add(tibia); [cite: 865]
-            legRoot.add(femur); [cite: 866]
-            legRoot.rotation.y = side * (Math.PI / 8); [cite: 867]
+            femur.add(tibia); [cite= 865]
+            legRoot.add(femur); [cite= 866]
+            legRoot.rotation.y = side * (Math.PI / 8); [cite= 867]
             
-            head.add(legRoot); [cite: 868]
-            legs.push({ root: legRoot, femur: femur, tibia: tibia, isPaddle: (i === 5) }); [cite: 870]
+            head.add(legRoot); [cite= 868]
+            legs.push({ root: legRoot, femur: femur, tibia: tibia, isPaddle: (i === 5) }); [cite= 870]
         }
     }
 
-    g.userData = { head, body, telson: telsonGroup, legs }; [cite: 873]
-    g.scale.set(0.7, 0.7, 0.7); [cite: 874]
+    g.userData = { head, body, telson: telsonGroup, legs }; [cite= 873]
+    g.scale.set(0.7, 0.7, 0.7); [cite= 874]
     
-    return { mesh: g, segments: segs, type: 'crawl', offset: 0.15 }; [cite: 875]
+    return { mesh: g, segments: segs, type: 'crawl', offset: 0.15 }; [cite= 875]
 }
 
 // ========================================================
 // --- アニメーション：パドルの流体力学と非対称ストローク ---
 // ========================================================
-function animateBelinurus(crab, clock) { [cite: 879]
-    const time = clock.getElapsedTime(); [cite: 880]
-    const { head, body, telson, legs } = crab.userData; [cite: 881]
+function animateBelinurus(crab, clock) { [cite= 879]
+    const time = clock.getElapsedTime(); [cite= 880]
+    const { head, body, telson, legs } = crab.userData; [cite= 881]
 
-    // 1. 全体のピッチ（素早く進む前傾姿勢） [cite: 882]
-    head.position.y = Math.sin(time * 3.0) * 0.015; [cite: 883]
-    head.rotation.z = Math.sin(time * 1.5) * 0.01; [cite: 884]
+    // 1. 全体のピッチ（素早く進む前傾姿勢） [cite= 882]
+    head.position.y = Math.sin(time * 3.0) * 0.015; [cite= 883]
+    head.rotation.z = Math.sin(time * 1.5) * 0.01; [cite= 884]
 
-    // 2. 歩行＆パドル駆動の非対称サイクル [cite: 885]
-    legs.forEach((legData, index) => { [cite: 886]
-        const phase = index * 0.5; [cite: 888]
-        const speed = 9.0; // ブンストデラより速いピッチ [cite: 889]
-        const wave = Math.sin(time * speed - phase); [cite: 890]
-        const waveCos = Math.cos(time * speed - phase); [cite: 891]
+    // 2. 歩行＆パドル駆動の非対称サイクル [cite= 885]
+    legs.forEach((legData, index) => { [cite= 886]
+        const phase = index * 0.5; [cite= 888]
+        const speed = 9.0; // ブンストデラより速いピッチ [cite= 889]
+        const wave = Math.sin(time * speed - phase); [cite= 890]
+        const waveCos = Math.cos(time * speed - phase); [cite= 891]
         
-        if (legData.isPaddle) { [cite: 892]
-            // 【パドル脚の流体力学モーション】 [cite: 893]
-            legData.root.rotation.z = wave * 0.35; // 大きな前後ストローク [cite: 895]
+        if (legData.isPaddle) { [cite= 892]
+            // 【パドル脚の流体力学モーション】 [cite= 893]
+            legData.root.rotation.z = wave * 0.35; // 大きな前後ストローク [cite= 895]
             
             if (wave > 0) {
                 // リカバリー：水の抵抗を減らすため、刃の向きを進行方向に水平（寝かせる）にする
@@ -2067,8 +2067,8 @@ function animateBelinurus(crab, clock) { [cite: 879]
                 legData.tibia.rotation.x = wave * 0.1; // 伸ばす
             }
         } else {
-            // 【通常歩行脚の非対称モーション】（ブンストデラで確立したリアルな歩行） [cite: 899]
-            legData.root.rotation.z = wave * 0.2; [cite: 900]
+            // 【通常歩行脚の非対称モーション】（ブンストデラで確立したリアルな歩行） [cite= 899]
+            legData.root.rotation.z = wave * 0.2; [cite= 900]
             if (wave > 0) {
                 // 振り上げ
                 legData.root.rotation.x = wave * 0.3;
@@ -2079,17 +2079,19 @@ function animateBelinurus(crab, clock) { [cite: 879]
                 legData.tibia.rotation.x = wave * 0.1;
             }
         }
-    }); [cite: 904]
+    }); [cite= 904]
 
-    // 3. 後体と尾剣の連動 [cite: 905]
-    if (body) { [cite: 906]
-        body.rotation.x = Math.sin(time * 3.0 - 0.5) * 0.02; // 癒合した硬い甲羅 [cite: 907]
+    // 3. 後体と尾剣の連動 [cite= 905]
+    if (body) { [cite= 906]
+        body.rotation.x = Math.sin(time * 3.0 - 0.5) * 0.02; // 癒合した硬い甲羅 [cite= 907]
     }
-    if (telson) { [cite: 910]
-        telson.rotation.x = Math.sin(time * 3.0 - 1.0) * 0.05; [cite: 912]
-        telson.rotation.y = Math.sin(time * 1.5) * 0.08; [cite: 913]
+    if (telson) { [cite= 910]
+        telson.rotation.x = Math.sin(time * 3.0 - 1.0) * 0.05; [cite= 912]
+        telson.rotation.y = Math.sin(time * 1.5) * 0.08; [cite= 913]
     }
-} [cite: 915]
+} [cite= 915]
+
+
 
 // ========================================================
 // --- 【古生物学×3D造形】 ダンクルオステウス：完全不透明・強襲版 ---
