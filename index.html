@@ -312,75 +312,90 @@ function animateGoniatite(mesh, clock, food) {
     const time = clock.getElapsedTime();
     const data = mesh.userData;
 
-    // 1. エサへの反応（activity）: 0.0 (脱力) 〜 1.0 (興奮)
+    // 1. エサへの興奮度を計算 (0.0: 脱力 / 1.0: リーチ！)
     let activity = 0;
-    let directionToFood = new THREE.Vector3(0, 0, 1); // デフォルトは前
+    let directionToFood = new THREE.Vector3(0, 0, 1);
 
     if (food) {
         const dist = mesh.position.distanceTo(food.position);
-        activity = Math.max(0, 1 - (dist / 3.5)); // 3.5ユニット以内で反応
+        // 3.5ユニット以内で反応開始。近づくほど1.0に近づく
+        activity = Math.max(0, 1 - (dist / 3.5));
         directionToFood.subVectors(food.position, mesh.position).normalize();
     }
 
-    // 2. 頭部の出し入れと向き
+    // 2. 頭部の出し入れ：エサがあると身を乗り出す
     const head = mesh.children.find(c => c instanceof THREE.Group && c.position.z > 0.3);
     if (head) {
-        const targetZ = 0.5 + (activity * 0.3);
+        const targetZ = 0.5 + (activity * 0.35); // エサがあるとグイッと出る
         head.position.z += (targetZ - head.position.z) * 0.1;
         
-        // エサの方を少し向く（追従）
+        // 視線追従：エサの方向を少し向く
         if (activity > 0.1) {
             const targetRotY = Math.atan2(directionToFood.x, directionToFood.z);
             head.rotation.y += (targetRotY - head.rotation.y) * 0.05;
         }
     }
 
-    // 3. 触手の挙動：「筆先」から「生き物」へ
+    // 3. 触手の挙動：伸縮とわしゃわしゃ
     if (data.tentacles) {
         data.tentacles.forEach((tGroup, i) => {
             const offset = i * (Math.PI * 2 / data.tentacles.length);
             
-            // エサがある時：速く、大きく動く / 無い時：ゆっくり、わずかに揺れる
-            const waveSpeed = 1.0 + (activity * 3.0);
-            const waveScale = 0.05 + (activity * 0.3);
+            // --- 伸縮(Scale)のアップデート ---
+            // エサがない時は 0.5倍(縮む)、ある時は 1.4倍(最大リーチ)
+            const targetScale = 0.5 + (activity * 0.9);
+            tGroup.scale.z += (targetScale - tGroup.scale.z) * 0.1;
 
-            // 基本のうねり
-            tGroup.rotation.x = Math.sin(time * waveSpeed + offset) * waveScale;
-            tGroup.rotation.y = Math.cos(time * waveSpeed * 0.8 + offset) * waveScale;
+            // --- 動きのメリハリ ---
+            const waveSpeed = 1.0 + (activity * 4.0); // 興奮すると高速わしゃわしゃ
+            const waveRange = 0.05 + (activity * 0.35); // 興奮すると大きく動く
 
-            // --- ここが重要：脱力の表現 ---
-            // activityが低いほど、重力で下に垂れ下がる（x軸に正の回転を加える）
-            // 0.8（だらん）から 0.0（エサへ向く）へ補間
+            // 基準の動き（わしゃわしゃ）
+            tGroup.rotation.x = Math.sin(time * waveSpeed + offset) * waveRange;
+            tGroup.rotation.y = Math.cos(time * waveSpeed * 0.8 + offset) * waveRange;
+
+            // --- ポーズの切り替え ---
+            // エサがない時(activity=0): 重力でだらん(x軸に+0.8)
+            // エサがある時(activity=1): 正面へ向く(x軸オフセット0)
             const droop = (1 - activity) * 0.8;
             tGroup.rotation.x += droop;
+            
+            // エサがある時、少し外側にパッと開く（朝顔状）
+            if (activity > 0.2) {
+                tGroup.rotation.x -= (activity * 0.2); 
+            }
         });
     }
 
-    // 4. 気泡の実装（物理オブジェクトの生成）
-    // エサに興奮している間、一定確率で気泡をシーンに追加
-    if (activity > 0.6 && Math.random() > 0.95) {
-        createBubble(mesh);
+    // 4. 気泡：エサに興奮している時のみ発生
+    if (activity > 0.6 && Math.random() > 0.96) {
+        createBubble(mesh, head);
     }
 }
 
-// 気泡を生成する補助関数
-function createBubble(parentMesh) {
-    const bubbleGeo = new THREE.SphereGeometry(0.02, 8, 8);
-    const bubbleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
+function createBubble(parentMesh, head) {
+    const bubbleGeo = new THREE.SphereGeometry(0.025, 8, 8);
+    const bubbleMat = new THREE.MeshBasicMaterial({ 
+        color: 0xffffff, 
+        transparent: true, 
+        opacity: 0.8 // 少し不透明度を上げて見えやすく
+    });
     const bubble = new THREE.Mesh(bubbleGeo, bubbleMat);
 
-    // 漏斗（殻の下側）付近から発生させる
-    bubble.position.copy(parentMesh.position);
-    bubble.position.y -= 0.2;
+    // 発生源を頭部のワールド座標（殻の出口付近）に合わせる
+    const worldPos = new THREE.Vector3();
+    if(head) head.getWorldPosition(worldPos);
+    else worldPos.copy(parentMesh.position);
     
-    // sceneはグローバルまたは引数で渡す必要があります
+    bubble.position.copy(worldPos);
+    bubble.position.y -= 0.1; // 漏斗の位置
+    
     scene.add(bubble);
 
-    // 気泡のアニメーション（簡易的にカスタムプロパティを付与）
     const animateBubble = () => {
-        bubble.position.y += 0.02; // 上昇
-        bubble.position.x += Math.sin(Date.now() * 0.01) * 0.005; // ゆらゆら
-        bubble.material.opacity -= 0.005; // 徐々に消える
+        bubble.position.y += 0.03; // 上昇速度アップ
+        bubble.position.x += Math.sin(Date.now() * 0.01) * 0.008;
+        bubble.material.opacity -= 0.008;
         
         if (bubble.material.opacity <= 0) {
             scene.remove(bubble);
