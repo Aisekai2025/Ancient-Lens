@@ -277,19 +277,23 @@ function buildGoniatite() {
         head.add(eye);
     }
 
-    // 5. 触手（Tentacles）: 長くし、放射状に広げる [cite: 12-16]
+    // 5. 【重要修正】触手（Tentacles）：根元を前へ出し、埋もれを防ぐ
     const tentacles = [];
     const tCount = 10; 
     for (let i = 0; i < tCount; i++) {
         const tGroup = new THREE.Group();
+        
+        // --- 修正箇所：根元の位置を z=0.2 (頭部の表面付近) に設定 ---
+        tGroup.position.z = 0.2; 
+        
         tGroup.rotation.z = (i / tCount) * Math.PI * 2;
         
-        // 触手の長さを 1.2 に延長
+        // 触手の本体 (Cone)
         const tMesh = new THREE.Mesh(new THREE.ConeGeometry(0.04, 1.2, 8), fleshMat);
         
-        // 【重要】少し外側に傾けることで「縦一列」を回避
+        // 初期姿勢：少し外側に広げる (縦一列回避)
         tMesh.rotation.x = Math.PI / 2 + 0.3; 
-        tMesh.position.z = 0.5; 
+        tMesh.position.z = 0.5; // 長くなった分、位置を調整
         
         tGroup.add(tMesh);
         head.add(tGroup);
@@ -327,29 +331,36 @@ function animateGoniatite(mesh, clock, food) {
         head.position.z += (targetZ - head.position.z) * 0.1;
     }
 
-    // 3. 触手のアニメーション (ここが動かない原因になりやすい)
+    // 3. 触手のアニメーション：埋もれ防止と反応強調
     data.tentacles.forEach((tGroup, i) => {
-        // 安全策：オブジェクトが存在するかチェック
         if (!tGroup) return;
 
         const offset = i * (Math.PI * 2 / data.tentacles.length);
         
-        // --- 伸縮 (Scale) ---
-        const targetScale = 0.4 + (activity * 1.2); // エサがあると伸びる
+        // --- 【修正】伸縮 (Scale) ---
+        // 最小値を 0.4 → 0.6 に上げ、縮んでいる時も見えるようにする
+        const targetScale = 0.6 + (activity * 1.0); 
         tGroup.scale.z += (targetScale - tGroup.scale.z) * 0.1;
 
         // --- わしゃわしゃ (Rotation) ---
-        const waveSpeed = 1.0 + (activity * 4.0);
-        const waveRange = 0.1 + (activity * 0.4);
+        // エサがない(activity=0)ときも、わずかに揺らす(生命感)
+        const waveSpeed = 0.8 + (activity * 4.2); 
+        const waveRange = 0.08 + (activity * 0.45);
 
         // sin/cosでねじれる動きを作る
         tGroup.rotation.x = Math.sin(time * waveSpeed + offset) * waveRange;
         tGroup.rotation.y = Math.cos(time * waveSpeed * 0.8 + offset) * waveRange;
 
-        // --- だらん (垂れ下がり) ---
+        // --- 【重要修正】だらん (垂れ下がり) ---
         // エサがない(activity=0)ときほど、x軸をプラスにして下に向ける
-        const droop = (1 - activity) * 0.8;
+        // 回転角を 0.8 → 0.5 に縮小し、頭部にめり込むのを防ぐ（斜め下へ）
+        const droop = (1 - activity) * 0.5; 
         tGroup.rotation.x += droop;
+        
+        // 【追加】エサがある時、少し外側にパッと開く（朝顔状）
+        if (activity > 0.2) {
+            tGroup.rotation.x -= (activity * 0.2); 
+        }
     });
 
     // 4. 気泡 (Bubble)
