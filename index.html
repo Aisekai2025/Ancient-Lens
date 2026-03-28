@@ -324,55 +324,60 @@ function animateGoniatite(mesh, clock, food) {
     const time = clock.getElapsedTime();
     const data = mesh.userData;
 
-    // 1. エサへの反応
+    // 1. エサへの反応度を計算
     let activity = 0;
-    if (food) {
+    // エサが存在し、かつ「表示されている時」だけ興奮する
+    if (food && food.visible) {
         const dist = mesh.position.distanceTo(food.position);
-        activity = Math.max(0, 1 - (dist / 3.5)); 
+        // 距離 5.0 以内で反応開始、近づくほど 1.0 に近づく
+        activity = Math.max(0, 1 - (dist / 5.0)); 
     }
 
-    // 2. 呼吸（Breath）: エサがなくても常に 0.05 くらいの揺らぎを足す
-    const breathBase = Math.sin(time * 0.8) * 0.05;
+    // 2. 頭部の出し入れ
+    const head = mesh.children.find(c => c instanceof THREE.Group && c.position.z > 0.3);
+    if (head) {
+        const targetZ = 0.5 + (activity * 0.4);
+        head.position.z += (targetZ - head.position.z) * 0.1;
+    }
 
+    // 3. 触手のアニメーション（しなしなわしゃわしゃ）
     data.tentacles.forEach((tGroup, i) => {
         const tMesh = tGroup.children[0]; 
         if (!tMesh) return;
 
         const offset = i * (Math.PI * 2 / data.tentacles.length);
         
-        // --- 伸縮 ---
-        // 最小値を 0.6 に引き上げ（短すぎると見えないため）
-        const targetScale = 0.6 + (activity * 1.0); 
+        // --- 伸縮 (Scale) ---
+        // 普段は 0.5 (しなしな)、エサで 1.5 (シャキーン)
+        const targetScale = 0.5 + (activity * 1.0); 
         tMesh.scale.y += (targetScale - tMesh.scale.y) * 0.1;
 
-        // --- 動きの幅 ---
-        // 待機時(activity=0)でも少し動くように設定
+        // --- 動きの激しさ ---
         const speed = 1.0 + (activity * 4.0);
-        const range = 0.1 + (activity * 0.35); // 0.1 を最低値に
+        const range = 0.08 + (activity * 0.4);
 
-        // 3. 回転の合成
+        // --- 展開 (巨神兵回避：普段は閉じ、エサで開く) ---
+        // activityが低い(0)ときは 0.2 (閉じ気味)、高い(1)ときは -0.4 (開き)
+        const spread = 0.2 - (activity * 0.6);
+
+        // 4. ポーズ合成
+        const breath = Math.sin(time * 0.8) * 0.05; // 呼吸
         const waveX = Math.sin(time * speed + offset) * range;
         const waveZ = Math.cos(time * speed * 0.8 + offset) * (range * 0.5);
 
-        // 普段の閉じ具合（Spread）: 待機時は少し閉じる(0.2)、興奮で開く(-0.4)
-        const spread = 0.2 - (activity * 0.6);
-
-        // 姿勢の適用
-        tMesh.rotation.x = (Math.PI / 2) + waveX + spread + breathBase;
+        tMesh.rotation.x = (Math.PI / 2) + waveX + spread + breath;
         tMesh.rotation.z = waveZ;
 
-        // 脱力（droop）
+        // 脱力 (エサがない時は少し垂れる)
         const droop = (1 - activity) * 0.5;
         tMesh.rotation.x += droop;
     });
 
-    // 4. 気泡生成（activityが高い時だけ）
-    if (activity > 0.6 && Math.random() > 0.97) {
-        if (typeof createBubble === 'function') {
-             // headを探して渡す
-             const head = mesh.children.find(c => c instanceof THREE.Group && c.position.z > 0.3);
-             createBubble(mesh, head);
-        }
+    // 5. 【追加】パクっと食べる判定
+    if (food && food.visible && mesh.position.distanceTo(food.position) < 0.6) {
+        food.visible = false; // エサ消滅
+        // 食べた瞬間に「プシュッ」と気泡を出す演出（あれば）
+        if (typeof createBubble === 'function') createBubble(mesh, head);
     }
 }
 
@@ -3720,9 +3725,9 @@ function animate() {
         const clockSim = { getElapsedTime: () => time };
 
         if (ent.type === 'goniatite') {
-            // food（エサのメッシュ）を渡す必要があります！
-            animateGoniatite(ent.mesh, clockSim, food); 
-        }
+        // ここに第3引数「foodMesh」を追加！
+        animateGoniatite(ent.mesh, clockSim, foodMesh); 
+    }
 
         // シーラカンス専用の分岐を追加
         if (ent.type === 'coelacanth') {
