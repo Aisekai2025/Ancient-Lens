@@ -1915,37 +1915,29 @@ function animateCoelacanth(fish, clock) {
     const time = clock.getElapsedTime();
     const data = fish.userData;
 
-    // 1. 全体のゆったりした揺れ（上下移動と微細なロール）
-    // 痙攣を防ぐため、値を大きくしすぎないようにします
-    fish.position.y += Math.sin(time * 0.5) * 0.005; 
-    fish.rotation.z = Math.sin(time * 0.5) * 0.05;
+    // 1. 全体の揺れは position で表現（rotationをいじりすぎない）
+    fish.position.y += Math.sin(time * 0.5) * 0.005;
 
-    // 2. 【修正】対角線泳法 (Diagonal Coordination)
-    if (data.fins && data.fins.length >= 4) {
+    // 2. 対角線泳法（ここが重要！）
+    if (data.fins) {
         data.fins.forEach((fin, i) => {
-            // 位相（タイミング）の設定
             // i=0:左胸, i=1:右胸, i=2:左腹, i=3:右腹
-            let phase = 0;
-            if (i === 0 || i === 3) phase = 0;          // 左前 & 右後ろ
-            if (i === 1 || i === 2) phase = Math.PI;    // 右前 & 左後ろ
-
+            let phase = (i === 1 || i === 2) ? Math.PI : 0; 
             const wave = Math.sin(time * 1.5 + phase);
 
-            // 【重要】origRot（初期角度）が存在するかチェック
-            // 存在しない場合は、デフォルトの角度を使用
-            const baseRotY = (fin.userData.origRot) ? fin.userData.origRot.y : 0;
-            const baseRotZ = (fin.userData.origRot) ? fin.userData.origRot.z : 0;
-
-            // 痙攣の防止：演算子を「=」にして、初期値からの相対変化にする
-            fin.rotation.y = baseRotY + wave * 0.15; // 前後の動き
-            fin.rotation.x = wave * 0.1;              // 上下のしなり
+            // 【修正】rotation.y に直接代入せず、初期値からの「差分」だけを足す
+            const baseRot = fin.userData.origRot;
+            if (baseRot) {
+                // 初期ポーズを崩さないように y と x だけを揺らす
+                fin.rotation.y = baseRot.y + wave * 0.15;
+                fin.rotation.x = baseRot.x + wave * 0.1;
+            }
         });
     }
 
-    // 3. 尾びれの動き
+    // 3. 尾びれの微振動
     if (data.tail) {
-        // Z軸回転（ひっくり返り）ではなく、Y軸（左右）の動きに限定
-        data.tail.rotation.y = Math.sin(time * 1.5) * 0.15;
+        data.tail.rotation.y = Math.sin(time * 1.5) * 0.1;
     }
 }
 
