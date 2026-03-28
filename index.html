@@ -2232,6 +2232,7 @@ function buildDunkleosteus() {
     dorsalFin.position.set(0, 1.6, -1.8); // [cite: 174]
     fishBodyGroup.add(dorsalFin);
 
+    const fins = []; // 追加：ヒレを格納する配列を定義
     // 胸びれ
     for (let side of [-1, 1]) {
         const pFin = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), matBody);
@@ -2240,6 +2241,8 @@ function buildDunkleosteus() {
         pFin.rotation.z = side * 0.4; // [cite: 183]
         pFin.rotation.y = side * -0.2; // 水を掻く角度 [cite: 184]
         fishBodyGroup.add(pFin);
+
+        fins.push(pFin); // 追加：配列に入れる
     }
 
     // --- 【アップデート】延長された尾部パーツ ---
@@ -2343,8 +2346,8 @@ function buildDunkleosteus() {
         maskGroup.add(uTooth);
     }
 
-    g.userData = { body: fishBodyGroup, jaw: jawGroup, head: maskGroup, tailStem, tailFin: tailFinGroup };
-    g.scale.set(1.5, 1.5, 1.5); // [cite: 244]
+    g.userData = { body: fishBodyGroup, jaw: jawGroup, head: maskGroup, tailStem,fins: fins, tailFin: tailFinGroup };
+    g.scale.set(1.5, 1.5, 1.5);
 
     return { mesh: g, type: 'fish_dunk' };
 }
@@ -2356,75 +2359,41 @@ function animateDunkleosteus(fish, clock) {
     const time = clock.getElapsedTime();
     const data = fish.userData;
 
-    // 1. 全体のうねり（重装甲なので頭部はあまりブレさせない）
-    const slowWave = Math.sin(time * 2.0); // 少しだけ力強く
+    // 1. 全体のうねり
+    const slowWave = Math.sin(time * 2.0); 
     fish.rotation.y = slowWave * 0.03; 
     fish.position.y += Math.cos(time * 1.2) * 0.005; 
 
-    // 2. 尾びれの力強い推進
+    // 2. 尾びれ
     if (data.tail) {
         data.tail.rotation.y = Math.sin(time * 2.0 - 1.2) * 0.4;
     }
 
-    // 3. ギロチン・ジョー（元の優れたロジックをそのまま使用）
+    // 3. ギロチン・ジョー
     const jawCycle = (time * 0.5) % 1.0;
-    let jawOpen = 0;
-    if (jawCycle < 0.8) { // 0.8秒かけて開く [cite: 120]
-        jawOpen = Math.pow(jawCycle / 0.8, 2);
-    } else { // 0.2秒で閉じる [cite: 123-125]
-        jawOpen = 1.0 - (jawCycle - 0.8) / 0.2;
+    let jawOpen = (jawCycle < 0.8) 
+        ? Math.pow(jawCycle / 0.8, 2) 
+        : 1.0 - (jawCycle - 0.8) / 0.2;
+
+    const maxJawAngle = 0.6; 
+    if (data.jaw) data.jaw.rotation.x = jawOpen * maxJawAngle;
+    // 【古生物ポイント】頭甲も連動して上がる板皮類特有の動き
+    if (data.head) data.head.rotation.x = -jawOpen * (maxJawAngle * 0.3);
+
+    // 4. 【修正箇所】胸びれの運動を「独立」させる
+    // 以前の child.forEach ループは削除（または適切に閉じる）し、
+    // data.fins を直接制御するのがスマートで高速です
+    if (data.fins) {
+        data.fins.forEach((fin, index) => {
+            const side = (index === 0) ? 1 : -1;
+            
+            // Z軸：ゆっくりとしたパタパタ（上下運動）
+            fin.rotation.z = Math.sin(time * 1.5) * 0.15 * side;
+            
+            // X軸：水流による「しなり」の表現
+            fin.rotation.x = -0.2 + Math.cos(time * 1.5) * 0.05;
+        });
     }
-
-    const maxJawAngle = 0.6; // 少しだけ開口角を広げて迫力アップ
-    if (data.jaw) data.jaw.rotation.x = jawOpen * maxJawAngle; // 顎を下げる
-    if (data.head) data.head.rotation.x = -jawOpen * (maxJawAngle * 0.3); // 頭甲を少し上げる（板皮類特有の関節）
-
-    // 4. 胸びれのバランス調整
-    data.body.children.forEach(child => {
-        if (child.geometry.type === "SphereGeometry" && child.scale.y < 0.2) { 
-            child.rotation.x = Math.sin(time * 2.0) * 0.15; // 力強く水をかく
-        }
-    });
-}
-
-
-
-// ========================================================
-// --- アニメーション：ゆったりと、しかし力強い「王者」の泳ぎ ---
-// ========================================================
-function animateDunkleosteus(fish, clock) {
-    const time = clock.getElapsedTime();
-    const data = fish.userData;
-
-    // 1. 全体のうねり（重装甲なので頭部はあまりブレさせない）
-    const slowWave = Math.sin(time * 2.0); // 少しだけ力強く
-    fish.rotation.y = slowWave * 0.03; 
-    fish.position.y += Math.cos(time * 1.2) * 0.005; 
-
-    // 2. 尾びれの力強い推進
-    if (data.tail) {
-        data.tail.rotation.y = Math.sin(time * 2.0 - 1.2) * 0.4;
-    }
-
-    // 3. ギロチン・ジョー（元の優れたロジックをそのまま使用）
-    const jawCycle = (time * 0.5) % 1.0;
-    let jawOpen = 0;
-    if (jawCycle < 0.8) { // 0.8秒かけて開く [cite: 120]
-        jawOpen = Math.pow(jawCycle / 0.8, 2);
-    } else { // 0.2秒で閉じる [cite: 123-125]
-        jawOpen = 1.0 - (jawCycle - 0.8) / 0.2;
-    }
-
-    const maxJawAngle = 0.6; // 少しだけ開口角を広げて迫力アップ
-    if (data.jaw) data.jaw.rotation.x = jawOpen * maxJawAngle; // 顎を下げる
-    if (data.head) data.head.rotation.x = -jawOpen * (maxJawAngle * 0.3); // 頭甲を少し上げる（板皮類特有の関節）
-
-    // 4. 胸びれのバランス調整
-    data.body.children.forEach(child => {
-        if (child.geometry.type === "SphereGeometry" && child.scale.y < 0.2) { 
-            child.rotation.x = Math.sin(time * 2.0) * 0.15; // 力強く水をかく
-        }
-    });
 }
 
 // --- 【古生物学×3D造形×SE】 コッコテウス: 脱アイスコーン＆解剖学的補正版 (V3.0) ---
