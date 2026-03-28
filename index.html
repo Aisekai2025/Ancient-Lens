@@ -1792,102 +1792,92 @@ function buildCoelacanth() {
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
 
-    // 【アップデート】深海の岩礁に馴染む、より重厚でわずかに光る質感
+    // 質感のアップデート：より重厚に
     const mat = (color) => new THREE.MeshStandardMaterial({
         color: color,
-        roughness: 0.85, // 0.5から上げ、ザラついたコズマイン鱗の質感を表現
-        metalness: 0.2,   // 鈍い光沢を維持
+        roughness: 0.85,
+        metalness: 0.2
     });
 
     const eyeMat = new THREE.MeshStandardMaterial({
         color: 0x050505,
         roughness: 0.1,
         metalness: 0.9,
-        // 【追加】タペータム（輝板）の表現。わずかに緑がかった発光を加える
         emissive: 0x113322, 
         emissiveIntensity: 0.5
     });
 
-    // 1. 胴体（ユーステノプテロンより体高があり、ふっくらした流線形）
+    // 1. 胴体 [cite: 137-142]
     const torso = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 24), mat(0x2c3e50));
     torso.scale.set(0.7, 1.1, 2.8);
     bodyGroup.add(torso);
 
-    // 2. 頭部（丸みを帯びた鈍重な顔つき）
+    // 2. 頭部 [cite: 143-150]
     const headGroup = new THREE.Group();
     headGroup.position.z = 2.0;
     bodyGroup.add(headGroup);
-
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.9, 24, 24), mat(0x2c3e50));
     head.scale.set(0.85, 0.9, 1.2);
     headGroup.add(head);
 
-    // 目（大きめでどんぐり眼）
+    // 目 [cite: 151-157]
     for (let side of [-1, 1]) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), eyeMat);
         eye.position.set(side * 0.5, 0.3, 0.6);
         headGroup.add(eye);
     }
 
-    // 3. 下顎
+    // 3. 下顎 [cite: 158-165]
     const jaw = new THREE.Group();
     jaw.position.set(0, -0.3, 0.0);
     headGroup.add(jaw);
-    
     const jawMesh = new THREE.Mesh(new THREE.SphereGeometry(0.8, 24, 16), mat(0x1f2b38));
     jawMesh.scale.set(0.8, 0.4, 1.3);
     jawMesh.position.z = 0.4;
     jaw.add(jawMesh);
 
-    // 4. 肉鰭 (Lobe-fins) - シーラカンスの最大の特徴である「柄（え）」の長いヒレ
+    // 4. 肉鰭 (Lobe-fins) [cite: 166-187]
     const fins = [];
     const createLobeFin = (x, y, z, ry, rz, scaleMult = 1.0) => {
         const f = new THREE.Group();
         f.position.set(x, y, z);
         f.rotation.y = ry;
         f.rotation.z = rz;
-
-        // 長く突き出た筋肉の柄
         const base = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), mat(0x1f2b38));
         base.scale.set(0.8, 2.5, 0.8);
         base.position.y = -0.4;
         f.add(base);
-
-        // 先端の丸く広いヒレ膜（団扇のように）
-        const fin = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), mat(0x34495e));
-        fin.position.y = -1.0;
-        fin.scale.set(0.4, 2.0, 1.5); 
-        f.add(fin);
-
+        const finPart = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), mat(0x34495e));
+        finPart.position.y = -1.0;
+        finPart.scale.set(0.4, 2.0, 1.5);
+        f.add(finPart);
         f.scale.setScalar(scaleMult);
         f.userData.origRot = f.rotation.clone();
         return f;
     };
 
-    // 胸びれ
+    // ヒレの生成と登録 [cite: 188-194]
     const fL = createLobeFin(0.6, -0.4, 1.2, -0.2, 0.8);
     const fR = createLobeFin(-0.6, -0.4, 1.2, 0.2, -0.8);
-    // 腹びれ
     const pL = createLobeFin(0.5, -0.5, -0.8, -0.1, 0.6, 0.9);
     const pR = createLobeFin(-0.5, -0.5, -0.8, 0.1, -0.6, 0.9);
-    
-    // 【重要】第2背びれと尻びれも「肉鰭」の構造を持つ
-    const dFin2 = createLobeFin(0, 0.8, -1.2, 0, 0, 0.9);
-    dFin2.rotation.z = Math.PI; // 上に向ける
+    const dFin2 = createLobeFin(0, 0.8, -1.2, 0, 0, 0.9); // Z位置を少し後ろに調整
+    dFin2.rotation.z = Math.PI;
     const aFin = createLobeFin(0, -0.8, -1.6, 0, 0, 0.9);
-    
-    // 【重要】アニメーションで個別に制御するため、順番を意識して登録
-    // 0:左胸, 1:右胸, 2:左腹, 3:右腹, 4:第2背, 5:尻
-    [fL, fR, pL, pR, dFin2, aFin].forEach(f => { bodyGroup.add(f); fins.push(f); });
 
-    // 【重要】第1背びれ（これだけは肉鰭ではなく、扇状の条鰭）
+    [fL, fR, pL, pR, dFin2, aFin].forEach(f => { 
+        bodyGroup.add(f); 
+        fins.push(f); 
+    });
+
+    // 5. 第1背びれ [cite: 195-200]
     const dFin1 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), mat(0x34495e));
     dFin1.scale.set(0.1, 1.8, 1.2);
     dFin1.position.set(0, 1.2, 0.5);
     dFin1.rotation.x = -0.2;
     bodyGroup.add(dFin1);
 
-    // 5. 特徴的な「三葉尾」（上葉・下葉・中央の副尾びれ）
+    // 6. 三葉尾 [cite: 201-220]
     const tailGroup = new THREE.Group();
     tailGroup.position.z = -3.2;
     g.add(tailGroup);
@@ -1899,26 +1889,25 @@ function buildCoelacanth() {
         leaf.rotation.x = rx;
         return leaf;
     };
+    tailGroup.add(createLeaf(1.5, -0.8, 0.8, 0.4));  // 上葉
+    tailGroup.add(createLeaf(1.5, -0.8, -0.8, -0.4)); // 下葉
 
-    tailGroup.add(createLeaf(1.5, -0.8, 0.8, 0.4));    // 上葉
-    tailGroup.add(createLeaf(1.5, -0.8, -0.8, -0.4));  // 下葉
-
-    // 中央の副尾びれ（エピカウダル・ローブ：シーラカンスの象徴！）
     const centerLobe = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), mat(0x1f2b38));
     centerLobe.scale.set(0.5, 0.8, 3.0);
     centerLobe.position.set(0, 0, -1.5);
     tailGroup.add(centerLobe);
 
-    // 【データ紐付け】
+    // データ紐付け [cite: 221-227]
     g.userData = { 
         body: bodyGroup, 
         tail: tailGroup, 
         jaw: jaw, 
         fins: fins,
-        type: 'coelacanth' // 専用のタイプ名を設定
+        type: 'coelacanth' 
     };
-    g.scale.set(1.4, 1.4, 1.4); [cite: 225]
-    return { mesh: g, type: 'coelacanth' }; [cite: 227]
+    g.scale.set(1.4, 1.4, 1.4);
+
+    return { mesh: g, type: 'coelacanth' };
 }
 
 function animateCoelacanth(fish, clock) {
