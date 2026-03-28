@@ -328,7 +328,8 @@ function animateGoniatite(mesh, clock, food) {
     let activity = 0;
     if (food) {
         const dist = mesh.position.distanceTo(food.position);
-        activity = Math.max(0, 1 - (dist / 3.5)); // 3.5ユニット以内で反応
+        // 反応距離を少し調整（3.0ユニット以内で興奮）
+        activity = Math.max(0, 1 - (dist / 3.0)); 
     }
 
     // 2. 頭部の出し入れ
@@ -338,44 +339,46 @@ function animateGoniatite(mesh, clock, food) {
         head.position.z += (targetZ - head.position.z) * 0.1;
     }
 
-    // 3. 触手の「しなしなわしゃわしゃ」アニメーション
+    // 3. 触手の「呼吸」と「展開」
     data.tentacles.forEach((tGroup, i) => {
-        // buildGoniatiteで入れた tGroup の中の最初の Mesh を取得
         const tMesh = tGroup.children[0]; 
         if (!tMesh) return;
 
         const offset = i * (Math.PI * 2 / data.tentacles.length);
         
         // --- 伸縮 (Scale) ---
-        // ConeGeometryは通常Y軸方向が長さなので、scale.y を変える
-        const targetScale = 0.5 + (activity * 1.1); 
-        tMesh.scale.y += (targetScale - tMesh.scale.y) * 0.1;
+        // 普段は 0.4 (短く縮む)、エサがあると 1.5 (長く伸びる)
+        const targetScale = 0.4 + (activity * 1.1); 
+        tMesh.scale.y += (targetScale - tMesh.scale.y) * 0.05; // 伸縮は少しゆっくり
 
-        // --- しなやかな動き (Rotation) ---
-        const speed = 1.2 + (activity * 4.5); 
-        const range = 0.1 + (activity * 0.5);
+        // --- 動きの激しさ ---
+        // 普段はゆっくり(1.0)、エサがあると高速(5.0)
+        const speed = 1.0 + (activity * 4.0);
+        // 普段は小さく(0.05)、エサがあると大きく(0.4)
+        const range = 0.05 + (activity * 0.35);
 
-        // 元々の Math.PI / 2 (正面向き) をベースに揺らす
-        // activityが高いときは、sin波を重ねて「しなり」を強調
+        // --- 開き具合 (ここが巨神兵回避のポイント) ---
+        // 普段は 0.1 (閉じる)、エサがあると -0.5 (ガバッと開く)
+        const spread = 0.1 - (activity * 0.6);
+
+        // 基本のわしゃわしゃ
         const waveX = Math.sin(time * speed + offset) * range;
         const waveZ = Math.cos(time * speed * 0.8 + offset) * (range * 0.5);
 
-        // --- 脱力 (垂れ下がり) ---
-        // エサがない時は重力で下に垂れる。0.7ラジアン（約40度）
-        const droop = (1 - activity) * 0.7;
-
-        // 角度を適用
-        tMesh.rotation.x = (Math.PI / 2) + waveX + droop;
-        tMesh.rotation.z = waveZ;
+        // 4. ポーズの合成
+        // Math.PI / 2 (正面) + 呼吸のゆらぎ + エサへの展開 + 脱力
+        const breath = Math.sin(time * 0.5) * 0.05; // 普段のゆったりした呼吸
         
-        // エサがある時、少し外側にパッと開く
-        if (activity > 0.2) {
-            tMesh.rotation.x -= (activity * 0.2); 
-        }
+        tMesh.rotation.x = (Math.PI / 2) + waveX + spread + breath;
+        tMesh.rotation.z = waveZ;
+
+        // 脱力：エサがない時は重力で少し垂れる
+        const droop = (1 - activity) * 0.4;
+        tMesh.rotation.x += droop;
     });
 
-    // 4. 気泡：activityが高い時に発生
-    if (activity > 0.6 && Math.random() > 0.96) {
+    // 5. 気泡の発生
+    if (activity > 0.7 && Math.random() > 0.96) {
         if (typeof createBubble === 'function') createBubble(mesh, head);
     }
 }
