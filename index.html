@@ -223,81 +223,87 @@ function buildGraptolite() {
 
 function buildGoniatite() {
     const g = new THREE.Group();
+
+    // 共通マテリアル設定
     const shellMat = new THREE.MeshStandardMaterial({ 
         color: 0xaa8866, 
         roughness: 0.4,
         side: THREE.DoubleSide 
     });
 
-    // 1. 殻（Shell）: ドーナツ型 [cite: 4, 5]
+    const fleshMat = new THREE.MeshStandardMaterial({ 
+        color: 0xaa5555, 
+        roughness: 0.8 
+    });
+
+    const eyeMat = new THREE.MeshStandardMaterial({ 
+        color: 0x111111, 
+        roughness: 0.1 
+    });
+
+    // 1. 殻（Shell）: ドーナツ型 [cite: 4-5]
     const shell = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.3, 16, 32), shellMat);
     shell.rotation.y = Math.PI / 2; 
     g.add(shell);
 
-    // 2. 中心の封鎖（軸のズレ対策） [cite: 6, 7]
+    // 2. 殻の奥を塞ぐ（球体で隙間を完全に封鎖） [cite: 6-7]
     const shellFill = new THREE.Mesh(new THREE.SphereGeometry(0.35, 24, 24), shellMat);
     shellFill.position.z = -0.05; 
     shellFill.scale.set(1.2, 1.2, 0.8); 
     g.add(shellFill);
 
-    // 3. 【新機能】殻の出口（住房の開口部）
-    // 少し広がるフレア状のパーツを追加し、「出口」を強調します
+    // 3. 殻の出口（aperture）: 襟のようなパーツを追加
     const aperture = new THREE.Mesh(
         new THREE.CylinderGeometry(0.38, 0.32, 0.25, 32, 1, true), 
         shellMat
     );
     aperture.rotation.x = Math.PI / 2;
-    aperture.position.set(0, 0.1, 0.4); // 少し上にずらして「巻き終わり」に合わせる
+    aperture.position.set(0, 0.1, 0.4); 
     g.add(aperture);
 
-    // 4. 軟体部（頭部）
+    // 4. 軟体部（頭部）: 殻の出口の先に配置 [cite: 9]
     const head = new THREE.Group();
-    head.position.set(0, 0.12, 0.65); // 殻の出口（aperture）の先に配置
+    head.position.set(0, 0.12, 0.65); 
     g.add(head);
 
-    // 頭のベース（肉）
-    const headBase = new THREE.Mesh(
-        new THREE.SphereGeometry(0.32, 16, 16),
-        new THREE.MeshStandardMaterial({ color: 0xaa5555, roughness: 0.8 })
-    );
+    const headBase = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), fleshMat);
     headBase.scale.set(1, 1, 0.9);
     head.add(headBase);
 
-    // 目玉 [cite: 10, 11]
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 });
+    // 目玉 [cite: 10-11]
     for (let side of [-1, 1]) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
         eye.position.set(side * 0.22, 0.12, 0.1); 
         head.add(eye);
     }
 
-    // 5. 【修正】触手：長くし、放射状に広げて「縦一列」を解消 [cite: 12, 13, 14, 15, 16]
+    // 5. 触手（Tentacles）: 長くし、放射状に広げる [cite: 12-16]
     const tentacles = [];
-    const tCount = 10; // 8本から10本に増やして密度アップ
+    const tCount = 10; 
     for (let i = 0; i < tCount; i++) {
         const tGroup = new THREE.Group();
-        
-        // Z軸回転で円状に配置
         tGroup.rotation.z = (i / tCount) * Math.PI * 2;
         
-        // 触手の本体：高さを 0.6 → 1.2 に伸ばす
-        const tMesh = new THREE.Mesh(
-            new THREE.ConeGeometry(0.04, 1.2, 8), 
-            new THREE.MeshStandardMaterial({ color: 0xaa5555 })
-        );
+        // 触手の長さを 1.2 に延長
+        const tMesh = new THREE.Mesh(new THREE.ConeGeometry(0.04, 1.2, 8), fleshMat);
         
-        // 正面（カメラ方向）へ向けつつ、少し外側に広げる（縦一列を回避）
-        tMesh.rotation.x = Math.PI / 2 + 0.2; 
-        tMesh.position.z = 0.5; // 長くなった分、位置を調整
+        // 【重要】少し外側に傾けることで「縦一列」を回避
+        tMesh.rotation.x = Math.PI / 2 + 0.3; 
+        tMesh.position.z = 0.5; 
         
         tGroup.add(tMesh);
         head.add(tGroup);
         tentacles.push(tGroup);
     }
 
-    g.userData = { tentacles: tentacles, type: 'goniatite' };
-    g.scale.set(1.5, 1.5, 1.5); [cite: 19]
-    return { mesh: g, type: 'goniatite' }; [cite: 19]
+    // データ紐付け [cite: 19]
+    g.userData = { 
+        tentacles: tentacles, 
+        type: 'goniatite' 
+    };
+    g.scale.set(1.5, 1.5, 1.5);
+
+    return { mesh: g, type: 'goniatite' };
 }
 
 // アニメーション関数
