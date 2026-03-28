@@ -224,52 +224,54 @@ function buildGraptolite() {
 function buildGoniatite() {
     const g = new THREE.Group();
 
-    // 共通マテリアル（既存のものを流用）
-    const shellMat = new THREE.MeshStandardMaterial({ color: 0xaa8866, roughness: 0.4 });
-    const fleshMat = new THREE.MeshStandardMaterial({ color: 0xaa5555, roughness: 0.8 });
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 });
+    // 殻のマテリアル（背面も描画するように side を指定）
+    const shellMat = new THREE.MeshStandardMaterial({ 
+        color: 0xaa8866, 
+        roughness: 0.4,
+        side: THREE.DoubleSide // 【追加】これで「抜け」を防ぐ
+    });
 
-    // 1. 殻（Shell）: 横倒しのドーナツ [cite: 232-233]
+    // 1. 殻（ドーナツ） [cite: 232-233]
     const shell = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.3, 16, 32), shellMat);
     shell.rotation.y = Math.PI / 2;
     g.add(shell);
 
-    // 2. 【重要】「底」を塞ぐ: 円柱を後ろに下げて、殻の奥の壁にする [cite: 234-235]
-    const shellFill = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.2, 32), shellMat);
-    shellFill.rotation.z = Math.PI / 2;
-    shellFill.position.z = -0.15; // 少し後ろに下げることで、正面にスペースを作る
+    // 2. 殻の奥を塞ぐ（少し手前に厚みを出す） 
+    const shellFill = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), shellMat);
+    shellFill.position.z = -0.1; 
+    shellFill.scale.set(1, 1, 0.5); 
     g.add(shellFill);
 
-    // 3. 軟体部（頭の土台）: 殻の出口付近に配置
+    // 3. 軟体部（頭部）
     const head = new THREE.Group();
-    head.position.z = 0.45; // 穴の中から「出口」へ移動
+    head.position.z = 0.45; // 殻の口に配置
     g.add(head);
 
-    // 肉の部分（目と触手がつながる土台）
-    const baseFlesh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), fleshMat);
-    baseFlesh.scale.set(1, 1, 0.6);
-    head.add(baseFlesh);
-
-    // 4. 目玉: 肉の左右に配置 [cite: 238-239]
+    // 目玉 [cite: 238-239]
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 });
     for (let side of [-1, 1]) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-        eye.position.set(side * 0.25, 0.1, 0.1); 
+        eye.position.set(side * 0.22, 0.1, 0); 
         head.add(eye);
     }
 
-    // 5. 触手: 正面（カメラ方向）へ向かって溢れ出す [cite: 240-244]
+    // 4. 触手（もにょもにょ動かすためのグループ化） [cite: 240-244]
     const tentacles = [];
     for (let i = 0; i < 8; i++) {
         const tGroup = new THREE.Group();
-        const t = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.7, 8), fleshMat);
-        
-        // 【修正】触手を正面に向ける (rotation.x = PI/2)
-        t.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.3;
-        t.position.z = 0.2; // 前に突き出す
-        
+        // 放射状に配置
         tGroup.rotation.z = (i / 8) * Math.PI * 2;
-        tGroup.add(t);
+        
+        const tMesh = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.7, 8), 
+            new THREE.MeshStandardMaterial({ color: 0xaa5555 }));
+        
+        // 【重要】最初から正面を向かせておく
+        tMesh.rotation.x = Math.PI / 2;
+        tMesh.position.z = 0.2;
+        
+        tGroup.add(tMesh);
         head.add(tGroup);
+        // アニメーション用にtMesh（個別の角）ではなくtGroup（全体の向き）を保存
         tentacles.push(tGroup);
     }
 
@@ -278,21 +280,20 @@ function buildGoniatite() {
     return { mesh: g, type: 'goniatite' };
 }
 
+// アニメーション関数
 function animateGoniatite(mesh, clock) {
+    if (!mesh || !mesh.userData) return;
     const time = clock.getElapsedTime();
     const data = mesh.userData;
 
-    // 1. ぷかぷかとした浮遊感
-    mesh.position.y += Math.sin(time * 0.8) * 0.003;
-    mesh.rotation.x = Math.sin(time * 0.5) * 0.05;
-
-    // 2. 触手のゆらぎアニメーション
+    // 触手の動きを「振動」から「うねり」に変える
     if (data.tentacles) {
-        data.tentacles.forEach((t, i) => {
-            // 各触手がわずかにずれて波打つ
-            const wave = Math.sin(time * 2.0 + i * 0.5) * 0.15;
-            t.rotation.x = wave;
-            t.rotation.y = Math.cos(time * 1.5 + i) * 0.1;
+        data.tentacles.forEach((tGroup, i) => {
+            // 位相をずらして、一本ずつ違う動きをさせる
+            const phase = i * (Math.PI / 4);
+            // 角度を直接上書きすることで、累積による痙攣を防ぐ
+            tGroup.rotation.x = Math.sin(time * 1.5 + phase) * 0.15;
+            tGroup.rotation.y = Math.cos(time * 1.2 + phase) * 0.1;
         });
     }
 }
