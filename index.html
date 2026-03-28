@@ -224,63 +224,47 @@ function buildGraptolite() {
 function buildGoniatite() {
     const g = new THREE.Group();
 
-    // 1. 殻（Shell）の構築
-    const shellMat = new THREE.MeshStandardMaterial({
-        color: 0xaa8866,
-        roughness: 0.4,
-        metalness: 0.3
-    });
-
-    // 【修正】殻の外輪
+    // 1. 殻（Shell）
+    const shellMat = new THREE.MeshStandardMaterial({ color: 0xaa8866, roughness: 0.4 });
     const shell = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.3, 16, 32), shellMat);
     shell.rotation.y = Math.PI / 2;
     g.add(shell);
 
-    // 【修正】「お椀の底」を作る。円柱に蓋をして、殻の中央が抜けないようにする
-    const shellFill = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.45, 0.45, 0.2, 32), // 厚みを薄くして「底」にする
-        shellMat
-    );
-    shellFill.rotation.z = Math.PI / 2;
-    shellFill.position.z = -0.1; // 少し後ろに下げて奥の壁にする
-    g.add(shellFill);
+    // 【重要】ドーナツの穴を塞ぐ「肉」
+    const bodyBase = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), shellMat);
+    bodyBase.scale.set(1, 1, 0.5);
+    g.add(bodyBase);
 
-    // 2. 軟体部（頭と肉のベース）
+    // 2. 頭部（位置を z = 0.5 程度まで前に出す）
     const head = new THREE.Group();
-    head.position.z = 0.3; // 殻の開口部付近に配置
+    head.position.z = 0.5; //  の位置を調整
     g.add(head);
 
-    // 【追加】目と触手の土台となる「肉」
-    const fleshyBase = new THREE.Mesh(
-        new THREE.SphereGeometry(0.35, 16, 16),
-        new THREE.MeshStandardMaterial({ color: 0xaa5555, roughness: 0.8 })
-    );
-    fleshyBase.scale.set(1, 1, 0.5); // 扁平な楕円にして殻にハメ込む
-    head.add(fleshyBase);
-
-    // 3. 目玉（ベースの肉の上に配置） [cite: 238-239]
+    // 目玉
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 });
     for (let side of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), 
-            new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 }));
-        eye.position.set(side * 0.25, 0.1, 0.1);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
+        eye.position.set(side * 0.25, 0.1, 0); // [cite: 238, 239]
         head.add(eye);
     }
 
-    // 4. 触手（テンタクル） [cite: 240-244]
+    // 3. 触手（もにょもにょと正面へ）
     const tentacles = [];
     for (let i = 0; i < 8; i++) {
         const t = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.6, 8), 
             new THREE.MeshStandardMaterial({ color: 0xaa5555 }));
         
-        // 放射状ではなく、少し「もにょもにょ」と前を向かせる
-        t.rotation.set(Math.PI / 2 + (Math.random() - 0.5) * 0.3, (i / 8) * Math.PI * 2, 0);
-        t.position.z = 0.2;
+        // 【修正】触手を正面（カメラ方向）に向けて広げる
+        t.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.4; //  を修正
+        t.rotation.z = (i / 8) * Math.PI * 2;
+        t.position.z = 0.1; // [cite: 244]
+        
         head.add(t);
         tentacles.push(t);
     }
 
     g.userData = { tentacles: tentacles, type: 'goniatite' };
-    g.scale.set(1.5, 1.5, 1.5);
+    g.scale.set(1.5, 1.5, 1.5); // [cite: 247]
     return { mesh: g, type: 'goniatite' };
 }
 
