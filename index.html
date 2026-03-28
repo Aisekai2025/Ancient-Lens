@@ -1911,33 +1911,41 @@ function buildCoelacanth() {
 }
 
 function animateCoelacanth(fish, clock) {
+    if (!fish || !fish.userData) return;
     const time = clock.getElapsedTime();
     const data = fish.userData;
 
-    // 1. 全体のゆったりした揺れ
-    fish.position.y += Math.sin(time * 0.5) * 0.002;
-    fish.rotation.z = Math.sin(time * 0.5) * 0.02;
+    // 1. 全体のゆったりした揺れ（上下移動と微細なロール）
+    // 痙攣を防ぐため、値を大きくしすぎないようにします
+    fish.position.y += Math.sin(time * 0.5) * 0.005; 
+    fish.rotation.z = Math.sin(time * 0.5) * 0.05;
 
-    // 2. 【核心】シーラカンス専用：対角線泳法 (Diagonal Coordination)
-    // 右の胸鰭と左の腹鰭、左の胸鰭と右の腹鰭をセットで動かす
-    if (data.fins) {
+    // 2. 【修正】対角線泳法 (Diagonal Coordination)
+    if (data.fins && data.fins.length >= 4) {
         data.fins.forEach((fin, i) => {
-            // i=0:左胸, i=1:右胸, i=2:左腹, i=3:右腹, i=4:第2背, i=5:尻
+            // 位相（タイミング）の設定
+            // i=0:左胸, i=1:右胸, i=2:左腹, i=3:右腹
             let phase = 0;
-            if (i === 0 || i === 3 || i === 5) phase = 0;          // グループA
-            if (i === 1 || i === 2 || i === 4) phase = Math.PI;    // グループB (半周ずらす)
+            if (i === 0 || i === 3) phase = 0;          // 左前 & 右後ろ
+            if (i === 1 || i === 2) phase = Math.PI;    // 右前 & 左後ろ
 
-            // 「柄」の部分を支点に、団扇のように前後・上下に動かす
-            const wave = Math.sin(time * 1.2 + phase);
-            fin.rotation.y = fin.userData.origRot.y + wave * 0.2;
-            fin.rotation.x = wave * 0.1;
+            const wave = Math.sin(time * 1.5 + phase);
+
+            // 【重要】origRot（初期角度）が存在するかチェック
+            // 存在しない場合は、デフォルトの角度を使用
+            const baseRotY = (fin.userData.origRot) ? fin.userData.origRot.y : 0;
+            const baseRotZ = (fin.userData.origRot) ? fin.userData.origRot.z : 0;
+
+            // 痙攣の防止：演算子を「=」にして、初期値からの相対変化にする
+            fin.rotation.y = baseRotY + wave * 0.15; // 前後の動き
+            fin.rotation.x = wave * 0.1;              // 上下のしなり
         });
     }
 
-    // 3. 三葉尾（中央の副尾びれ）の微振動
+    // 3. 尾びれの動き
     if (data.tail) {
-        // シーラカンスは尾全体を大きく振らず、各葉をしならせる
-        data.tail.rotation.y = Math.sin(time * 1.2) * 0.1;
+        // Z軸回転（ひっくり返り）ではなく、Y軸（左右）の動きに限定
+        data.tail.rotation.y = Math.sin(time * 1.5) * 0.15;
     }
 }
 
