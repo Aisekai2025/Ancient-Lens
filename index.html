@@ -1946,9 +1946,15 @@ function animateCoelacanth(fish, clock) {
 
     // 3. 【追加】口の呼吸アニメーション
     // シーラカンスはゆっくり口を開閉して呼吸します
+    // animateCoelacanth 内の口の動きをアップデート
     if (data.jaw) {
-        // 下顎をわずかに上下させる [cite: 160]
-        data.jaw.rotation.x = Math.max(0, Math.sin(time * 0.8) * 0.08);
+        // 基本の呼吸
+        let breathe = Math.max(0, Math.sin(time * 0.8) * 0.08);
+    
+        // 15秒周期くらいで、たまに大きく開く（あくび）を追加
+        const yawn = Math.pow(Math.max(0, Math.sin(time * 0.4)), 10) * 0.3;
+    
+        data.jaw.rotation.x = breathe + yawn;
     }
 }
 
