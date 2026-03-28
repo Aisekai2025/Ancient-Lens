@@ -3461,35 +3461,35 @@ function animate() {
     camera.lookAt(0, focusY, 0);
 
     // --- クリーチャーごとの更新処理 ---
-entities.forEach(ent => {
-    // 1. 位置や向きの更新
-    try {
-        ent.update(time, dummyObj);
-    } catch (e) { }
+    entities.forEach(ent => {
+        // 1. 位置や向きの更新
+        try {
+            ent.update(time, dummyObj);
+        } catch (e) { }
 
-    // --- 【修正ポイント】clockオブジェクトをシミュレートして渡す ---
-    const clockSim = { getElapsedTime: () => time };
+        // --- 【修正ポイント】clockオブジェクトをシミュレートして渡す ---
+        const clockSim = { getElapsedTime: () => time };
 
-    // --- ダンクルオステウス専用の呼び出しを追加 ---
-    if (ent.type === 'dunkleosteus') {
-        animateDunkleosteus(ent.mesh, clockSim);
-    }
+        // --- ダンクルオステウス専用の呼び出しを追加 ---
+        if (ent.type === 'dunkleosteus') {
+            animateDunkleosteus(ent.mesh, clockSim);
+        }
     
-    if (ent.type === 'coccosteus') {
-        // time ではなく clockSim を渡す
-        animateCoccosteus(ent.mesh, clockSim);
-    }
+        if (ent.type === 'coccosteus') {
+            // time ではなく clockSim を渡す
+            animateCoccosteus(ent.mesh, clockSim);
+        }
 
-    if (ent.type === 'fish_astraspis') {
-        // アストラスピスも念のため統一（内部で型チェックしていればそのままでもOK）
-        animateAstraspis(ent.mesh, clockSim);
-    }
-    // --------------------------------------------------
+        if (ent.type === 'fish_astraspis') {
+            // アストラスピスも念のため統一（内部で型チェックしていればそのままでもOK）
+            animateAstraspis(ent.mesh, clockSim);
+        }
+        // --------------------------------------------------
 
-    // ティクターリク専用
-    if (ent.type === 'swim_tiktaalik') {
-        animateTiktaalik(ent.mesh, time);
-    }
+        // ティクターリク専用
+        if (ent.type === 'swim_tiktaalik') {
+            animateTiktaalik(ent.mesh, time);
+        }
         // --------------------------
 
         // 2. 個別の脚アニメーションの呼び出し
