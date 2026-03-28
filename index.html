@@ -224,54 +224,67 @@ function buildGraptolite() {
 function buildGoniatite() {
     const g = new THREE.Group();
 
-    // 殻のマテリアル（背面も描画するように side を指定）
     const shellMat = new THREE.MeshStandardMaterial({ 
         color: 0xaa8866, 
         roughness: 0.4,
-        side: THREE.DoubleSide // 【追加】これで「抜け」を防ぐ
+        side: THREE.DoubleSide // 内側も描画して「抜け」を防止 
     });
 
-    // 1. 殻（ドーナツ） [cite: 232-233]
+    // 1. 殻（Shell）: ドーナツ型 [cite: 232-233]
     const shell = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.3, 16, 32), shellMat);
-    shell.rotation.y = Math.PI / 2;
+    // ドーナツを横倒しにする
+    shell.rotation.y = Math.PI / 2; 
     g.add(shell);
 
-    // 2. 殻の奥を塞ぐ（少し手前に厚みを出す） 
-    const shellFill = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), shellMat);
-    shellFill.position.z = -0.1; 
-    shellFill.scale.set(1, 1, 0.5); 
+    // 2. 【修正】中心の封鎖パーツ（隙間キラー）
+    // 円柱ではなく「球体」を使い、中心に配置することで、どの角度からも隙間を消します
+    const shellFill = new THREE.Mesh(
+        new THREE.SphereGeometry(0.35, 24, 24), // 穴の半径(0.3)より少し大きくする
+        shellMat
+    );
+    // 殻の中に少しだけ深く埋め込む
+    shellFill.position.z = -0.05; 
+    shellFill.scale.set(1.2, 1.2, 0.8); // 左右に広げて穴を完全にカバー
     g.add(shellFill);
 
     // 3. 軟体部（頭部）
     const head = new THREE.Group();
-    head.position.z = 0.45; // 殻の口に配置
+    // 殻の開口部（正面）へ突き出させる
+    head.position.z = 0.45; 
     g.add(head);
+
+    // 頭のベース（肉）
+    const headBase = new THREE.Mesh(
+        new THREE.SphereGeometry(0.3, 16, 16),
+        new THREE.MeshStandardMaterial({ color: 0xaa5555, roughness: 0.8 })
+    );
+    headBase.scale.set(1, 1, 0.7);
+    head.add(headBase);
 
     // 目玉 [cite: 238-239]
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 });
     for (let side of [-1, 1]) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-        eye.position.set(side * 0.22, 0.1, 0); 
+        eye.position.set(side * 0.22, 0.1, 0.1); 
         head.add(eye);
     }
 
-    // 4. 触手（もにょもにょ動かすためのグループ化） [cite: 240-244]
+    // 4. 触手（もにょもにょグループ） [cite: 240-244]
     const tentacles = [];
     for (let i = 0; i < 8; i++) {
         const tGroup = new THREE.Group();
-        // 放射状に配置
         tGroup.rotation.z = (i / 8) * Math.PI * 2;
         
-        const tMesh = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.7, 8), 
-            new THREE.MeshStandardMaterial({ color: 0xaa5555 }));
-        
-        // 【重要】最初から正面を向かせておく
+        const tMesh = new THREE.Mesh(
+            new THREE.ConeGeometry(0.05, 0.7, 8), 
+            new THREE.MeshStandardMaterial({ color: 0xaa5555 })
+        );
+        // 正面を向かせる
         tMesh.rotation.x = Math.PI / 2;
         tMesh.position.z = 0.2;
         
         tGroup.add(tMesh);
         head.add(tGroup);
-        // アニメーション用にtMesh（個別の角）ではなくtGroup（全体の向き）を保存
         tentacles.push(tGroup);
     }
 
