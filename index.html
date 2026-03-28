@@ -1897,7 +1897,7 @@ function buildCoelacanth() {
     centerLobe.position.set(0, 0, -1.5);
     tailGroup.add(centerLobe);
 
-    // データ紐付け [cite: 221-227]
+    // データ紐付け
     g.userData = { 
         body: bodyGroup, 
         tail: tailGroup, 
@@ -1935,9 +1935,20 @@ function animateCoelacanth(fish, clock) {
         });
     }
 
-    // 3. 尾びれの微振動
+    // 2. 尾びれの動き：振幅を少し強め、周期をずらす
     if (data.tail) {
-        data.tail.rotation.y = Math.sin(time * 1.5) * 0.1;
+        // Y軸（左右）の振り。0.15だと小さすぎる場合があるので、0.25程度まで上げます
+        data.tail.rotation.y = Math.sin(time * 1.5) * 0.25;
+
+        // 【隠し味】わずかに Z 軸（ひねり）を加えると、水の抵抗を受けている感が出ます
+        data.tail.rotation.z = Math.cos(time * 1.5) * 0.05;
+    }
+
+    // 3. 【追加】口の呼吸アニメーション
+    // シーラカンスはゆっくり口を開閉して呼吸します
+    if (data.jaw) {
+        // 下顎をわずかに上下させる [cite: 160]
+        data.jaw.rotation.x = Math.max(0, Math.sin(time * 0.8) * 0.08);
     }
 }
 
