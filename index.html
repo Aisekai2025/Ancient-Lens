@@ -277,30 +277,37 @@ function buildGoniatite() {
         head.add(eye);
     }
 
-    // 5. 【重要修正】触手（Tentacles）：根元を前へ出し、埋もれを防ぐ
+    // 5. 【究極修正】触手（Tentacles）：一点集中＆根元ピボット
     const tentacles = [];
-    const tCount = 10; 
+    const tCount = 12; // 密度を上げて「わさわさ感」アップ
+
     for (let i = 0; i < tCount; i++) {
+        // 触手一本ごとの回転・伸縮を管理するグループ
         const tGroup = new THREE.Group();
         
-        // --- 修正箇所：根元の位置を z=0.2 (頭部の表面付近) に設定 ---
-        tGroup.position.z = 0.2; 
+        // --- 【重要】すべての触手を口元の「一点」に集める ---
+        tGroup.position.set(0, 0, 0.1); // 頭部の中心（口元）に配置
         
+        // Z軸回転で円状に配置
         tGroup.rotation.z = (i / tCount) * Math.PI * 2;
         
-        // 触手の本体 (Cone)
-        const tMesh = new THREE.Mesh(new THREE.ConeGeometry(0.04, 1.2, 8), fleshMat);
+        // --- 【重要】ピボットポイントを「根元」にする裏技 ---
+        // 円錐（Cone）を生成し、その高サの半分だけ「上（y方向）」にずらす
+        const tHeight = 1.3; // 触手の長さ
+        const tGeo = new THREE.ConeGeometry(0.03, tHeight, 8);
+        tGeo.translate(0, tHeight / 2, 0); // これで底面が(0,0,0)になる
+
+        const tMesh = new THREE.Mesh(tGeo, fleshMat);
         
-        // 初期姿勢：少し外側に広げる (縦一列回避)
-        tMesh.rotation.x = Math.PI / 2 + 0.3; 
-        tMesh.position.z = 0.5; // 長くなった分、位置を調整
+        // 初期姿勢：正面を向かせる（y軸が Cone の長さ方向）
+        tMesh.rotation.x = Math.PI / 2; 
         
         tGroup.add(tMesh);
         head.add(tGroup);
         tentacles.push(tGroup);
     }
 
-    // データ紐付け [cite: 19]
+    // データ紐付け
     g.userData = { 
         tentacles: tentacles, 
         type: 'goniatite' 
@@ -321,7 +328,7 @@ function animateGoniatite(mesh, clock, food) {
     let activity = 0;
     if (food) {
         const dist = mesh.position.distanceTo(food.position);
-        activity = Math.max(0, 1 - (dist / 4.0)); // 4ユニット以内で反応
+        activity = Math.max(0, 1 - (dist / 3.5)); // 3.5ユニット以内で反応
     }
 
     // 2. 頭部の出し入れ (Z軸)
@@ -331,35 +338,35 @@ function animateGoniatite(mesh, clock, food) {
         head.position.z += (targetZ - head.position.z) * 0.1;
     }
 
-    // 3. 触手のアニメーション：埋もれ防止と反応強調
+    // 3. 【究極修正】触手のアニメーション：しなしなとした「柔らかさ」
     data.tentacles.forEach((tGroup, i) => {
         if (!tGroup) return;
 
         const offset = i * (Math.PI * 2 / data.tentacles.length);
         
-        // --- 【修正】伸縮 (Scale) ---
-        // 最小値を 0.4 → 0.6 に上げ、縮んでいる時も見えるようにする
-        const targetScale = 0.6 + (activity * 1.0); 
+        // --- 伸縮 (Scale) ---
+        // 最小値を 0.5 にし、脱力時は短くしなしなさせる
+        const targetScale = 0.5 + (activity * 1.0); 
         tGroup.scale.z += (targetScale - tGroup.scale.z) * 0.1;
 
-        // --- わしゃわしゃ (Rotation) ---
-        // エサがない(activity=0)ときも、わずかに揺らす(生命感)
-        const waveSpeed = 0.8 + (activity * 4.2); 
-        const waveRange = 0.08 + (activity * 0.45);
+        // --- 【重要】しなしなとした動き (Rotation) ---
+        // 興奮すると速く、大きく、しなる
+        const waveSpeed = 1.2 + (activity * 4.5); 
+        const waveRange = 0.1 + (activity * 0.5);
 
-        // sin/cosでねじれる動きを作る
+        // sin/cosに位相差(offset)を複雑に掛け合わせ、一本ずつ違う「うねり」を作る
         tGroup.rotation.x = Math.sin(time * waveSpeed + offset) * waveRange;
-        tGroup.rotation.y = Math.cos(time * waveSpeed * 0.8 + offset) * waveRange;
+        tGroup.rotation.y = Math.cos(time * (waveSpeed * 0.8) + offset) * (waveRange * 0.6);
 
-        // --- 【重要修正】だらん (垂れ下がり) ---
-        // エサがない(activity=0)ときほど、x軸をプラスにして下に向ける
-        // 回転角を 0.8 → 0.5 に縮小し、頭部にめり込むのを防ぐ（斜め下へ）
-        const droop = (1 - activity) * 0.5; 
+        // --- 【追加】だらんとした「脱力」 ---
+        // activityが低いほど、重力で真下に「垂れ下がる」
+        // (1-activity) で最大 1.2ラジアン（約70度）まで垂れ下げる
+        const droop = (1 - activity) * 1.0; 
         tGroup.rotation.x += droop;
         
-        // 【追加】エサがある時、少し外側にパッと開く（朝顔状）
+        // エサがある時、少し外側にパッと開く（朝顔状）
         if (activity > 0.2) {
-            tGroup.rotation.x -= (activity * 0.2); 
+            tGroup.rotation.x -= (activity * 0.3); 
         }
     });
 
