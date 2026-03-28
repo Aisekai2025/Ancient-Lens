@@ -307,21 +307,50 @@ function buildGoniatite() {
 }
 
 // アニメーション関数
-function animateGoniatite(mesh, clock) {
+function animateGoniatite(mesh, clock, food) {
     if (!mesh || !mesh.userData) return;
     const time = clock.getElapsedTime();
     const data = mesh.userData;
 
-    // 触手の動きを「振動」から「うねり」に変える
-    // animateGoniatite 内での微調整
+    // 1. エサとの距離を計算（foodが存在する場合）
+    let isDisappointed = false;
+    if (food) {
+        const dist = mesh.position.distanceTo(food.position);
+        // エサが一定以上遠い、または遠ざかっていった場合に「残念」状態に
+        if (dist > 2.5) isDisappointed = true;
+    }
+
+    // 2. 「残念」状態なら頭を殻に引っ込める（頭部のZ座標を調整）
+    // mesh.children[2] が head グループ（buildGoniatiteの構成順による）
+    const head = mesh.children.find(child => child instanceof THREE.Group && child.position.z > 0.3);
+    if (head) {
+        // 通常は 0.65、残念な時は 0.4 くらいまで引っ込む（滑らかに補間）
+        const targetZ = isDisappointed ? 0.45 : 0.65;
+        head.position.z += (targetZ - head.position.z) * 0.1;
+    }
+
+    // 3. 触手のアニメーション
     if (data.tentacles) {
         data.tentacles.forEach((t, i) => {
-            // i を使って、一本ずつ動くタイミング（位相）をずらす
             const offset = i * 0.8;
-            t.rotation.x = Math.sin(time * 1.5 + offset) * 0.2; // 前後のうねり
-            t.rotation.z = Math.cos(time * 1.0 + offset) * 0.1; // 左右の広がり
+            
+            // 残念な時は触手の動きも弱々しく（振幅を小さく）
+            const energy = isDisappointed ? 0.3 : 1.0;
+            
+            // 前後のうねり
+            t.rotation.x = (Math.sin(time * 1.5 + offset) * 0.2) * energy; 
+            // 左右の広がり（残念な時は少し窄める）
+            t.rotation.z = (Math.cos(time * 1.0 + offset) * 0.1) * energy;
+            
+            // 【隠し味】残念な時は触手を少し内側に丸める
+            if (isDisappointed) {
+                t.rotation.x += 0.2; 
+            }
         });
     }
+
+    // 4. 全体のぷかぷか移動（浮力調整）
+    mesh.position.y += Math.sin(time * 0.5) * 0.002;
 }
 
 function buildWiwaxia() {
