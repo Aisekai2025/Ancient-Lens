@@ -1792,17 +1792,20 @@ function buildCoelacanth() {
     const bodyGroup = new THREE.Group();
     g.add(bodyGroup);
 
-    // 深海や岩礁を思わせるブルーグレー系の滑らかなマテリアル
+    // 【アップデート】深海の岩礁に馴染む、より重厚でわずかに光る質感
     const mat = (color) => new THREE.MeshStandardMaterial({
-        color: color, 
-        roughness: 0.5, 
-        metalness: 0.2
+        color: color,
+        roughness: 0.85, // 0.5から上げ、ザラついたコズマイン鱗の質感を表現
+        metalness: 0.2,   // 鈍い光沢を維持
     });
 
     const eyeMat = new THREE.MeshStandardMaterial({
-        color: 0x050505, 
-        roughness: 0.1, 
-        metalness: 0.9 // 光を反射するタペータムを意識
+        color: 0x050505,
+        roughness: 0.1,
+        metalness: 0.9,
+        // 【追加】タペータム（輝板）の表現。わずかに緑がかった発光を加える
+        emissive: 0x113322, 
+        emissiveIntensity: 0.5
     });
 
     // 1. 胴体（ユーステノプテロンより体高があり、ふっくらした流線形）
@@ -1872,7 +1875,9 @@ function buildCoelacanth() {
     const dFin2 = createLobeFin(0, 0.8, -1.2, 0, 0, 0.9);
     dFin2.rotation.z = Math.PI; // 上に向ける
     const aFin = createLobeFin(0, -0.8, -1.6, 0, 0, 0.9);
-
+    
+    // 【重要】アニメーションで個別に制御するため、順番を意識して登録
+    // 0:左胸, 1:右胸, 2:左腹, 3:右腹, 4:第2背, 5:尻
     [fL, fR, pL, pR, dFin2, aFin].forEach(f => { bodyGroup.add(f); fins.push(f); });
 
     // 【重要】第1背びれ（これだけは肉鰭ではなく、扇状の条鰭）
@@ -1904,14 +1909,47 @@ function buildCoelacanth() {
     centerLobe.position.set(0, 0, -1.5);
     tailGroup.add(centerLobe);
 
-    g.userData.body = bodyGroup;
-    g.userData.tail = tailGroup;
-    g.userData.jaw = jaw;
-    g.userData.fins = fins; 
-    g.scale.set(1.4, 1.4, 1.4);
+    // 【データ紐付け】
+    g.userData = { 
+        body: bodyGroup, 
+        tail: tailGroup, 
+        jaw: jaw, 
+        fins: fins,
+        type: 'coelacanth' // 専用のタイプ名を設定
+    };
+    g.scale.set(1.4, 1.4, 1.4); [cite: 225]
+    return { mesh: g, type: 'coelacanth' }; [cite: 227]
+}
 
-    // ユーステノプテロンと同じアニメーションタイプを流用可能
-    return { mesh: g, type: 'fish_lobe' }; 
+function animateCoelacanth(fish, clock) {
+    const time = clock.getElapsedTime();
+    const data = fish.userData;
+
+    // 1. 全体のゆったりした揺れ
+    fish.position.y += Math.sin(time * 0.5) * 0.002;
+    fish.rotation.z = Math.sin(time * 0.5) * 0.02;
+
+    // 2. 【核心】シーラカンス専用：対角線泳法 (Diagonal Coordination)
+    // 右の胸鰭と左の腹鰭、左の胸鰭と右の腹鰭をセットで動かす
+    if (data.fins) {
+        data.fins.forEach((fin, i) => {
+            // i=0:左胸, i=1:右胸, i=2:左腹, i=3:右腹, i=4:第2背, i=5:尻
+            let phase = 0;
+            if (i === 0 || i === 3 || i === 5) phase = 0;          // グループA
+            if (i === 1 || i === 2 || i === 4) phase = Math.PI;    // グループB (半周ずらす)
+
+            // 「柄」の部分を支点に、団扇のように前後・上下に動かす
+            const wave = Math.sin(time * 1.2 + phase);
+            fin.rotation.y = fin.userData.origRot.y + wave * 0.2;
+            fin.rotation.x = wave * 0.1;
+        });
+    }
+
+    // 3. 三葉尾（中央の副尾びれ）の微振動
+    if (data.tail) {
+        // シーラカンスは尾全体を大きく振らず、各葉をしならせる
+        data.tail.rotation.y = Math.sin(time * 1.2) * 0.1;
+    }
 }
 
 function buildSchinderhannes() {
@@ -3499,6 +3537,11 @@ function animate() {
 
         // --- 【修正ポイント】clockオブジェクトをシミュレートして渡す ---
         const clockSim = { getElapsedTime: () => time };
+
+        // シーラカンス専用の分岐を追加
+        if (ent.type === 'coelacanth') {
+            animateCoelacanth(ent.mesh, clockSim);
+        }
 
         // --- ダンクルオステウス専用の呼び出しを追加 ---
         if (ent.type === 'dunkleosteus') {
