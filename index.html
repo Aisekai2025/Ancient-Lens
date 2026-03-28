@@ -312,48 +312,85 @@ function animateGoniatite(mesh, clock, food) {
     const time = clock.getElapsedTime();
     const data = mesh.userData;
 
-    // 1. エサへの反応度（activity）を計算
-    let activity = 0; // 0: だらん、1: 元気いっぱい
+    // 1. エサへの反応（activity）: 0.0 (脱力) 〜 1.0 (興奮)
+    let activity = 0;
+    let directionToFood = new THREE.Vector3(0, 0, 1); // デフォルトは前
+
     if (food) {
         const dist = mesh.position.distanceTo(food.position);
-        // 距離3.0以内なら反応、近いほど activity が 1 に近づく
-        activity = Math.max(0, 1 - (dist / 3.0));
+        activity = Math.max(0, 1 - (dist / 3.5)); // 3.5ユニット以内で反応
+        directionToFood.subVectors(food.position, mesh.position).normalize();
     }
 
-    // 2. 頭の位置：エサに身を乗り出す動き
-    // 子要素から head グループを探す（buildGoniatiteの構成に合わせる）
+    // 2. 頭部の出し入れと向き
     const head = mesh.children.find(c => c instanceof THREE.Group && c.position.z > 0.3);
     if (head) {
-        // 通常 0.5、エサがあると 0.8 まで乗り出す
         const targetZ = 0.5 + (activity * 0.3);
         head.position.z += (targetZ - head.position.z) * 0.1;
+        
+        // エサの方を少し向く（追従）
+        if (activity > 0.1) {
+            const targetRotY = Math.atan2(directionToFood.x, directionToFood.z);
+            head.rotation.y += (targetRotY - head.rotation.y) * 0.05;
+        }
     }
 
-    // 3. 触手のアニメーション：activity で動きの激しさを変える
+    // 3. 触手の挙動：「筆先」から「生き物」へ
     if (data.tentacles) {
-        data.tentacles.forEach((t, i) => {
-            const offset = i * 0.8;
+        data.tentacles.forEach((tGroup, i) => {
+            const offset = i * (Math.PI * 2 / data.tentacles.length);
             
-            // エサがない（activity=0）ときは動きが遅く、小さい
-            const speed = 0.5 + (activity * 2.5); 
-            const range = 0.05 + (activity * 0.3);
+            // エサがある時：速く、大きく動く / 無い時：ゆっくり、わずかに揺れる
+            const waveSpeed = 1.0 + (activity * 3.0);
+            const waveScale = 0.05 + (activity * 0.3);
 
-            t.rotation.x = Math.sin(time * speed + offset) * range;
-            t.rotation.z = Math.cos(time * (speed * 0.8) + offset) * (range * 0.5);
-            
-            // エサがない時は少し下に「だらん」とさせる
-            if (activity < 0.2) {
-                t.rotation.x += 0.4; 
-            }
+            // 基本のうねり
+            tGroup.rotation.x = Math.sin(time * waveSpeed + offset) * waveScale;
+            tGroup.rotation.y = Math.cos(time * waveSpeed * 0.8 + offset) * waveScale;
+
+            // --- ここが重要：脱力の表現 ---
+            // activityが低いほど、重力で下に垂れ下がる（x軸に正の回転を加える）
+            // 0.8（だらん）から 0.0（エサへ向く）へ補間
+            const droop = (1 - activity) * 0.8;
+            tGroup.rotation.x += droop;
         });
     }
 
-    // 4. 気泡（バブル）の演出：エサが消えた瞬間に「プシュッ」と出すイメージ
-    // 簡易的に、activity が高い時にたまに上へ動くパーティクルを出すロジックのヒント
-    if (activity > 0.5 && Math.random() > 0.98) {
-        console.log("気泡発生！"); // ここでParticleSystemをトリガー
-        // 実際には mesh.position に小さな白い球体を生成して上昇させる処理を追加
+    // 4. 気泡の実装（物理オブジェクトの生成）
+    // エサに興奮している間、一定確率で気泡をシーンに追加
+    if (activity > 0.6 && Math.random() > 0.95) {
+        createBubble(mesh);
     }
+}
+
+// 気泡を生成する補助関数
+function createBubble(parentMesh) {
+    const bubbleGeo = new THREE.SphereGeometry(0.02, 8, 8);
+    const bubbleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
+    const bubble = new THREE.Mesh(bubbleGeo, bubbleMat);
+
+    // 漏斗（殻の下側）付近から発生させる
+    bubble.position.copy(parentMesh.position);
+    bubble.position.y -= 0.2;
+    
+    // sceneはグローバルまたは引数で渡す必要があります
+    scene.add(bubble);
+
+    // 気泡のアニメーション（簡易的にカスタムプロパティを付与）
+    const animateBubble = () => {
+        bubble.position.y += 0.02; // 上昇
+        bubble.position.x += Math.sin(Date.now() * 0.01) * 0.005; // ゆらゆら
+        bubble.material.opacity -= 0.005; // 徐々に消える
+        
+        if (bubble.material.opacity <= 0) {
+            scene.remove(bubble);
+            bubble.geometry.dispose();
+            bubble.material.dispose();
+        } else {
+            requestAnimationFrame(animateBubble);
+        }
+    };
+    animateBubble();
 }
 
 function buildWiwaxia() {
