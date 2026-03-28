@@ -2346,10 +2346,10 @@ function buildDunkleosteus() {
         maskGroup.add(uTooth);
     }
 
-    g.userData = { body: fishBodyGroup, jaw: jawGroup, head: maskGroup, tailStem,fins: fins, tailFin: tailFinGroup };
+    g.userData = { body: fishBodyGroup, jaw: jawGroup, head: maskGroup, tail: tailStem,fins: fins, tailFin: tailFinGroup };
     g.scale.set(1.5, 1.5, 1.5);
 
-    return { mesh: g, type: 'fish_dunk' };
+    return { mesh: g, type: 'dunkleosteus' };
 }
 
 // ========================================================
@@ -2367,6 +2367,11 @@ function animateDunkleosteus(fish, clock) {
     // 2. 尾びれ
     if (data.tail) {
         data.tail.rotation.y = Math.sin(time * 2.0 - 1.2) * 0.4;
+    }
+    
+    if (data.tailFin) {
+    // 付け根（tail）より少し遅れて（-0.5）振るのがコツ
+    data.tailFin.rotation.y = Math.sin(time * 2.0 - 1.7) * 0.2;
     }
 
     // 3. ギロチン・ジョー
