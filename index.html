@@ -3470,6 +3470,11 @@ entities.forEach(ent => {
     // --- 【修正ポイント】clockオブジェクトをシミュレートして渡す ---
     const clockSim = { getElapsedTime: () => time };
 
+    // --- ダンクルオステウス専用の呼び出しを追加 ---
+    if (ent.type === 'dunkleosteus') {
+        animateDunkleosteus(ent.mesh, clockSim);
+    }
+    
     if (ent.type === 'coccosteus') {
         // time ではなく clockSim を渡す
         animateCoccosteus(ent.mesh, clockSim);
