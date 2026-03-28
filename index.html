@@ -1686,7 +1686,7 @@ function buildEusthenopteron() {
     // 左右の目（頭部のやや上側、前方を睨むように）
     for (let side of [-1, 1]) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-        eye.position.set(side * 0.45, 0.3, 0.4);
+        eye.position.set(side * 0.45, 0.3, 0.8);
         headGroup.add(eye);
     }
 
@@ -1786,6 +1786,7 @@ function buildEusthenopteron() {
 
     return { mesh: g, type: 'fish_lobe' };
 }
+
 function buildCoelacanth() {
     const g = new THREE.Group();
     const bodyGroup = new THREE.Group();
