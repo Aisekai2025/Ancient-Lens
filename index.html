@@ -336,82 +336,61 @@ function animateGoniatite(mesh, clock, food = null) {
 
     // 1. エサへの興奮度（activity）を計算
     let activity = 0;
-    // エサが存在し、かつ「見えている時」だけ反応する
     if (food && food.visible) {
         const dist = mesh.position.distanceTo(food.position);
-        // 距離 5.0 以内で反応、近づくほど 1.0 に近づく
         activity = Math.max(0, 1 - (dist / 5.0)); 
     }
 
-    // 2. 【古生物学】外套膜の脈動（呼吸運動）
-    // 待機時(activity=0)ほどゆっくり(0.8)、興奮時ほど速く(2.0)脈動するサイン波
-    const breathSpeed = 0.8 + (activity * 1.2);
-    const breathBase = Math.sin(time * breathSpeed); // -1.0 〜 1.0
+    // 2. 外套膜の脈動（呼吸）
+    const breathSpeed = 0.8 + (activity * 1.5);
+    const breathBase = Math.sin(time * breathSpeed); 
 
-    // 頭部グループ（head）全体を脈動に合わせて微細に前後(z軸)させる
+    // 頭部をグイッと前に出す（身を乗り出す）
     const head = mesh.children.find(c => c instanceof THREE.Group && c.position.z > 0.3);
     if (head) {
-        // 呼吸による前後運動（0.05〜0.1）
         const breathMove = 0.05 + (breathBase * 0.05);
-        // エサへの身乗り出し（普段 0.5、エサで 0.9 まで出る）
-        // SEブラッシュアップ：補間係数を上げ(0.1 -> 0.3)て機敏に
-        const targetZ = 0.5 + (activity * 0.4) + breathMove;
-        head.position.z += (targetZ - head.position.z) * 0.3; // 機敏に
+        const targetZ = 0.5 + (activity * 0.5) + breathMove;
+        head.position.z += (targetZ - head.position.z) * 0.3;
     }
 
-    // 3. 触手の「しなしなわしゃわしゃ」アニメーション
-    // 【バグ修正】回転設定ロジックを forEach ループ内へ移動
+    // 3. 触手のアニメーション（待機：だらん / 興奮：シュッと開閉）
     data.tentacles.forEach((tGroup, i) => {
-        // buildGoniatiteで入れた tGroup の中の最初の Mesh（tMesh）を取得
         const tMesh = tGroup.children[0]; 
         if (!tMesh) return;
 
+        // 触手ごとの位相ズレ（少しだけタイミングをずらして生々しく）
         const offset = i * (Math.PI * 2 / data.tentacles.length);
         
-        // --- 触手の伸縮 (Scale) ---
-        // 外套膜の脈動に合わせて軽く脈動（普段 0.5、エサで 1.5 までシャキーンと伸びる）
-        // SEブラッシュアップ：伸縮の補間も少しゆっくり(0.05)にして「筋肉」の動きに
-        const targetScale = (0.5 + (breathBase * 0.05)) + (activity * 1.0); 
-        tMesh.scale.y += (targetScale - tMesh.scale.y) * 0.05; // しなやかに
+        // --- 伸縮 (Scale) ---
+        const baseScale = 0.5 + (breathBase * 0.05); // 普段の長さ
+        const huntScale = 1.6; // 捕食時にシュッと伸びる長さ
+        const targetScale = baseScale * (1 - activity) + huntScale * activity;
+        tMesh.scale.y += (targetScale - tMesh.scale.y) * 0.15;
 
-        // --- 展開（ Spread / 巨神兵回避 ） ---
-        // 外套膜の脈動同期開閉（呼吸）
-        // SEブラッシュアップ：興奮時は展開(開き具合)を大きく変更（普段0.3、エサで-0.5）してメリハリを
-        const spreadBase = 0.3 + (breathBase * 0.1); // 呼吸による脈動閉じ気味(0.3)
-        // エサが出ると放射状に開く(-0.5ラジアン)
-        // SEブラッシュアップ：補間係数を大きく(0.1 -> 0.3)して機敏に
-        const targetSpread = spreadBase - (activity * 0.8); 
-        const spread = targetSpread; // 滑らかな展開は droop と rotation.x で適用
+        // --- 角度の計算 (Rotation X: 開閉) ---
+        // 【待機モード】 正面(PI/2) + 重力で下を向く(0.5) + 呼吸の微揺れ
+        const idleRotX = (Math.PI / 2) + 0.5 + (breathBase * 0.1);
 
-        // --- 動きの激しさ (わしゃわしゃ) ---
-        // 古生物学ブラッシュアップ：待機時はほとんど揺らさない(0.0)
-        const speed = 1.0 + (activity * 4.0); 
-        const range = 0.0 + (activity * 0.45); // 普段揺らさない、エサで大きく
+        // 【捕食モード】 高速で「開く(-0.6)」「閉じる(+0.3)」を繰り返す
+        const snapSpeed = 15.0; // シュッと動かすための高速回転
+        // サイン波で開閉を作る。offsetを掛けて少し波打たせる
+        const snapWave = Math.sin(time * snapSpeed + offset * 0.5); 
+        const huntRotX = (Math.PI / 2) - 0.15 + (snapWave * 0.45);
 
-        // 基本の前後の動き（X軸）
-        const waveX = Math.sin(time * speed + offset) * range;
+        // activity（興奮度）に応じて、待機と捕食の動きをブレンド
+        const targetRotX = idleRotX * (1 - activity) + huntRotX * activity;
 
-        // ポーズ合成
-        // Math.PI / 2 (正面) + 前後わしゃわしゃ + 展開開閉(spreadベースに補間)
-        const rotationBaseX = (Math.PI / 2);
-        
-        // 脱力 (droop：エサがない時は重力で少し垂れる 0.5ラジアン)
-        const droop = (1 - activity) * 0.5;
+        // 角度を適用（少し早めの 0.3 で補間して機敏さを出す）
+        tMesh.rotation.x += (targetRotX - tMesh.rotation.x) * 0.3;
 
-        // X軸回転を滑らかに補間して機敏に反映
-        const targetRotationX = rotationBaseX + waveX + droop;
-        // spread も droop に合成する
-        tMesh.rotation.x += (targetRotationX - tMesh.rotation.x) * 0.3; // 機敏に
-
-        // 外套膜同期開閉(spread)の適用
-        tMesh.rotation.x = tMesh.rotation.x * (1 - activity) + (rotationBaseX + spread) * activity;
-        
+        // --- おまけ：興奮時は少しねじる (Rotation Z) ---
+        const targetRotZ = Math.cos(time * 10.0 + offset) * 0.15 * activity;
+        tMesh.rotation.z += (targetRotZ - tMesh.rotation.z) * 0.2;
     });
 
-    // 4. パクっと食べる判定 (距離 0.5未満)
-    if (food && food.visible && mesh.position.distanceTo(food.position) < 0.5) {
-        food.visible = false; // エサ消滅
-        // 食べた瞬間に「プシュッ」と気泡を出す演出
+    // 4. パクっと食べる判定
+    if (food && food.visible && mesh.position.distanceTo(food.position) < 0.6) {
+        food.visible = false; 
         if (typeof createBubble === 'function') createBubble(mesh, head);
     }
 }
