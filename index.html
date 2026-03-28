@@ -221,65 +221,77 @@ function buildGraptolite() {
     g.scale.set(1.5, 1.5, 1.5); return { mesh: g, segments: [g], type: 'drift', offset: 0 };
 }
 
+// ==========================================
+// 1. ゴニアタイト生成関数 (buildGoniatite)
+// ==========================================
 function buildGoniatite() {
     const g = new THREE.Group();
 
-    // 共通マテリアル設定
+    // --- 共通マテリアル設定（ループ外へ移動して共有） ---
     const shellMat = new THREE.MeshStandardMaterial({ 
         color: 0xaa8866, 
         roughness: 0.4,
         side: THREE.DoubleSide 
     });
 
+    // 古生物学ブラッシュアップ：軟体部の生々しさ（ roughnessを下げる、少し明るく）
     const fleshMat = new THREE.MeshStandardMaterial({ 
-        color: 0xaa5555, 
-        roughness: 0.8 
+        color: 0xaa6666, // 少し明るく
+        roughness: 0.6 // 生々しさ
     });
 
-    const eyeMat = new THREE.MeshStandardMaterial({ 
-        color: 0x111111, 
-        roughness: 0.1 
-    });
+    // 目玉（ roughness=0 で生気）
+    const eyeMat = new THREE.MeshStandardMaterial({color: 0x050505, roughness: 0.0});
 
-    // 1. 殻（Shell）: ドーナツ型 [cite: 4-5]
-    const shell = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.3, 16, 32), shellMat);
+    // 1. 殻（Shell）: ドーナツ型
+    const shellGeo = new THREE.TorusGeometry(0.5, 0.3, 16, 32);
+    const shell = new THREE.Mesh(shellGeo, shellMat);
     shell.rotation.y = Math.PI / 2; 
     g.add(shell);
 
-    // 2. 殻の奥を塞ぐ（球体で隙間を完全に封鎖） [cite: 6-7]
-    const shellFill = new THREE.Mesh(new THREE.SphereGeometry(0.35, 24, 24), shellMat);
+    // 2. 殻の奥を塞ぐ（球体で隙間を完全に封鎖）
+    const shellFillGeo = new THREE.SphereGeometry(0.35, 24, 24);
+    const shellFill = new THREE.Mesh(shellFillGeo, shellMat);
     shellFill.position.z = -0.05; 
     shellFill.scale.set(1.2, 1.2, 0.8); 
     g.add(shellFill);
 
-    // 3. 殻の出口（aperture）: 襟のようなパーツを追加
-    const aperture = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.38, 0.32, 0.25, 32, 1, true), 
-        shellMat
-    );
+    // 3. 殻の出口（aperture）: 外套膜（襟のようなパーツ）を追加
+    const apertureGeo = new THREE.CylinderGeometry(0.38, 0.32, 0.25, 32, 1, true);
+    const aperture = new THREE.Mesh(apertureGeo, shellMat);
     aperture.rotation.x = Math.PI / 2;
     aperture.position.set(0, 0.1, 0.4); 
     g.add(aperture);
 
-    // 4. 軟体部（頭部）: 殻の出口の先に配置 [cite: 9]
+    // 4. 軟体部（頭部）: 外套膜の先に配置
     const head = new THREE.Group();
     head.position.set(0, 0.12, 0.65); 
     g.add(head);
 
-    const headBase = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), fleshMat);
+    const headBaseGeo = new THREE.SphereGeometry(0.32, 16, 16);
+    const headBase = new THREE.Mesh(headBaseGeo, fleshMat);
     headBase.scale.set(1, 1, 0.9);
     head.add(headBase);
 
-    // 目玉 [cite: 10-11]
+    // 目玉
     for (let side of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
+        const eyeGeo = new THREE.SphereGeometry(0.12, 16, 16);
+        const eye = new THREE.Mesh(eyeGeo, eyeMat);
         eye.position.set(side * 0.22, 0.12, 0.1); 
         head.add(eye);
     }
 
     // 5. 【究極修正】触手（Tentacles）：一点集中＆根元ピボット
     const tentacles = [];
-    const tCount = 12; // 密度を上げて「わさわさ感」アップ
+    // 古生物学ブラッシュアップ：本数を大幅に増やし「わさわさ感」アップ (12 -> 36)
+    const tCount = 36; 
+
+    // 3Dプログラミング：ピボット制御用の円錐ジオメトリを共有
+    const tHeight = 1.3; // 触手の長さ
+    // 古生物学ブラッシュアップ：筋肉質の太めの造形（radiusTopを太く）
+    const tGeo = new THREE.CylinderGeometry(0.02, 0.05, tHeight, 8, 1);
+    // 底面を(0,0,0)に翻訳して根元をピボットポイントにする手法
+    tGeo.translate(0, tHeight / 2, 0); 
 
     for (let i = 0; i < tCount; i++) {
         // 触手一本ごとの回転・伸縮を管理するグループ
@@ -288,18 +300,13 @@ function buildGoniatite() {
         // --- 【重要】すべての触手を口元の「一点」に集める ---
         tGroup.position.set(0, 0, 0.1); // 頭部の中心（口元）に配置
         
-        // Z軸回転で円状に配置
+        // 【バグ修正】Z軸回転で円状に配置（ループ内へ移動）
         tGroup.rotation.z = (i / tCount) * Math.PI * 2;
         
-        // --- 【重要】ピボットポイントを「根元」にする裏技 ---
-        // 円錐（Cone）を生成し、その高サの半分だけ「上（y方向）」にずらす
-        const tHeight = 1.3; // 触手の長さ
-        const tGeo = new THREE.ConeGeometry(0.03, tHeight, 8);
-        tGeo.translate(0, tHeight / 2, 0); // これで底面が(0,0,0)になる
-
+        // --- 触手本体 (Mesh) ---
         const tMesh = new THREE.Mesh(tGeo, fleshMat);
         
-        // 初期姿勢：正面を向かせる（y軸が Cone の長さ方向）
+        // 初期姿勢：正面を向かせる（Y軸方向）
         tMesh.rotation.x = Math.PI / 2; 
         
         tGroup.add(tMesh);
@@ -317,66 +324,94 @@ function buildGoniatite() {
     return { mesh: g, type: 'goniatite' };
 }
 
-// アニメーション関数
-function animateGoniatite(mesh, clock, food) {
+// ==========================================
+// 2. アニメーション関数 (animateGoniatite)
+// ==========================================
+// SEブラッシュアップ：food定義なしのエラー対策（デフォルト値 null ）
+function animateGoniatite(mesh, clock, food = null) {
     if (!mesh || !mesh.userData || !mesh.userData.tentacles) return;
     
     const time = clock.getElapsedTime();
     const data = mesh.userData;
 
-    // 1. エサへの反応度を計算
+    // 1. エサへの興奮度（activity）を計算
     let activity = 0;
-    // エサが存在し、かつ「表示されている時」だけ興奮する
+    // エサが存在し、かつ「見えている時」だけ反応する
     if (food && food.visible) {
         const dist = mesh.position.distanceTo(food.position);
-        // 距離 5.0 以内で反応開始、近づくほど 1.0 に近づく
+        // 距離 5.0 以内で反応、近づくほど 1.0 に近づく
         activity = Math.max(0, 1 - (dist / 5.0)); 
     }
 
-    // 2. 頭部の出し入れ
+    // 2. 【古生物学】外套膜の脈動（呼吸運動）
+    // 待機時(activity=0)ほどゆっくり(0.8)、興奮時ほど速く(2.0)脈動するサイン波
+    const breathSpeed = 0.8 + (activity * 1.2);
+    const breathBase = Math.sin(time * breathSpeed); // -1.0 〜 1.0
+
+    // 頭部グループ（head）全体を脈動に合わせて微細に前後(z軸)させる
     const head = mesh.children.find(c => c instanceof THREE.Group && c.position.z > 0.3);
     if (head) {
-        const targetZ = 0.5 + (activity * 0.4);
-        head.position.z += (targetZ - head.position.z) * 0.1;
+        // 呼吸による前後運動（0.05〜0.1）
+        const breathMove = 0.05 + (breathBase * 0.05);
+        // エサへの身乗り出し（普段 0.5、エサで 0.9 まで出る）
+        // SEブラッシュアップ：補間係数を上げ(0.1 -> 0.3)て機敏に
+        const targetZ = 0.5 + (activity * 0.4) + breathMove;
+        head.position.z += (targetZ - head.position.z) * 0.3; // 機敏に
     }
 
-    // 3. 触手のアニメーション（しなしなわしゃわしゃ）
+    // 3. 触手の「しなしなわしゃわしゃ」アニメーション
+    // 【バグ修正】回転設定ロジックを forEach ループ内へ移動
     data.tentacles.forEach((tGroup, i) => {
+        // buildGoniatiteで入れた tGroup の中の最初の Mesh（tMesh）を取得
         const tMesh = tGroup.children[0]; 
         if (!tMesh) return;
 
         const offset = i * (Math.PI * 2 / data.tentacles.length);
         
-        // --- 伸縮 (Scale) ---
-        // 普段は 0.5 (しなしな)、エサで 1.5 (シャキーン)
-        const targetScale = 0.5 + (activity * 1.0); 
-        tMesh.scale.y += (targetScale - tMesh.scale.y) * 0.1;
+        // --- 触手の伸縮 (Scale) ---
+        // 外套膜の脈動に合わせて軽く脈動（普段 0.5、エサで 1.5 までシャキーンと伸びる）
+        // SEブラッシュアップ：伸縮の補間も少しゆっくり(0.05)にして「筋肉」の動きに
+        const targetScale = (0.5 + (breathBase * 0.05)) + (activity * 1.0); 
+        tMesh.scale.y += (targetScale - tMesh.scale.y) * 0.05; // しなやかに
 
-        // --- 動きの激しさ ---
-        const speed = 1.0 + (activity * 4.0);
-        const range = 0.08 + (activity * 0.4);
+        // --- 展開（ Spread / 巨神兵回避 ） ---
+        // 外套膜の脈動同期開閉（呼吸）
+        // SEブラッシュアップ：興奮時は展開(開き具合)を大きく変更（普段0.3、エサで-0.5）してメリハリを
+        const spreadBase = 0.3 + (breathBase * 0.1); // 呼吸による脈動閉じ気味(0.3)
+        // エサが出ると放射状に開く(-0.5ラジアン)
+        // SEブラッシュアップ：補間係数を大きく(0.1 -> 0.3)して機敏に
+        const targetSpread = spreadBase - (activity * 0.8); 
+        const spread = targetSpread; // 滑らかな展開は droop と rotation.x で適用
 
-        // --- 展開 (巨神兵回避：普段は閉じ、エサで開く) ---
-        // activityが低い(0)ときは 0.2 (閉じ気味)、高い(1)ときは -0.4 (開き)
-        const spread = 0.2 - (activity * 0.6);
+        // --- 動きの激しさ (わしゃわしゃ) ---
+        // 古生物学ブラッシュアップ：待機時はほとんど揺らさない(0.0)
+        const speed = 1.0 + (activity * 4.0); 
+        const range = 0.0 + (activity * 0.45); // 普段揺らさない、エサで大きく
 
-        // 4. ポーズ合成
-        const breath = Math.sin(time * 0.8) * 0.05; // 呼吸
+        // 基本の前後の動き（X軸）
         const waveX = Math.sin(time * speed + offset) * range;
-        const waveZ = Math.cos(time * speed * 0.8 + offset) * (range * 0.5);
 
-        tMesh.rotation.x = (Math.PI / 2) + waveX + spread + breath;
-        tMesh.rotation.z = waveZ;
-
-        // 脱力 (エサがない時は少し垂れる)
+        // ポーズ合成
+        // Math.PI / 2 (正面) + 前後わしゃわしゃ + 展開開閉(spreadベースに補間)
+        const rotationBaseX = (Math.PI / 2);
+        
+        // 脱力 (droop：エサがない時は重力で少し垂れる 0.5ラジアン)
         const droop = (1 - activity) * 0.5;
-        tMesh.rotation.x += droop;
+
+        // X軸回転を滑らかに補間して機敏に反映
+        const targetRotationX = rotationBaseX + waveX + droop;
+        // spread も droop に合成する
+        tMesh.rotation.x += (targetRotationX - tMesh.rotation.x) * 0.3; // 機敏に
+
+        // 外套膜同期開閉(spread)の適用
+        tMesh.rotation.x = tMesh.rotation.x * (1 - activity) + (rotationBaseX + spread) * activity;
+        
     });
 
-    // 5. 【追加】パクっと食べる判定
-    if (food && food.visible && mesh.position.distanceTo(food.position) < 0.6) {
+    // 4. パクっと食べる判定 (距離 0.5未満)
+    if (food && food.visible && mesh.position.distanceTo(food.position) < 0.5) {
         food.visible = false; // エサ消滅
-        // 食べた瞬間に「プシュッ」と気泡を出す演出（あれば）
+        // 食べた瞬間に「プシュッ」と気泡を出す演出
         if (typeof createBubble === 'function') createBubble(mesh, head);
     }
 }
