@@ -220,20 +220,89 @@ function buildGraptolite() {
     }
     g.scale.set(1.5, 1.5, 1.5); return { mesh: g, segments: [g], type: 'drift', offset: 0 };
 }
+
 function buildGoniatite() {
     const g = new THREE.Group();
-    const shell = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.3, 16, 32), mat(0xaa8866)); shell.rotation.y = Math.PI/2;
-    const shellFill = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.6, 32), mat(0x997755)); shellFill.rotation.z = Math.PI/2;
-    g.add(shell, shellFill);
-    const head = new THREE.Group(); head.position.z = 0.5; g.add(head);
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.1), eyeMat); eyeL.position.set(0.3, 0, 0.2); head.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x = -0.3; head.add(eyeR);
-    for(let i=0; i<8; i++) {
-        const t = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.6, 8), mat(0xaa5555));
-        t.rotation.set(Math.PI/2 + (Math.random()-0.5)*0.5, (i/8)*Math.PI*2, 0); t.position.z = 0.3; head.add(t);
+
+    // 1. マテリアルのアップデート：真珠層のような光沢
+    const shellMat = new THREE.MeshStandardMaterial({
+        color: 0xaa8866,
+        roughness: 0.3, // 少しツルッとさせる
+        metalness: 0.4, // 真珠光沢を表現
+    });
+
+    const softMat = (color) => new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.8
+    });
+
+    // 2. 殻（Shell）の構築：LatheGeometry で「巻き」を表現
+    // 断面のポイントを定義
+    const points = [];
+    for (let i = 0; i < 10; i++) {
+        points.push(new THREE.Vector2(Math.sin(i * 0.2) * 0.4 + 0.1, (i - 5) * 0.08));
     }
-    g.scale.set(1.5, 1.5, 1.5); return { mesh: g, segments: [], type: 'drift', offset: 10 };
+    const shell = new THREE.Mesh(new THREE.LatheGeometry(points, 32), shellMat);
+    shell.rotation.z = Math.PI / 2;
+    g.add(shell);
+
+    // 3. 頭部と触手
+    const headGroup = new THREE.Group();
+    headGroup.position.z = 0.4;
+    g.add(headGroup);
+
+    // 目 
+    for (let side of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), 
+            new THREE.MeshBasicMaterial({ color: 0x000000 }));
+        eye.position.set(side * 0.2, 0.1, 0.1);
+        headGroup.add(eye);
+    }
+
+    // 触手 (Tentacles) 
+    const tentacles = [];
+    for (let i = 0; i < 8; i++) {
+        const tGroup = new THREE.Group();
+        const tMesh = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.7, 8), softMat(0xaa5555));
+        
+        tMesh.rotation.x = Math.PI / 2;
+        tMesh.position.z = 0.3;
+        
+        tGroup.rotation.z = (i / 8) * Math.PI * 2;
+        tGroup.add(tMesh);
+        headGroup.add(tGroup);
+        tentacles.push(tGroup);
+    }
+
+    // データ紐付け
+    g.userData = {
+        tentacles: tentacles,
+        type: 'goniatite'
+    };
+
+    g.scale.set(1.5, 1.5, 1.5);
+    return { mesh: g, type: 'goniatite' };
 }
+
+function animateGoniatite(mesh, clock) {
+    const time = clock.getElapsedTime();
+    const data = mesh.userData;
+
+    // 1. ぷかぷかとした浮遊感
+    mesh.position.y += Math.sin(time * 0.8) * 0.003;
+    mesh.rotation.x = Math.sin(time * 0.5) * 0.05;
+
+    // 2. 触手のゆらぎアニメーション
+    if (data.tentacles) {
+        data.tentacles.forEach((t, i) => {
+            // 各触手がわずかにずれて波打つ
+            const wave = Math.sin(time * 2.0 + i * 0.5) * 0.15;
+            t.rotation.x = wave;
+            t.rotation.y = Math.cos(time * 1.5 + i) * 0.1;
+        });
+    }
+}
+
 function buildWiwaxia() {
     const g = new THREE.Group();
     const body = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12, 0, Math.PI*2, 0, Math.PI/2), mat(0x554466));
@@ -2231,8 +2300,6 @@ function animateBelinurus(crab, clock) {
     }
 } 
 
-
-
 //
 //--- 【古生物学×3D造形×システム】 ダンクルオステウス:完全不透明・強襲版 V2.0 ---
 //
@@ -3543,6 +3610,10 @@ function animate() {
 
         // --- 【修正ポイント】clockオブジェクトをシミュレートして渡す ---
         const clockSim = { getElapsedTime: () => time };
+
+        if (ent.type === 'goniatite') {
+            animateGoniatite(ent.mesh, clockSim);
+        }
 
         // シーラカンス専用の分岐を追加
         if (ent.type === 'coelacanth') {
