@@ -223,34 +223,37 @@ function buildGraptolite() {
 
 function buildGoniatite() {
     const g = new THREE.Group();
-
     const shellMat = new THREE.MeshStandardMaterial({ 
         color: 0xaa8866, 
         roughness: 0.4,
-        side: THREE.DoubleSide // 内側も描画して「抜け」を防止 
+        side: THREE.DoubleSide 
     });
 
-    // 1. 殻（Shell）: ドーナツ型 [cite: 232-233]
+    // 1. 殻（Shell）: ドーナツ型
     const shell = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.3, 16, 32), shellMat);
-    // ドーナツを横倒しにする
     shell.rotation.y = Math.PI / 2; 
     g.add(shell);
 
-    // 2. 【修正】中心の封鎖パーツ（隙間キラー）
-    // 円柱ではなく「球体」を使い、中心に配置することで、どの角度からも隙間を消します
-    const shellFill = new THREE.Mesh(
-        new THREE.SphereGeometry(0.35, 24, 24), // 穴の半径(0.3)より少し大きくする
-        shellMat
-    );
-    // 殻の中に少しだけ深く埋め込む
+    // 2. 中心の封鎖（軸のズレ対策）
+    const shellFill = new THREE.Mesh(new THREE.SphereGeometry(0.35, 24, 24), shellMat);
     shellFill.position.z = -0.05; 
-    shellFill.scale.set(1.2, 1.2, 0.8); // 左右に広げて穴を完全にカバー
+    shellFill.scale.set(1.2, 1.2, 0.8); 
     g.add(shellFill);
 
-    // 3. 軟体部（頭部）
+    // 3. 【アップデート】「殻の出口」を表現するパーツ
+    // 完全に抜く代わりに、頭の付け根に少し広がる「襟（カラー）」を足します
+    const aperture = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.3, 0.2, 32, 1, true), 
+        shellMat
+    );
+    aperture.rotation.x = Math.PI / 2;
+    aperture.position.z = 0.4; // 殻の正面に配置
+    g.add(aperture);
+
+    // 4. 軟体部（頭部）: 敢えて「外側」かつ「前方」へ
     const head = new THREE.Group();
-    // 殻の開口部（正面）へ突き出させる
-    head.position.z = 0.45; 
+    // 座標を少し y (上) にずらすと、殻の巻きの終端から出ているように見えます
+    head.position.set(0, 0.1, 0.6); 
     g.add(head);
 
     // 頭のベース（肉）
@@ -258,10 +261,10 @@ function buildGoniatite() {
         new THREE.SphereGeometry(0.3, 16, 16),
         new THREE.MeshStandardMaterial({ color: 0xaa5555, roughness: 0.8 })
     );
-    headBase.scale.set(1, 1, 0.7);
+    headBase.scale.set(1, 1, 0.8);
     head.add(headBase);
 
-    // 目玉 [cite: 238-239]
+    // 目玉 [cite: 10, 11]
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 });
     for (let side of [-1, 1]) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
@@ -269,27 +272,22 @@ function buildGoniatite() {
         head.add(eye);
     }
 
-    // 4. 触手（もにょもにょグループ） [cite: 240-244]
+    // 5. 触手 [cite: 12-16]
     const tentacles = [];
     for (let i = 0; i < 8; i++) {
         const tGroup = new THREE.Group();
         tGroup.rotation.z = (i / 8) * Math.PI * 2;
-        
-        const tMesh = new THREE.Mesh(
-            new THREE.ConeGeometry(0.05, 0.7, 8), 
-            new THREE.MeshStandardMaterial({ color: 0xaa5555 })
-        );
-        // 正面を向かせる
+        const tMesh = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.7, 8), 
+            new THREE.MeshStandardMaterial({ color: 0xaa5555 }));
         tMesh.rotation.x = Math.PI / 2;
         tMesh.position.z = 0.2;
-        
         tGroup.add(tMesh);
         head.add(tGroup);
         tentacles.push(tGroup);
     }
 
     g.userData = { tentacles: tentacles, type: 'goniatite' };
-    g.scale.set(1.5, 1.5, 1.5);
+    g.scale.set(1.5, 1.5, 1.5); // [cite: 19]
     return { mesh: g, type: 'goniatite' };
 }
 
@@ -300,13 +298,13 @@ function animateGoniatite(mesh, clock) {
     const data = mesh.userData;
 
     // 触手の動きを「振動」から「うねり」に変える
+    // animateGoniatite 内での微調整
     if (data.tentacles) {
-        data.tentacles.forEach((tGroup, i) => {
-            // 位相をずらして、一本ずつ違う動きをさせる
-            const phase = i * (Math.PI / 4);
-            // 角度を直接上書きすることで、累積による痙攣を防ぐ
-            tGroup.rotation.x = Math.sin(time * 1.5 + phase) * 0.15;
-            tGroup.rotation.y = Math.cos(time * 1.2 + phase) * 0.1;
+        data.tentacles.forEach((t, i) => {
+            // i を使って、一本ずつ動くタイミング（位相）をずらす
+            const offset = i * 0.8;
+            t.rotation.x = Math.sin(time * 1.5 + offset) * 0.2; // 前後のうねり
+            t.rotation.z = Math.cos(time * 1.0 + offset) * 0.1; // 左右の広がり
         });
     }
 }
