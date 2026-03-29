@@ -222,24 +222,35 @@ function buildGraptolite() {
 }
 function buildAuroralumina() {
     const g = new THREE.Group();
-    // 1. ポリプ（本体）：5角形の少し角ばったラッパ状
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.2, 1.8, 5), mat(0xc3b091));
-    stem.position.y = 0.9;
+    // 1. ポリプ（本体）：5角形のラッパ状
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.1, 1.2, 5), mat(0xc3b091));
+    stem.position.y = 0.6;
     g.add(stem);
 
-    // 2. 触手の房：半透明の素材を使うとクラゲらしさが出ます
-    const crownMat = new THREE.MeshStandardMaterial({ color: 0xfff0f5, transparent: true, opacity: 0.7 });
+    // 2. 触手の房：球体を引き伸ばして「カプセル形状」を代用
+    const crownMat = new THREE.MeshStandardMaterial({ 
+        color: 0xfff0f5, 
+        transparent: true, 
+        opacity: 0.7 
+    });
+
     for(let i=0; i<8; i++) {
-        const tentacle = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.8, 4, 8), crownMat);
+        // 0.1の球体を、Y軸方向に5倍（0.5）に伸ばして触手にする
+        const tentacle = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), crownMat);
+        tentacle.scale.set(0.4, 5, 0.4); 
+
         const angle = (i / 8) * Math.PI * 2;
-        tentacle.position.set(Math.cos(angle) * 0.2, 1.8, Math.sin(angle) * 0.2);
+        // 配置場所を本体の先端（y=1.2付近）に調整
+        tentacle.position.set(Math.cos(angle) * 0.2, 1.2, Math.sin(angle) * 0.2);
         tentacle.rotation.z = Math.PI / 4;
         tentacle.rotation.y = angle;
         g.add(tentacle);
     }
     
+    // 他の環境生物（Stromatolite）と同様の戻り値
     return { mesh: g, segments: [], type: 'static', offset: 0 };
 }
+
 
 // ==========================================
 // 1. ゴニアタイト生成関数 (buildGoniatite)
