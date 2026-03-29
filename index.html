@@ -220,6 +220,26 @@ function buildGraptolite() {
     }
     g.scale.set(1.5, 1.5, 1.5); return { mesh: g, segments: [g], type: 'drift', offset: 0 };
 }
+function buildAuroralumina() {
+    const g = new THREE.Group();
+    // 1. ポリプ（本体）：5角形の少し角ばったラッパ状
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.2, 1.8, 5), mat(0xc3b091));
+    stem.position.y = 0.9;
+    g.add(stem);
+
+    // 2. 触手の房：半透明の素材を使うとクラゲらしさが出ます
+    const crownMat = new THREE.MeshStandardMaterial({ color: 0xfff0f5, transparent: true, opacity: 0.7 });
+    for(let i=0; i<8; i++) {
+        const tentacle = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.8, 4, 8), crownMat);
+        const angle = (i / 8) * Math.PI * 2;
+        tentacle.position.set(Math.cos(angle) * 0.2, 1.8, Math.sin(angle) * 0.2);
+        tentacle.rotation.z = Math.PI / 4;
+        tentacle.rotation.y = angle;
+        g.add(tentacle);
+    }
+    
+    return { mesh: g, segments: [], type: 'static', offset: 0 };
+}
 
 // ==========================================
 // 1. ゴニアタイト生成関数 (buildGoniatite)
@@ -3508,6 +3528,20 @@ function switchEra(era) {
             st.mesh.traverse(c => { if(c.isMesh) c.userData.entityData = { def: { jp:'ストロマトライト', en:'Stromatolite', latin:'Cyanobacteria', desc:'光合成を行うシアノバクテリアのコロニー。' } }; }); envGroup.add(st.mesh);
             const cm = buildCyclomedusa(); cm.mesh.position.set((Math.random()-0.5)*250, bottomY, (Math.random()-0.5)*250);
             cm.mesh.traverse(c => { if(c.isMesh) c.userData.entityData = { def: { jp:'サイクロメデューサ', en:'Cyclomedusa', latin:'Cyclomedusa radiata', desc:'同心円状の隆起を持つエディアカラ紀の円盤状生物。' } }; }); envGroup.add(cm.mesh);
+            const al = buildAuroralumina(); 
+            al.mesh.position.set((Math.random()-0.5)*250, bottomY, (Math.random()-0.5)*250);
+            al.mesh.traverse(c => { 
+                if(c.isMesh) c.userData.entityData = { 
+                    def: { 
+                        jp: 'アウロラルミナ', 
+                        en: 'Auroralumina', 
+                        latin: 'Auroralumina attenboroughii', 
+                        desc: '5.6億年前の地層で見つかった、刺胞動物（クラゲやサンゴ）の最も古い親戚の一つ。' 
+                    } 
+                }; 
+            }); 
+            envGroup.add(al.mesh);
+        
         }
     } else if(era === 'cambrian') {
         for(let i=0; i<20; i++) {
